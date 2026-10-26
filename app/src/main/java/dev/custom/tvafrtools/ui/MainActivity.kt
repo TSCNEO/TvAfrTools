@@ -414,8 +414,14 @@ class MainActivity : AppCompatActivity() {
                 val card = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    isFocusable = true
-                    background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
+                    isFocusable = false
+                    descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        setColor(Color.parseColor("#191B22"))
+                        cornerRadius = dpToPx(14).toFloat()
+                        setStroke(dpToPx(1), Color.parseColor("#282B35"))
+                    }
                     setPadding(dpToPx(20), dpToPx(14), dpToPx(20), dpToPx(14))
                     layoutParams = LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -714,14 +720,16 @@ class MainActivity : AppCompatActivity() {
         return card
     }
 
-    private fun makeActionButton(label: String, onClick: () -> Unit): Button {
-        return Button(this).apply {
+    private fun makeActionButton(label: String, onClick: () -> Unit): TextView {
+        return TextView(this).apply {
             text = label
-            isAllCaps = false
+            gravity = Gravity.CENTER
             setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.drawable.action_button_text_selector))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(dpToPx(18), dpToPx(10), dpToPx(18), dpToPx(10))
             isFocusable = true
+            isFocusableInTouchMode = false
+            isClickable = true
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.action_button_selector)
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
