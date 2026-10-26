@@ -61,3 +61,10 @@ Para futuras versiones:
 - **Corrección de bugs**: `1.1.x`
 - **Nuevas funciones**: `1.x.0`
 - **Cambios mayores de arquitectura**: `x.0.0`
+
+### Versión 1.2.0 (Release)
+- **Mapeo de Botón ampliado a Navegación y Apps**:
+  - `🏠 Ir al Inicio / Home (Launcher)`: Ejecución nativa instantánea vía `performGlobalAction(GLOBAL_ACTION_HOME)`.
+  - `🗂 Apps Recientes del Sistema`: Selector nativo de Android TV / Google TV vía `performGlobalAction(GLOBAL_ACTION_RECENTS)`.
+  - `📱 Abrir una Aplicación instalada...`: Al seleccionarlo en el menú de asignación, analiza automáticamente todas las aplicaciones del televisor (Disney+, Netflix, Prime, YouTube, Kodi, Plex, Tivimate, etc.) y permite vincular el botón directamente a esa app.
+  - Se muestra el nombre real de la aplicación vinculada en la tarjeta del botón (`• 1 Clic : 📱 Abrir app: YouTube`).
