@@ -85,7 +85,7 @@ object PrivilegedServer {
             val sm = Class.forName("android.os.ServiceManager")
             val getService = sm.getMethod("getService", String::class.java)
             getService.invoke(null, name) as? IBinder
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
             null
         }
     }
@@ -95,7 +95,7 @@ object PrivilegedServer {
         println("TvAfrTools PrivilegedServer starting on 127.0.0.1:$PORT (UID=${android.os.Process.myUid()}, SDK=${Build.VERSION.SDK_INT})...")
         try {
             Looper.prepareMainLooper()
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
         }
 
         initDisplayClasses()
@@ -134,7 +134,7 @@ object PrivilegedServer {
                 runShellCommand("settings put secure match_content_frame_rate 2")
                 // Keep TCP ADB port 5555 open across reboots on Xiaomi / Google TV boxes
                 runShellCommand("setprop persist.adb.tcp.port 5555")
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
             }
         }.start()
     }
@@ -253,11 +253,11 @@ object PrivilegedServer {
                             }
                         }
                     }
-                } catch (_: Throwable) {
+                } catch (ignored: Throwable) {
                 } finally {
                     try {
                         proc?.destroy()
-                    } catch (_: Throwable) {
+                    } catch (ignored: Throwable) {
                     }
                 }
                 Thread.sleep(2000L)
@@ -287,13 +287,13 @@ object PrivilegedServer {
             val registerMethod: Method? = try {
                 val callbackIntf = Class.forName("android.window.ITaskFpsCallback")
                 wmClass.getMethod("registerTaskFpsCallback", Int::class.javaPrimitiveType, callbackIntf)
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
                 null
             }
             val unregisterMethod: Method? = try {
                 val callbackIntf = Class.forName("android.window.ITaskFpsCallback")
                 wmClass.getMethod("unregisterTaskFpsCallback", callbackIntf)
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
                 null
             }
 
@@ -307,7 +307,7 @@ object PrivilegedServer {
                         registeredCallback?.let { oldCb ->
                             try {
                                 unregisterMethod?.invoke(wm, oldCb)
-                            } catch (_: Throwable) {
+                            } catch (ignored: Throwable) {
                             }
                         }
                         val newCb = createTaskFpsCallbackStub { fps ->
@@ -342,7 +342,7 @@ object PrivilegedServer {
                             }
                         }
                     }
-                } catch (_: Throwable) {
+                } catch (ignored: Throwable) {
                 }
                 Thread.sleep(750)
             }
@@ -393,7 +393,7 @@ object PrivilegedServer {
                 val taskIdField = taskInfo.javaClass.getField("taskId")
                 return taskIdField.getInt(taskInfo)
             }
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
         }
         return -1
     }
@@ -436,7 +436,7 @@ object PrivilegedServer {
                     }
                 }
             }
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
         }
 
         // 3. Check readable sysfs nodes (only if File.canRead() to avoid SELinux audit spam!)
@@ -460,7 +460,7 @@ object PrivilegedServer {
                         }
                     }
                 }
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
             }
         }
 
@@ -537,7 +537,7 @@ object PrivilegedServer {
                 currentFpsSource = "TUNNEL_3_2_PROBE"
                 return 23.976f to currentFpsSource
             }
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
         }
 
         // Check Android 9-14 dumpsys media.metrics for codec frameRate
@@ -551,7 +551,7 @@ object PrivilegedServer {
                     return fps to "MEDIA_METRICS"
                 }
             }
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
         }
 
         return currentFps to currentFpsSource
@@ -617,7 +617,7 @@ object PrivilegedServer {
                         setPowerMethod.invoke(null, token, powerMode)
                         return true
                     }
-                } catch (_: Throwable) {
+                } catch (ignored: Throwable) {
                 }
             }
 
@@ -656,7 +656,7 @@ object PrivilegedServer {
                     }
                     if (ok) return true
                 }
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
             }
 
             // 4. Android 10–12 fallback: SurfaceControl.getInternalDisplayToken()
@@ -667,7 +667,7 @@ object PrivilegedServer {
                     setPowerMethod.invoke(null, token, powerMode)
                     return true
                 }
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
             }
 
             // 5. Android 9 (SDK 28) fallback: SurfaceControl.getBuiltInDisplay(0)
@@ -678,7 +678,7 @@ object PrivilegedServer {
                     setPowerMethod.invoke(null, token, powerMode)
                     return true
                 }
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
             }
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -704,7 +704,7 @@ object PrivilegedServer {
                 runShellCommand(cmd)
                 true
             }
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
             false
         }
     }
@@ -735,7 +735,7 @@ object PrivilegedServer {
                         }
                     }
                 }
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
             }
         }
 
@@ -753,7 +753,7 @@ object PrivilegedServer {
                     val c = if (raw > 1000f) raw / 1000f else raw
                     if (c in 20.0f..115.0f) return c
                 }
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
             }
         }
         return -1f
@@ -814,17 +814,17 @@ object PrivilegedServer {
                     val realActivity = try {
                         val f = item.javaClass.getField("realActivity")
                         f.get(item) as? android.content.ComponentName
-                    } catch (_: Throwable) { null }
+                    } catch (ignored: Throwable) { null }
 
                     val origActivity = try {
                         val f = item.javaClass.getField("origActivity")
                         f.get(item) as? android.content.ComponentName
-                    } catch (_: Throwable) { null }
+                    } catch (ignored: Throwable) { null }
 
                     val baseIntentComp = try {
                         val f = item.javaClass.getField("baseIntent")
                         (f.get(item) as? android.content.Intent)?.component
-                    } catch (_: Throwable) { null }
+                    } catch (ignored: Throwable) { null }
 
                     val comp = realActivity ?: origActivity ?: baseIntentComp
                     val pkg = comp?.packageName
@@ -833,7 +833,7 @@ object PrivilegedServer {
                     }
                 }
             }
-        } catch (_: Throwable) {}
+        } catch (ignored: Throwable) {}
 
         // Fallback: dumpsys activity recents extraction (100% reliable across Android 9-14)
         if (result.isEmpty()) {
@@ -846,7 +846,7 @@ object PrivilegedServer {
                         result.add(pkg)
                     }
                 }
-            } catch (_: Throwable) {}
+            } catch (ignored: Throwable) {}
         }
         return result.toList()
     }
@@ -878,7 +878,7 @@ object PrivilegedServer {
                 runShellCommand("settings put global hdr_conversion_mode 1")
                 "SISTEMA_AUTO"
             }
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
             "NO_SOPORTADO"
         }
     }
@@ -898,7 +898,7 @@ object PrivilegedServer {
                 "2" -> "FORZAR SURROUND"
                 else -> "ESTÉREO PCM (Claridad Diálogos)"
             }
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
             "AUTO"
         }
     }
@@ -911,7 +911,7 @@ object PrivilegedServer {
 
             val imGlobalClass = try {
                 Class.forName("android.hardware.input.InputManagerGlobal")
-            } catch (_: Throwable) {
+            } catch (ignored: Throwable) {
                 Class.forName("android.hardware.input.InputManager")
             }
             val getInstance = imGlobalClass.getMethod("getInstance")
@@ -931,13 +931,14 @@ object PrivilegedServer {
             val proc = ProcessBuilder("sh", "-c", cmd).redirectErrorStream(true).start()
             proc.waitFor(1500, TimeUnit.MILLISECONDS)
             proc.inputStream.bufferedReader().readText()
-        } catch (_: Throwable) {
+        } catch (ignored: Throwable) {
             ""
         }
     }
 
     private fun handleClient(socket: java.net.Socket) {
-        socket.use { s ->
+        try {
+            socket.use { s ->
             s.soTimeout = 3500
             val reader = BufferedReader(InputStreamReader(s.getInputStream()))
             val writer = PrintWriter(s.getOutputStream(), true)
@@ -1037,5 +1038,7 @@ object PrivilegedServer {
                 }
             }
         }
+    } catch (ignored: Throwable) {
     }
+}
 }

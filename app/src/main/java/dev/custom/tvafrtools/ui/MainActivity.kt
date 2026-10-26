@@ -166,24 +166,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun showRestrictedSettingsGuideDialog() {
         AlertDialog.Builder(this)
-            .setTitle("🔓 Desbloquear Ajustes restringidos en Android 13/14")
+            .setTitle("ℹ️ Ajustes restringidos en Android TV")
             .setMessage(
-                "En Android 13 y 14, el sistema bloquea por seguridad las aplicaciones instaladas desde archivo APK.\n\n" +
-                "Pasos para desbloquearlo en tu TV:\n" +
-                "1. Pulsa el botón inferior Ir a Información de la app.\n" +
-                "2. Arriba a la derecha, pulsa en los 3 puntos (o menú Más).\n" +
-                "3. Selecciona Permitir ajustes restringidos.\n" +
-                "4. Vuelve a TvAfrTools y activa el servicio de Accesibilidad.\n\n" +
-                "💡 Si tienes activada la Depuración USB en Ajustes de Desarrollador, pulsa Activar automáticamente y la app se desbloquea sola."
+                "En Android TV y Google TV, la ficha de la app no tiene el menú de 3 puntos que tienen los teléfonos móviles.\n\n" +
+                "Por eso, TvAfrTools desbloquea los permisos automáticamente:\n\n" +
+                "1. Asegúrate de tener activada la \"Depuración USB\" en los Ajustes de Desarrollador de tu TV.\n" +
+                "2. Pulsa en \"⚡ Activar automáticamente\".\n" +
+                "3. Si tu TV muestra la ventana de confirmación, marca \"Permitir siempre\" y pulsa Aceptar con el mando."
             )
-            .setPositiveButton("⚙️ Ir a Información de la app") { _, _ ->
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:$packageName")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                startActivity(intent)
+            .setPositiveButton("⚡ Activar automáticamente") { _, _ ->
+                showAutoSetupDialog()
             }
-            .setNegativeButton("Cerrar", null)
+            .setNegativeButton("Entendido", null)
             .show()
     }
 
