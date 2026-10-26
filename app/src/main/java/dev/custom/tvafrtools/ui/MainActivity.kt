@@ -190,7 +190,9 @@ class MainActivity : AppCompatActivity() {
                 setOnFocusChangeListener { v, hasFocus ->
                     if (hasFocus) {
                         (v as TextView).typeface = Typeface.DEFAULT_BOLD
-                        switchSection(sec)
+                        if (currentSection != sec) {
+                            switchSection(sec)
+                        }
                     } else {
                         (v as TextView).typeface = Typeface.DEFAULT
                     }
@@ -295,6 +297,18 @@ class MainActivity : AppCompatActivity() {
         return root
     }
 
+    private fun refreshSectionContent() {
+        contentContainer.removeAllViews()
+        val contentView = when (currentSection) {
+            NavSection.AFR -> buildAfrSection()
+            NavSection.MAPPER -> buildMapperSection()
+            NavSection.ACTIONS -> buildQuickActionsSection()
+            NavSection.WEBREMOTE -> buildWebRemoteSection()
+            NavSection.SYSTEM -> buildSystemSection()
+        }
+        contentContainer.addView(contentView)
+    }
+
     private fun switchSection(section: NavSection) {
         currentSection = section
         for ((sec, btn) in navButtons) {
@@ -307,15 +321,7 @@ class MainActivity : AppCompatActivity() {
         titleView?.text = section.title
         subView?.text = section.subtitle
 
-        contentContainer.removeAllViews()
-        val contentView = when (section) {
-            NavSection.AFR -> buildAfrSection()
-            NavSection.MAPPER -> buildMapperSection()
-            NavSection.ACTIONS -> buildQuickActionsSection()
-            NavSection.WEBREMOTE -> buildWebRemoteSection()
-            NavSection.SYSTEM -> buildSystemSection()
-        }
-        contentContainer.addView(contentView)
+        refreshSectionContent()
     }
 
     // ================= SECTIONS BUILDERS =================
@@ -451,7 +457,7 @@ class MainActivity : AppCompatActivity() {
                 card.addView(makeActionButton("✏ Editar") { showEditMappingDialog(m) })
                 card.addView(makeActionButton("🗑 Borrar") {
                     prefs.removeMapping(m.keyCode)
-                    switchSection(NavSection.MAPPER)
+                    refreshSectionContent()
                 })
 
                 col.addView(card)
@@ -745,9 +751,11 @@ class MainActivity : AppCompatActivity() {
         val dm = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
         val m = dm.getDisplay(android.view.Display.DEFAULT_DISPLAY)?.mode
         val hzStr = if (m != null) "%.2f Hz".format(m.refreshRate) else "60.00 Hz"
-        val daemonOnline = ServerClient.isDaemonOnlineSync()
-        val statusText = "📺 $hzStr  •  ${if (daemonOnline) "🟢 Demonio Conectado" else "🟡 Demonio Iniciando"}"
-        liveStatusPill.text = statusText
+        lifecycleScope.launch {
+            val daemonOnline = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
+            val statusText = "📺 $hzStr  •  ${if (daemonOnline) "🟢 Demonio Conectado" else "🟡 Demonio Iniciando"}"
+            liveStatusPill.text = statusText
+        }
     }
 
     private fun showCaptureKeyDialog() {
@@ -839,7 +847,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                         prefs.upsertMapping(updated)
-                        switchSection(NavSection.MAPPER)
+                        refreshSectionContent()
                     }
                     .show()
             }

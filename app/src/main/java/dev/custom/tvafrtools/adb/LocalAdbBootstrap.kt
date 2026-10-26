@@ -60,6 +60,8 @@ object LocalAdbBootstrap {
             append("appops set $pkg SYSTEM_ALERT_WINDOW allow; ")
             append("settings put secure enabled_accessibility_services $accService; ")
             append("settings put secure accessibility_enabled 1; ")
+            append("pkill -f ${PrivilegedServer::class.java.name} 2>/dev/null || true; ")
+            append("sleep 0.2; ")
             append("export CLASSPATH=$apkPath; nohup app_process /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &")
         }
 
