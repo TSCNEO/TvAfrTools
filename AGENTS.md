@@ -94,3 +94,19 @@ Para futuras versiones:
      - Botón superior "🧹 Liberar RAM" para matar apps en 2º plano conservando la actual.
   3. `AndroidManifest.xml` & `LocalAdbBootstrap.kt`:
      - Declarados permisos `PACKAGE_USAGE_STATS`, `GET_TASKS`, `KILL_BACKGROUND_PROCESSES` y auto-otorgamiento de `appops set dev.custom.tvafrtools GET_USAGE_STATS allow`.
+
+### v1.2.3: In-App GitHub Releases Updater, Release Keystore & Redesigned Icons / Banners
+- **GitHub Repository**: [https://github.com/TSCNEO/TvAfrTools](https://github.com/TSCNEO/TvAfrTools) (Public).
+- **Automated CI/CD**: `.github/workflows/release.yml` triggers on tag push (`v*`) and publishes the release with the signed APK.
+- **Official Keystore**: `keystore/release.jks` with alias `tvafrtools` configured in `app/build.gradle.kts`.
+- **In-App Auto-Updater (`UpdateManager.kt`)**:
+  - Connects to GitHub API `https://api.github.com/repos/TSCNEO/TvAfrTools/releases/latest`.
+  - Performs semantic version check.
+  - Streaming download with live percentage callback.
+  - Dual-mode install:
+    - **Privileged Silent Install**: Via `PrivilegedServer` command `INSTALL_APK /path/to/apk` (`pm install -r -d`) - fully unattended on TV without dialogs.
+    - **Native Fallback**: Via `FileProvider` (`dev.custom.tvafrtools.fileprovider`) and `ACTION_VIEW`.
+- **Icon & Banner Redesign**:
+  - Replaced squashed asset with 16:9 Leanback banner (`ic_tv_banner.png`, 320x180 & 640x360).
+  - Added full mipmap suite (`ic_launcher.png`, `ic_launcher_round.png`) from mdpi (48px) to xxxhdpi (192px).
+  - Explicitly registered `android:banner`, `android:icon`, and `android:roundIcon` in `AndroidManifest.xml`.
