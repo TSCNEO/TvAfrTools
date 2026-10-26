@@ -38,6 +38,9 @@ import dev.custom.tvafrtools.server.isDaemonOnlineSync
 import dev.custom.tvafrtools.server.querySysInfoSync
 import dev.custom.tvafrtools.service.TvAfrAccessibilityService
 import dev.custom.tvafrtools.web.WebRemoteServer
+import dev.custom.tvafrtools.BuildConfig
+import dev.custom.tvafrtools.update.UpdateManager
+import dev.custom.tvafrtools.update.UpdateInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -600,7 +603,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
             setPadding(dpToPx(24), dpToPx(20), dpToPx(24), dpToPx(20))
-            isFocusable = true
+            isFocusable = false
         }
 
         val overlayGranted = Settings.canDrawOverlays(this)
@@ -633,6 +636,91 @@ class MainActivity : AppCompatActivity() {
         }
 
         col.addView(statusCard)
+
+        // Card de Actualización de Software (GitHub Releases)
+        val updateCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
+            setPadding(dpToPx(24), dpToPx(20), dpToPx(24), dpToPx(20))
+            isFocusable = false
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dpToPx(16)
+            }
+        }
+
+        val updateTitle = TextView(this).apply {
+            text = "🔄 Actualizaciones de Software (GitHub Releases)"
+            setTextColor(Color.parseColor("#F59E0B"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val updateDesc = TextView(this).apply {
+            text = "Versión instalada: v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\nRepositorio: https://github.com/TSCNEO/TvAfrTools"
+            setTextColor(Color.parseColor("#94A3B8"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dpToPx(6), 0, dpToPx(14))
+        }
+
+        val updateStatusText = TextView(this).apply {
+            text = ""
+            setTextColor(Color.parseColor("#38BDF8"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setPadding(0, dpToPx(10), 0, 0)
+            visibility = View.GONE
+        }
+
+        val checkUpdateBtn = makeActionButton("🔍 Buscar actualizaciones") {
+            updateStatusText.visibility = View.VISIBLE
+            updateStatusText.text = "Consultando releases en GitHub..."
+            updateStatusText.setTextColor(Color.parseColor("#F59E0B"))
+
+            UpdateManager.checkForUpdate(this) { info, err ->
+                if (info != null) {
+                    updateStatusText.text = "🎉 ¡Nueva versión ${info.tagName} disponible!"
+                    updateStatusText.setTextColor(Color.parseColor("#10B981"))
+
+                    AlertDialog.Builder(this)
+                        .setTitle("Nueva versión ${info.tagName}")
+                        .setMessage("Notas de la versión:\n\n${info.releaseNotes}\n\n¿Deseas descargar e instalar ahora?")
+                        .setPositiveButton("Descargar e Instalar") { _, _ ->
+                            updateStatusText.text = "Descargando actualización..."
+                            UpdateManager.downloadAndInstall(
+                                this,
+                                info,
+                                onProgress = { pct ->
+                                    updateStatusText.text = "Descargando: $pct%"
+                                },
+                                onStatus = { status ->
+                                    updateStatusText.text = status
+                                },
+                                onComplete = { success, msg ->
+                                    updateStatusText.text = msg
+                                    if (success) {
+                                        updateStatusText.setTextColor(Color.parseColor("#10B981"))
+                                    } else {
+                                        updateStatusText.setTextColor(Color.parseColor("#EF4444"))
+                                    }
+                                }
+                            )
+                        }
+                        .setNegativeButton("Más tarde", null)
+                        .show()
+                } else {
+                    updateStatusText.text = err ?: "Estás en la última versión."
+                    updateStatusText.setTextColor(Color.parseColor("#94A3B8"))
+                }
+            }
+        }
+
+        updateCard.addView(updateTitle)
+        updateCard.addView(updateDesc)
+        updateCard.addView(checkUpdateBtn)
+        updateCard.addView(updateStatusText)
+
+        col.addView(updateCard)
         return scroll
     }
 

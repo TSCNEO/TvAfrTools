@@ -11,18 +11,40 @@ android {
         applicationId = "dev.custom.tvafrtools"
         minSdk = 28
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.2.2"
+        versionCode = 9
+        versionName = "1.2.3"
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
+    signingConfigs {
+        create("release") {
+            val ks = file("../keystore/release.jks")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "CHANGE_ME_IN_GITHUB_SECRETS"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "tvafrtools"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "CHANGE_ME_IN_GITHUB_SECRETS"
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {
