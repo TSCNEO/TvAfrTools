@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.TrafficStats
 import android.os.Build
@@ -441,7 +442,7 @@ class OverlayToolkit(
         closeAfrPanel()
 
         Thread {
-            val recentPkgs = ServerClient.getRecentPackages()
+            val recentApps = dev.custom.tvafrtools.recents.RecentAppsManager.getRecentApps(context, currentForegroundPkg)
             val memInfo = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memInfo)
             val availMb = memInfo.availMem / (1024 * 1024)
@@ -498,7 +499,7 @@ class OverlayToolkit(
                 card.addView(cleanBtn)
 
                 val pm = context.packageManager
-                if (recentPkgs.isEmpty()) {
+                if (recentApps.isEmpty()) {
                     val emptyTv = TextView(context).apply {
                         text = "No hay otras aplicaciones recientes en memoria."
                         setTextColor(Color.parseColor("#CBD5E1"))
@@ -506,25 +507,19 @@ class OverlayToolkit(
                     }
                     card.addView(emptyTv)
                 } else {
-                    recentPkgs.forEach { pkg ->
-                        val appLabel = try {
-                            val ai = pm.getApplicationInfo(pkg, 0)
-                            pm.getApplicationLabel(ai).toString()
-                        } catch (_: Exception) {
-                            pkg
-                        }
-                        val isFg = pkg == currentForegroundPkg
+                    recentApps.forEach { app ->
                         val rowText = buildString {
-                            append("▶ $appLabel  ($pkg)")
-                            if (isFg) append("  [EN PANTALLA]")
+                            append(app.label)
+                            if (app.isForeground) append("  [EN PANTALLA]")
                         }
                         val btn = createPanelButton(
                             text = rowText,
-                            isHighlighted = isFg,
+                            isHighlighted = app.isForeground,
+                            icon = app.icon,
                             onClick = {
                                 closeRecentsPanel()
-                                val intent = pm.getLeanbackLaunchIntentForPackage(pkg)
-                                    ?: pm.getLaunchIntentForPackage(pkg)
+                                val intent = pm.getLeanbackLaunchIntentForPackage(app.packageName)
+                                    ?: pm.getLaunchIntentForPackage(app.packageName)
                                 if (intent != null) {
                                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     context.startActivity(intent)
@@ -533,8 +528,8 @@ class OverlayToolkit(
                             onLongClick = {
                                 closeRecentsPanel()
                                 Thread {
-                                    ServerClient.forceStopPackage(pkg)
-                                    showBanner("🛑 Cerrada forzosamente: $appLabel")
+                                    ServerClient.forceStopPackage(app.packageName)
+                                    showBanner("🛑 Cerrada forzosamente: ${app.label}")
                                 }.start()
                             }
                         )
@@ -586,6 +581,7 @@ class OverlayToolkit(
     private fun createPanelButton(
         text: String,
         isHighlighted: Boolean,
+        icon: Drawable? = null,
         onLongClick: (() -> Unit)? = null,
         onClick: () -> Unit
     ): TextView {
@@ -596,6 +592,13 @@ class OverlayToolkit(
             setPadding(dp(16), dp(11), dp(16), dp(11))
             isFocusable = true
             isFocusableInTouchMode = true
+            gravity = Gravity.CENTER_VERTICAL
+            if (icon != null) {
+                val iconSize = dp(24)
+                icon.setBounds(0, 0, iconSize, iconSize)
+                setCompoundDrawables(icon, null, null, null)
+                compoundDrawablePadding = dp(12)
+            }
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT

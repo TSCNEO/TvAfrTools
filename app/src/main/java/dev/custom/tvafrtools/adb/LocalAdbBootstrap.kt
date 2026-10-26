@@ -58,6 +58,9 @@ object LocalAdbBootstrap {
 
         val shellCmd = buildString {
             append("appops set $pkg SYSTEM_ALERT_WINDOW allow; ")
+            append("appops set $pkg GET_USAGE_STATS allow; ")
+            append("pm grant $pkg android.permission.PACKAGE_USAGE_STATS 2>/dev/null || true; ")
+            append("pm grant $pkg android.permission.GET_TASKS 2>/dev/null || true; ")
             // Append rather than overwrite so other services (like Projectivy Launcher RemoteKeyService) are not disabled
             append("cur=\$(settings get secure enabled_accessibility_services); ")
             append("case \":\$cur:\" in *\":$accService:\"*) ;; *) if [ -z \"\$cur\" ] || [ \"\$cur\" = \"null\" ]; then settings put secure enabled_accessibility_services \"$accService\"; else settings put secure enabled_accessibility_services \"\$cur:$accService\"; fi ;; esac; ")
