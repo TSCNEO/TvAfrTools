@@ -68,3 +68,10 @@ Para futuras versiones:
   - `🗂 Apps Recientes del Sistema`: Selector nativo de Android TV / Google TV vía `performGlobalAction(GLOBAL_ACTION_RECENTS)`.
   - `📱 Abrir una Aplicación instalada...`: Al seleccionarlo en el menú de asignación, analiza automáticamente todas las aplicaciones del televisor (Disney+, Netflix, Prime, YouTube, Kodi, Plex, Tivimate, etc.) y permite vincular el botón directamente a esa app.
   - Se muestra el nombre real de la aplicación vinculada en la tarjeta del botón (`• 1 Clic : 📱 Abrir app: YouTube`).
+
+### Versión 1.2.1 (Bugfix - Foco de Projectivy Launcher y Coexistencia de Servicios)
+- **Causa del problema**: Al activarse los permisos por ADB o al iniciar el demonio, el script ejecutaba `settings put secure enabled_accessibility_services $accService`, lo cual sobreescribía la lista de servicios de accesibilidad activos del sistema y deshabilitaba silenciosamente el servicio `io.freemytv/io.freemytv.RemoteKeyService` ("Free My TV", servicio propio de Projectivy Launcher). Sin este servicio, el motor de navegación de Projectivy dejaba de recibir eventos de teclas y su cursor/resaltado visual de selección desaparecía (aunque el sistema siguiera navegando a ciegas).
+- **Solución implementada**:
+  1. `LocalAdbBootstrap.kt`: Ahora realiza un `append` condicional preservando todos los servicios de accesibilidad existentes (`cur:dev.custom...`), impidiendo desactivar Projectivy ni ninguna otra app instalada.
+  2. `TvAfrAccessibilityService.kt`: En `launchPackage`, si la app destino es el launcher (Projectivy `io.freemytv` o launcher por defecto), se despacha de forma segura mediante `performGlobalAction(GLOBAL_ACTION_HOME)` nativo en lugar de recrear la tarea como app estándar.
+  3. Se ha restaurado y verificado en Homatics que ambos servicios están `Bound` y activos al mismo tiempo.
