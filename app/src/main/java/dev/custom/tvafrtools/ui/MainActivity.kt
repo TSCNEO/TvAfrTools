@@ -54,11 +54,11 @@ class MainActivity : AppCompatActivity() {
 
     // UI navigation state
     private enum class NavSection(val title: String, val subtitle: String, val icon: String) {
-        AFR("Auto Frame Rate", "Conmutación precisa 24p/50p/60p para Disney+, Prime Video y Netflix", "🎬"),
-        MAPPER("Mapeo de Mando", "Reasigna cualquier botón físico para 1 clic, doble clic o pulsación larga", "🎮"),
-        ACTIONS("Acciones Rápidas", "Herramientas de pantalla apagada real, limpieza de RAM y selector Hz", "🚀"),
-        WEBREMOTE("Mando Web Móvil", "Controla tu Android TV desde el navegador del smartphone o PC", "🌐"),
-        SYSTEM("Estado & Demonio", "Monitor de temperatura, tasa de refresco nativa y demonio ADB interno", "⚡")
+        AFR("Ajuste de Hz", "Evita tirones ajustando la tele a 24, 50 o 60 Hz", "🎬"),
+        MAPPER("Botones del Mando", "Elige qué hace cada botón con 1 clic, 2 clics o mantener pulsado", "🎮"),
+        ACTIONS("Acciones Rápidas", "Accesos útiles: apagar pantalla, cambiar de app o liberar memoria", "🚀"),
+        WEBREMOTE("Mando desde el Móvil", "Controla la tele desde el navegador del móvil o el ordenador", "🌐"),
+        SYSTEM("Estado y Ajustes", "Información del sistema, permisos y actualizaciones", "⚡")
     }
 
     private var currentSection = NavSection.AFR
@@ -219,7 +219,7 @@ class MainActivity : AppCompatActivity() {
         sidebar.addView(spacer)
 
         val deviceModelText = TextView(this).apply {
-            text = "${Build.MANUFACTURER.capitalize()} ${Build.MODEL}\nAndroid ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})"
+            text = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}\nAndroid ${Build.VERSION.RELEASE}"
             setTextColor(Color.parseColor("#5A5F70"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.5f)
             setPadding(10, 0, 10, 6)
@@ -338,38 +338,38 @@ class MainActivity : AppCompatActivity() {
         scroll.addView(col)
 
         col.addView(makeInteractiveToggleCard(
-            title = "Motor AFR Híbrido Automático",
-            desc = "Detecta la reproducción en streaming vía Túnel Widevine L1, SurfaceFlinger y Sysfs para conmutar los Hz de tu TV",
+            title = "Ajuste automático de Hz al reproducir vídeo",
+            desc = "Detecta películas y series en apps como Disney+, Netflix o Prime y cambia los Hz de la tele para que se vea suave",
             initial = prefs.afrEnabled
         ) { prefs.afrEnabled = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Refresco Fraccional Preciso",
-            desc = "Conmuta a 23.976 Hz para cine 24p y a 59.94 Hz en 60p para eliminar tirones (judder)",
+            title = "Modo cine exacto (23,976 Hz)",
+            desc = "Elimina los micropalpitares en películas grabadas a 24 fotogramas",
             initial = prefs.fractionalFrameRate
         ) { prefs.fractionalFrameRate = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Auto-Pausa y Reproducción en cambio HDMI",
-            desc = "Pausa 1.5s durante el handshake HDMI para que Disney+ y Prime Video no pierdan el túnel HDCP",
+            title = "Pausa breve al cambiar de Hz",
+            desc = "Pausa el vídeo un segundo mientras la tele cambia de señal para no perder imagen ni sonido",
             initial = prefs.pauseOnSwitch
         ) { prefs.pauseOnSwitch = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Convertir 25 fps a 50 Hz",
-            desc = "Series y emisiones deportivas europeas con visualización suave en pantallas a 50Hz",
+            title = "Series y deportes europeos a 50 Hz",
+            desc = "Adapta contenidos a 25 fps para que se vean fluidos a 50 Hz",
             initial = prefs.convert25To50Hz
         ) { prefs.convert25To50Hz = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Restaurar 60 Hz al volver al Launcher",
-            desc = "Al salir de la app de streaming hacia Projectivy o Android Home, el panel recupera 60Hz de inmediato",
+            title = "Volver a 60 Hz al salir al menú principal",
+            desc = "Al volver a la pantalla de inicio, la tele vuelve automáticamente a 60 Hz para que los menús vayan rápidos",
             initial = prefs.autoStopAfrOnExit
         ) { prefs.autoStopAfrOnExit = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Filtro anti-repetición de Volumen",
-            desc = "Evita cambios bruscos de sonido al mantener pulsado el volumen en mandos Bluetooth",
+            title = "Control suave del volumen",
+            desc = "Evita saltos bruscos de volumen al dejar pulsado el botón en mandos Bluetooth",
             initial = prefs.volumeButtonsFix
         ) { prefs.volumeButtonsFix = it })
 
@@ -377,9 +377,9 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dpToPx(14), 0, 0)
         }
-        testRow.addView(makeActionButton("🎬 Probar AFR 1-Clic") { runServiceAction(QuickAction.ONE_CLICK_AFR) })
-        testRow.addView(makeActionButton("📺 Abrir Selector Hz") { runServiceAction(QuickAction.AFR_PANEL) })
-        testRow.addView(makeActionButton("↩ Restaurar 60Hz") { runServiceAction(QuickAction.STOP_AFR) })
+        testRow.addView(makeActionButton("🎬 Ajustar al vídeo ahora") { runServiceAction(QuickAction.ONE_CLICK_AFR) })
+        testRow.addView(makeActionButton("📺 Elegir Hz en pantalla") { runServiceAction(QuickAction.AFR_PANEL) })
+        testRow.addView(makeActionButton("↩ Volver a 60 Hz") { runServiceAction(QuickAction.STOP_AFR) })
         col.addView(testRow)
 
         return scroll
@@ -399,19 +399,19 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 0, 0, dpToPx(14))
         }
         val infoText = TextView(this).apply {
-            text = "Reasigna los botones del mando físico para lanzar funciones personalizadas"
+            text = "Elige un botón del mando y ponle la función que quieras"
             setTextColor(Color.parseColor("#94A3B8"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         topRow.addView(infoText)
-        topRow.addView(makeActionButton("➕ Capturar Botón del Mando") { showCaptureKeyDialog() })
+        topRow.addView(makeActionButton("➕ Añadir botón del mando") { showCaptureKeyDialog() })
         col.addView(topRow)
 
         val mappings = prefs.getMappings()
         if (mappings.isEmpty()) {
             val emptyCard = TextView(this).apply {
-                text = "No hay botones personalizados configurados todavía.\nPulsa 'Capturar Botón del Mando' para asignar acciones."
+                text = "Todavía no has configurado ningún botón.\nPulsa 'Añadir botón del mando' para empezar."
                 setTextColor(Color.parseColor("#717686"))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
                 setPadding(dpToPx(20), dpToPx(24), dpToPx(20), dpToPx(24))
@@ -443,12 +443,12 @@ class MainActivity : AppCompatActivity() {
                 val keyName = KeyEvent.keyCodeToString(m.keyCode)
                 val detail = TextView(this).apply {
                     text = buildString {
-                        append("🔘 ").append(keyName).append(" (código ").append(m.keyCode).append(")\n")
+                        append("🔘 ").append(keyName).append(" (botón ").append(m.keyCode).append(")\n")
                         append("   • 1 Clic : ").append(formatActionLabel(m.singleClick, m.singleClickPkg)).append("\n")
                         append("   • 2 Clics: ").append(formatActionLabel(m.doubleClick, m.doubleClickPkg)).append("\n")
-                        append("   • Larga  : ").append(formatActionLabel(m.longPress, m.longPressPkg))
+                        append("   • Mantener pulsado: ").append(formatActionLabel(m.longPress, m.longPressPkg))
                         if (m.appOverrides.isNotEmpty()) {
-                            append("\n   • Streaming Override: ").append(formatActionLabel(m.appOverrides.values.first(), m.overridePkg))
+                            append("\n   • Solo en apps de vídeo: ").append(formatActionLabel(m.appOverrides.values.first(), m.overridePkg))
                         }
                     }
                     setTextColor(Color.parseColor("#F1F5F9"))
@@ -482,10 +482,10 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(10))
         }
-        grid1.addView(makeCardButton("🌑 Real Screen Off", "Apaga el panel OLED/LCD mientras reproduces música en segundo plano") {
+        grid1.addView(makeCardButton("🌑 Apagar Pantalla", "Apaga la pantalla mientras sigues escuchando música en Spotify o YouTube") {
             runServiceAction(QuickAction.REAL_SCREEN_TOGGLE)
         })
-        grid1.addView(makeCardButton("📊 HUD Técnico en Vivo", "Muestra en pantalla FPS reales, temperatura del SoC y Hz de refresco") {
+        grid1.addView(makeCardButton("📊 Datos en Pantalla", "Muestra los fotogramas (FPS), la temperatura y los Hz actuales") {
             runServiceAction(QuickAction.HUD_TOGGLE)
         })
         col.addView(grid1)
@@ -494,10 +494,10 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(10))
         }
-        grid2.addView(makeCardButton("🧹 Limpiar Memoria RAM", "Cierra procesos zombies en segundo plano para máxima fluidez en streaming") {
+        grid2.addView(makeCardButton("🧹 Liberar Memoria", "Cierra apps de fondo para que la tele vaya más fluida") {
             runServiceAction(QuickAction.CLEAN_BACKGROUND_RAM)
         })
-        grid2.addView(makeCardButton("🗂 Multitarea Rápida", "Conmutador instantáneo entre las últimas aplicaciones abiertas") {
+        grid2.addView(makeCardButton("🗂 Apps Abiertas", "Panel flotante para cambiar rápido entre tus últimas aplicaciones") {
             runServiceAction(QuickAction.RECENT_APPS_SWITCHER)
         })
         col.addView(grid2)
@@ -506,10 +506,10 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(10))
         }
-        grid3.addView(makeCardButton("🌙 Filtro de Luz Nocturna", "Atenuador cálido para sesiones de cine nocturnas sin fatiga visual") {
+        grid3.addView(makeCardButton("🌙 Modo Noche", "Atenúa la pantalla para ver la tele a oscuras sin deslumbrarte") {
             runServiceAction(QuickAction.NIGHT_DIMMER_TOGGLE)
         })
-        grid3.addView(makeCardButton("🖱 Ratón Virtual D-Pad", "Controla un cursor con las flechas del mando en aplicaciones móviles no adaptadas") {
+        grid3.addView(makeCardButton("🖱 Ratón con el Mando", "Mueve un cursor con las flechas en apps pensadas para móvil o tablet") {
             runServiceAction(QuickAction.MOUSE_TOGGLE)
         })
         col.addView(grid3)
@@ -526,8 +526,8 @@ class MainActivity : AppCompatActivity() {
         scroll.addView(col)
 
         col.addView(makeInteractiveToggleCard(
-            title = "Activar Servidor Mando Web Móvil",
-            desc = "Permite enviar textos, pulsaciones y comandos desde cualquier móvil o portátil en tu red Wi-Fi",
+            title = "Activar control desde el móvil",
+            desc = "Te permite usar el móvil como mando a distancia para escribir rápido y controlar la tele",
             initial = prefs.webRemoteEnabled
         ) { prefs.webRemoteEnabled = it })
 
@@ -560,7 +560,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, dpToPx(6), 0, dpToPx(6))
         }
         val urlHint = TextView(this).apply {
-            text = "Abre esta dirección en Safari, Chrome o Firefox desde el teléfono conectado a la misma red."
+            text = "Abre esta dirección en el navegador de tu móvil (conectado a la misma Wi-Fi):"
             setTextColor(Color.parseColor("#717686"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         }
@@ -584,17 +584,17 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(16))
         }
-        btnRow.addView(makeActionButton("⚡ Auto-Activar Todo (ADB Interno)") {
+        btnRow.addView(makeActionButton("⚡ Activar permisos automáticamente") {
             triggerInternalAdbAutoStart(showToast = true)
         })
-        btnRow.addView(makeActionButton("🪟 Permiso Superposición") {
+        btnRow.addView(makeActionButton("🪟 Permitir mostrar sobre otras apps") {
             if (!Settings.canDrawOverlays(this)) {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             } else {
                 Toast.makeText(this, "✓ Permiso de superposición ya concedido", Toast.LENGTH_SHORT).show()
             }
         })
-        btnRow.addView(makeActionButton("🛡 Ajustes Accesibilidad") {
+        btnRow.addView(makeActionButton("🛡 Abrir Ajustes de Accesibilidad") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         })
         col.addView(btnRow)
@@ -616,12 +616,12 @@ class MainActivity : AppCompatActivity() {
             val dispStr = if (curMode != null) "${curMode.physicalWidth}x${curMode.physicalHeight} @ ${"%.3f".format(curMode.refreshRate)}Hz" else "N/A"
 
             val info = buildString {
-                append("• Modelo de Dispositivo : ${Build.MANUFACTURER.capitalize()} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})\n")
-                append("• Pantalla actual HDMI  : $dispStr\n")
-                append("• Servicio Accesibilidad: ${if (accActive) "🟢 Concedido y activo" else "🔴 Inactivo"}\n")
-                append("• Permiso Superposición : ${if (overlayGranted) "🟢 Concedido (AfrOverlay & HUD listos)" else "🔴 Pendiente"}\n")
-                append("• Demonio Interno ADB   : ${if (daemonSample.online) "🟢 Conectado (FPS: ${"%.2f".format(daemonSample.fps)} | Temp: ${"%.1f".format(daemonSample.cpuTempC)}°C)" else "🟡 Arrancando..."}\n")
-                append("• Mando Web Local       : http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}")
+                append("• Dispositivo : ${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})\n")
+                append("• Pantalla HDMI : $dispStr\n")
+                append("• Accesibilidad : ${if (accActive) "🟢 Activo" else "🔴 Inactivo"}\n")
+                append("• Superposición : ${if (overlayGranted) "🟢 Concedido" else "🔴 Pendiente"}\n")
+                append("• Motor Interno : ${if (daemonSample.online) "🟢 Listo (${"%.2f".format(daemonSample.fps)} FPS | ${"%.1f".format(daemonSample.cpuTempC)}°C)" else "🟡 Iniciando..."}\n")
+                append("• Mando Web     : http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}")
             }
 
             statusCard.removeAllViews()
@@ -652,7 +652,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val updateTitle = TextView(this).apply {
-            text = "🔄 Actualizaciones de Software (GitHub Releases)"
+            text = "🔄 Actualizaciones"
             setTextColor(Color.parseColor("#F59E0B"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             typeface = Typeface.DEFAULT_BOLD
@@ -672,7 +672,7 @@ class MainActivity : AppCompatActivity() {
             visibility = View.GONE
         }
 
-        val checkUpdateBtn = makeActionButton("🔍 Buscar actualizaciones") {
+        val checkUpdateBtn = makeActionButton("🔍 Comprobar si hay nueva versión") {
             updateStatusText.visibility = View.VISIBLE
             updateStatusText.text = "Consultando releases en GitHub..."
             updateStatusText.setTextColor(Color.parseColor("#F59E0B"))
@@ -841,7 +841,7 @@ class MainActivity : AppCompatActivity() {
         val hzStr = if (m != null) "%.2f Hz".format(m.refreshRate) else "60.00 Hz"
         lifecycleScope.launch {
             val daemonOnline = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
-            val statusText = "📺 $hzStr  •  ${if (daemonOnline) "🟢 Demonio Conectado" else "🟡 Demonio Iniciando"}"
+            val statusText = "📺 $hzStr  •  ${if (daemonOnline) "🟢 Sistema listo" else "🟡 Iniciando..."}"
             liveStatusPill.text = statusText
         }
     }
@@ -949,21 +949,21 @@ class MainActivity : AppCompatActivity() {
         val streamingActiveAction = if (mapping.appOverrides.isNotEmpty()) {
             formatActionLabel(mapping.appOverrides.values.first(), mapping.overridePkg)
         } else {
-            "Desactivado (usa acción normal)"
+            "Sin cambio (misma acción)"
         }
 
         val steps = arrayOf(
-            "1 Clic estándar: ${formatActionLabel(mapping.singleClick, mapping.singleClickPkg)}",
-            "Doble Clic: ${formatActionLabel(mapping.doubleClick, mapping.doubleClickPkg)}",
-            "Pulsación Larga: ${formatActionLabel(mapping.longPress, mapping.longPressPkg)}",
-            "Acción especial solo dentro de Streaming: $streamingActiveAction"
+            "1 Clic: ${formatActionLabel(mapping.singleClick, mapping.singleClickPkg)}",
+            "2 Clics rápidos: ${formatActionLabel(mapping.doubleClick, mapping.doubleClickPkg)}",
+            "Mantener pulsado: ${formatActionLabel(mapping.longPress, mapping.longPressPkg)}",
+            "Cambiar acción solo en apps de vídeo: $streamingActiveAction"
         )
 
         AlertDialog.Builder(this)
             .setTitle("Configurar botón: ${KeyEvent.keyCodeToString(mapping.keyCode)}")
             .setItems(steps) { _, stepIdx ->
                 val dialogTitle = if (stepIdx == 3) {
-                    "¿Qué hacer al pulsar este botón DENTRO de Disney+, Netflix o Prime Video?"
+                    "¿Qué debe hacer este botón cuando estés viendo Disney+, Netflix o Prime?"
                 } else {
                     steps[stepIdx]
                 }
