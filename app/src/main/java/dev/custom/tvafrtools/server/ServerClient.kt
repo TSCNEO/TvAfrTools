@@ -140,6 +140,11 @@ object ServerClient {
         val resp = sendCommand("SET_DISPLAY_MODE -1 0 0 0")
         return resp.startsWith("OK")
     }
+
+    fun installApk(apkPath: String): Boolean {
+        val resp = sendCommand("INSTALL_APK $apkPath", 15000)
+        return resp.startsWith("OK")
+    }
 }
 
 data class DaemonSample(

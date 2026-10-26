@@ -1014,6 +1014,19 @@ object PrivilegedServer {
                     runShellCommand("cmd dreams start-dreaming")
                     writer.println("OK DREAM")
                 }
+                "INSTALL_APK" -> {
+                    val apkPath = parts.getOrNull(1).orEmpty()
+                    if (apkPath.isNotBlank()) {
+                        val out = runShellCommand("pm install -r -d $apkPath")
+                        if (out.contains("Success", ignoreCase = true)) {
+                            writer.println("OK INSTALL_SUCCESS")
+                        } else {
+                            writer.println("ERR $out")
+                        }
+                    } else {
+                        writer.println("ERR MISSING_PATH")
+                    }
+                }
                 "INJECT_KEY" -> {
                     val keyCode = parts.getOrNull(1)?.toIntOrNull() ?: 0
                     val ok = if (keyCode > 0) injectKeyEvent(keyCode) else false
