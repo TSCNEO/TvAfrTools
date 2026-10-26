@@ -115,3 +115,15 @@ Para futuras versiones:
 - **Textos Humanos y Claros**: Eliminado vocabulario técnico excesivo (LLM-style). Descripciones directas orientadas al usuario de TV ("Ajuste de Hz", "Evita tirones", "Apagar pantalla mientras suena música", "Control desde el móvil").
 - **Acciones y Diálogos Simplificados**: Opciones del mapeador de mando reducidas a términos sencillos ("1 Clic", "2 Clics rápidos", "Mantener pulsado", "Acción diferente dentro de apps de vídeo").
 - **Validación del Autoupdater**: Publicación de release `v1.2.4` en GitHub con APK firmado para probar el flujo de actualización completa directamente desde el televisor.
+
+### v1.2.5: Activación Autónoma de Permisos y Compatibilidad Android 13/14 (Restricted Settings)
+- **Bypass de Ajustes Restringidos (Android 13/14)**:
+  - Añadido `appops set dev.custom.tvafrtools ACCESS_RESTRICTED_SETTINGS allow` y `appops set dev.custom.tvafrtools 119 allow` en `LocalAdbBootstrap.kt`.
+  - En Android 13+, las APKs instaladas fuera de Google Play tienen bloqueada la activación de accesibilidad (`Skipping enabling service disallowed by device admin policy`). Este bypass reactiva el servicio automáticamente.
+- **Asistente Visual de Permisos en la App (`MainActivity.kt`)**:
+  - Banner interactivo en la cabecera cuando el servicio de accesibilidad está inactivo.
+  - Botón "⚡ Activar automáticamente en 1 clic": Conecta al ADB interno, guía al usuario si aparece el diálogo "¿Permitir depuración USB?" en la TV ("Permitir siempre"), y arranca el motor.
+  - Botón directo para "Abrir Accesibilidad" y guía detallada para desbloquear "Ajustes restringidos" con acceso directo a la información de la aplicación (`ACTION_APPLICATION_DETAILS_SETTINGS`).
+- **Robustez de Red ADB Interna**:
+  - Detección multihost en `LocalAdbBootstrap`: prueba `127.0.0.1`, `localhost` y la IP WiFi local del dispositivo.
+  - Polling activo tras el inicio del daemon para verificar la conexión en tiempo real sin requerir comandos desde el PC.

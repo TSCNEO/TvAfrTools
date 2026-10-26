@@ -83,40 +83,179 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         lifecycleScope.launch {
             val online = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
-            if (!online && !autoBootstrapAttempted) {
-                autoBootstrapAttempted = true
-                triggerInternalAdbAutoStart(showToast = false)
+            if (!online) {
+                withContext(Dispatchers.IO) {
+                    LocalAdbBootstrap.autoStartPrivilegedDaemon(this@MainActivity)
+                }
+                for (i in 1..4) {
+                    delay(500L)
+                    if (withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }) break
+                }
             }
             updateLiveStatusBadge()
+            refreshSectionContent()
         }
     }
 
-    private fun triggerInternalAdbAutoStart(showToast: Boolean) {
-        lifecycleScope.launch {
-            if (showToast) {
-                Toast.makeText(
-                    this@MainActivity,
-                    "⚡ Conectando al ADB interno y arrancando demonio en segundo plano...",
-                    Toast.LENGTH_SHORT
-                ).show()
+    private fun isAccessibilityEnabled(context: Context): Boolean {
+        if (TvAfrAccessibilityService.instance != null) return true
+        return try {
+            val expected = "${context.packageName}/${TvAfrAccessibilityService::class.java.name}"
+            val enabled = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            ) ?: ""
+            enabled.contains(expected)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun buildAccessibilityWarningBanner(): View {
+        val banner = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpToPx(18), dpToPx(14), dpToPx(18), dpToPx(14))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, dpToPx(16))
             }
-            val result = withContext(Dispatchers.IO) {
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#261717"))
+                cornerRadius = dpToPx(10).toFloat()
+                setStroke(dpToPx(1), Color.parseColor("#DC2626"))
+            }
+        }
+
+        val title = TextView(this).apply {
+            text = "⚠️ Permiso de Accesibilidad inactivo"
+            setTextColor(Color.parseColor("#FCA5A5"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, dpToPx(4))
+        }
+        val desc = TextView(this).apply {
+            text = "Necesario para interceptar botones del mando, ajustar Hz automáticamente y mostrar el menú flotante."
+            setTextColor(Color.parseColor("#E2E8F0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+            setPadding(0, 0, 0, dpToPx(10))
+        }
+
+        val btnRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+
+        btnRow.addView(makeActionButton("⚡ Activar automáticamente") {
+            showAutoSetupDialog()
+        })
+        btnRow.addView(makeActionButton("🛡 Abrir Accesibilidad") {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        })
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            btnRow.addView(makeActionButton("ℹ️ Si dice Ajuste restringido (Android 13/14)") {
+                showRestrictedSettingsGuideDialog()
+            })
+        }
+
+        banner.addView(title)
+        banner.addView(desc)
+        banner.addView(btnRow)
+        return banner
+    }
+
+    private fun showRestrictedSettingsGuideDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("🔓 Desbloquear Ajustes restringidos en Android 13/14")
+            .setMessage(
+                "En Android 13 y 14, el sistema bloquea por seguridad las aplicaciones instaladas desde archivo APK.\n\n" +
+                "Pasos para desbloquearlo en tu TV:\n" +
+                "1. Pulsa el botón inferior Ir a Información de la app.\n" +
+                "2. Arriba a la derecha, pulsa en los 3 puntos (o menú Más).\n" +
+                "3. Selecciona Permitir ajustes restringidos.\n" +
+                "4. Vuelve a TvAfrTools y activa el servicio de Accesibilidad.\n\n" +
+                "💡 Si tienes activada la Depuración USB en Ajustes de Desarrollador, pulsa Activar automáticamente y la app se desbloquea sola."
+            )
+            .setPositiveButton("⚙️ Ir a Información de la app") { _, _ ->
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+            }
+            .setNegativeButton("Cerrar", null)
+            .show()
+    }
+
+    private fun showAutoSetupDialog() {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("⚡ Activando permisos en tu TV")
+            .setMessage(
+                "Conectando al sistema ADB interno...\n\n" +
+                "👉 IMPORTANTE: Si aparece una ventana en tu televisor preguntando si permites la depuración USB, marca la casilla Permitir siempre y pulsa Aceptar con el mando."
+            )
+            .setCancelable(false)
+            .setNegativeButton("Cancelar", null)
+            .show()
+
+        lifecycleScope.launch {
+            val res = withContext(Dispatchers.IO) {
                 LocalAdbBootstrap.autoStartPrivilegedDaemon(this@MainActivity)
             }
-            delay(600L)
-            val onlineNow = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
-            if (showToast) {
-                Toast.makeText(
-                    this@MainActivity,
-                    if (onlineNow) "✓ Demonio ADB y permisos activados con éxito"
-                    else "ℹ ${result.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+
+            var onlineNow = false
+            for (i in 1..8) {
+                delay(500L)
+                if (withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }) {
+                    onlineNow = true
+                    break
+                }
             }
+
+            try { dialog.dismiss() } catch (_: Throwable) {}
+
+            if (onlineNow) {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("✓ ¡Todo listo!")
+                    .setMessage("Los permisos del mando y el motor de cambio de Hz se han activado con éxito. Ya puedes usar tus botones configurados.")
+                    .setPositiveButton("Genial", null)
+                    .show()
+            } else {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(if (res.waitingForTvAuthPopup) "Acepta el mensaje en tu TV" else "No se pudo activar automáticamente")
+                    .setMessage(
+                        if (res.waitingForTvAuthPopup) {
+                            "Ha aparecido una ventana de confirmación en tu televisor.\n\n" +
+                            "1. Marca Permitir siempre desde este equipo\n" +
+                            "2. Pulsa Aceptar con el mando\n\n" +
+                            "Una vez aceptado, pulsa Reintentar."
+                        } else {
+                            "No se pudo conectar al sistema ADB interno.\n\n" +
+                            "• Para activarlo manualmente, ve a Ajustes > Accesibilidad > TvAfrTools.\n" +
+                            "• En Android 13/14, primero pulsa Permitir ajustes restringidos en la ficha de la app.\n" +
+                            "• O bien activa Depuración USB en las Opciones de Desarrollador de tu televisor."
+                        }
+                    )
+                    .setPositiveButton(if (res.waitingForTvAuthPopup) "Reintentar" else "🛡 Abrir Accesibilidad") { _, _ ->
+                        if (res.waitingForTvAuthPopup) {
+                            showAutoSetupDialog()
+                        } else {
+                            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        }
+                    }
+                    .setNeutralButton("⚙️ Ficha de la app") { _, _ ->
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("Cerrar", null)
+                    .show()
+            }
+
             updateLiveStatusBadge()
-            if (currentSection == NavSection.SYSTEM) {
-                switchSection(NavSection.SYSTEM)
-            }
+            refreshSectionContent()
         }
     }
 
@@ -302,6 +441,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshSectionContent() {
         contentContainer.removeAllViews()
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        val accActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this)
+        if (!accActive) {
+            layout.addView(buildAccessibilityWarningBanner())
+        }
+
         val contentView = when (currentSection) {
             NavSection.AFR -> buildAfrSection()
             NavSection.MAPPER -> buildMapperSection()
@@ -309,7 +461,13 @@ class MainActivity : AppCompatActivity() {
             NavSection.WEBREMOTE -> buildWebRemoteSection()
             NavSection.SYSTEM -> buildSystemSection()
         }
-        contentContainer.addView(contentView)
+        contentView.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            0,
+            1f
+        )
+        layout.addView(contentView)
+        contentContainer.addView(layout)
     }
 
     private fun switchSection(section: NavSection) {
@@ -585,17 +743,22 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 0, 0, dpToPx(16))
         }
         btnRow.addView(makeActionButton("⚡ Activar permisos automáticamente") {
-            triggerInternalAdbAutoStart(showToast = true)
+            showAutoSetupDialog()
         })
-        btnRow.addView(makeActionButton("🪟 Permitir mostrar sobre otras apps") {
+        btnRow.addView(makeActionButton("🛡 Abrir Accesibilidad") {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        })
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            btnRow.addView(makeActionButton("⚙️ Info App (Ajustes restringidos)") {
+                showRestrictedSettingsGuideDialog()
+            })
+        }
+        btnRow.addView(makeActionButton("🪟 Permitir superposición") {
             if (!Settings.canDrawOverlays(this)) {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             } else {
                 Toast.makeText(this, "✓ Permiso de superposición ya concedido", Toast.LENGTH_SHORT).show()
             }
-        })
-        btnRow.addView(makeActionButton("🛡 Abrir Ajustes de Accesibilidad") {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         })
         col.addView(btnRow)
 
@@ -607,7 +770,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val overlayGranted = Settings.canDrawOverlays(this)
-        val accActive = TvAfrAccessibilityService.instance != null
+        val accActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this)
 
         lifecycleScope.launch {
             val daemonSample = withContext(Dispatchers.IO) { ServerClient.querySysInfoSync() }
@@ -1033,7 +1196,7 @@ class MainActivity : AppCompatActivity() {
         if (svc != null) {
             svc.executeQuickAction(action)
         } else {
-            triggerInternalAdbAutoStart(showToast = true)
+            showAutoSetupDialog()
         }
     }
 
