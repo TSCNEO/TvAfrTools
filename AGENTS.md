@@ -127,3 +127,7 @@ Para futuras versiones:
 - **Robustez de Red ADB Interna**:
   - Detección multihost en `LocalAdbBootstrap`: prueba `127.0.0.1`, `localhost` y la IP WiFi local del dispositivo.
   - Polling activo tras el inicio del daemon para verificar la conexión en tiempo real sin requerir comandos desde el PC.
+
+### v1.2.6: Robustez de Demonios Privilegiados y Clarificación de UI Android TV
+- **Prevención de Caídas por Timeout**: Protegido `handleClient` en `PrivilegedServer.kt` con captura global de excepciones por sockets o timeouts para evitar caídas del demonio en segundo plano (`SocketTimeoutException`).
+- **Clarificación de Ajustes Restringidos**: En Android TV no existe el menú de 3 puntos de los móviles. Se actualizó el diálogo explicativo informando de que la activación es 100% automática a través de la opción "⚡ Activar automáticamente".
