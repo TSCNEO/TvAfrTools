@@ -62,7 +62,7 @@ object LocalAdbBootstrap {
             append("settings put secure accessibility_enabled 1; ")
             append("pkill -f ${PrivilegedServer::class.java.name} 2>/dev/null || true; ")
             append("sleep 0.2; ")
-            append("export CLASSPATH=$apkPath; nohup app_process /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &")
+            append("nohup app_process -Djava.class.path=$apkPath /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &")
         }
 
         return runLocalAdbShellCommand(context, "127.0.0.1", port, shellCmd)
