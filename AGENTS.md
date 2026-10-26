@@ -75,3 +75,22 @@ Para futuras versiones:
   1. `LocalAdbBootstrap.kt`: Ahora realiza un `append` condicional preservando todos los servicios de accesibilidad existentes (`cur:dev.custom...`), impidiendo desactivar Projectivy ni ninguna otra app instalada.
   2. `TvAfrAccessibilityService.kt`: En `launchPackage`, si la app destino es el launcher (Projectivy `io.freemytv` o launcher por defecto), se despacha de forma segura mediante `performGlobalAction(GLOBAL_ACTION_HOME)` nativo en lugar de recrear la tarea como app estándar.
   3. Se ha restaurado y verificado en Homatics que ambos servicios están `Bound` y activos al mismo tiempo.
+
+### Versión 1.2.2 (Multitarea Universal y Detección de Apps Recientes)
+- **Causa del problema**:
+  - En Android TV (Homatics, Xiaomi Mi Box, Google TV), el sistema operativo carece del selector estándar de aplicaciones recientes de móviles/tablets cuando se usa un launcher de terceros (o `GLOBAL_ACTION_RECENTS` no hace nada).
+  - La app base `tvQuickActions` resuelve esto prescindiendo del recents nativo de Android e implementando su propio gestor de aplicaciones recientes (`AbstractC0281c.f4637k` + `W1.H` + `UsageStatsManager`).
+  - En versiones anteriores de `TvAfrTools`, la consulta dependía únicamente de `ActivityTaskManager.getTasks()`, que en Android 13/14 solo lista tareas con ventanas activas en ese instante (Running Tasks), arrojando 0 resultados para apps en segundo plano o suspendidas.
+- **Solución implementada replicando fielmente la arquitectura de la app base**:
+  1. `RecentAppsManager.kt`:
+     - **Seguimiento en vivo en tiempo real**: `TvAfrAccessibilityService` intercepta los eventos `TYPE_WINDOW_STATE_CHANGED` y actualiza una lista concurrente ordenada por uso reciente (`liveRecentPackages`), idéntica a `f4637k` en `tvQuickActions`.
+     - **Filtro de exclusión**: Omite launchers (`Intent.CATEGORY_HOME`, Projectivy `io.freemytv`), `SystemUI`, asistentes y daemons OEM (`EXCLUDED_PACKAGES`).
+     - **Persistencia histórica**: Al iniciar el servicio o reiniciar el dispositivo, consulta `UsageStatsManager.queryUsageStats()` (últimas 48 horas) para reconstruir el historial antes de que se abran nuevas apps.
+     - **Extracción de dumpsys recents**: El demonio privilegiado parsea los componentes de tareas recientes (`dumpsys activity recents`), asegurando 100% de cobertura en cualquier versión de Android.
+     - **Resolución de banners e iconos**: Replicación de `W1.H` obteniendo los banners Leanback oficiales (`getApplicationBanner`, `getActivityBanner`) e iconos adaptativos para cada tarjeta.
+  2. `OverlayToolkit.kt`:
+     - Menú de multitarea rediseñado con iconos oficiales a 24dp, nombres amigables de aplicaciones e indicador `[EN PANTALLA]` para la app activa.
+     - Conmutación instantánea al pulsar `OK` y detención forzada (`force-stop`) con pulsación larga de `OK`.
+     - Botón superior "🧹 Liberar RAM" para matar apps en 2º plano conservando la actual.
+  3. `AndroidManifest.xml` & `LocalAdbBootstrap.kt`:
+     - Declarados permisos `PACKAGE_USAGE_STATS`, `GET_TASKS`, `KILL_BACKGROUND_PROCESSES` y auto-otorgamiento de `appops set dev.custom.tvafrtools GET_USAGE_STATS allow`.

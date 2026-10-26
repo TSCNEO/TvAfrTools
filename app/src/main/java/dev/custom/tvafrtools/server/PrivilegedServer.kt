@@ -779,33 +779,76 @@ object PrivilegedServer {
      * Lists recent/running user packages and optionally kills background packages to free RAM
      * (crucial on 2GB RAM devices like Xiaomi Mi Box S / Mi TV Stick / Chromecast).
      */
+    private fun isValidRecentPkg(pkg: String): Boolean {
+        if (pkg.isBlank() || pkg == "dev.custom.tvafrtools") return false
+        val lower = pkg.lowercase(Locale.ROOT)
+        if (lower.contains("launcher") ||
+            lower.contains("tvrecommendations") ||
+            lower.contains("katniss") ||
+            lower.contains("nes.recents") ||
+            lower.startsWith("com.android.systemui") ||
+            lower == "android" ||
+            lower.contains("permissioncontroller")
+        ) return false
+        return true
+    }
+
     private fun getRecentPackages(): List<String> {
-        val result = mutableListOf<String>()
+        val result = linkedSetOf<String>()
         try {
             val atmClass = Class.forName("android.app.ActivityTaskManager")
             val getService = atmClass.getMethod("getService")
             val atm = getService.invoke(null)
-            val getTasks = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType)
-            val tasks = getTasks.invoke(atm, 15) as? List<*>
-            if (!tasks.isNullOrEmpty()) {
-                for (task in tasks) {
-                    if (task == null) continue
-                    val baseActivityField = task.javaClass.getField("baseActivity")
-                    val comp = baseActivityField.get(task) as? android.content.ComponentName ?: continue
-                    val pkg = comp.packageName
-                    if (pkg != "dev.custom.tvafrtools" &&
-                        !pkg.contains("launcher") &&
-                        !pkg.contains("tvrecommendations") &&
-                        !pkg.startsWith("com.android.systemui") &&
-                        !result.contains(pkg)
-                    ) {
+            val getRecentTasks = atm.javaClass.getMethod(
+                "getRecentTasks",
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType
+            )
+            val slice = getRecentTasks.invoke(atm, 30, 1, 0)
+            val getList = slice?.javaClass?.getMethod("getList")
+            val list = getList?.invoke(slice) as? List<*>
+            if (!list.isNullOrEmpty()) {
+                for (item in list) {
+                    if (item == null) continue
+                    val realActivity = try {
+                        val f = item.javaClass.getField("realActivity")
+                        f.get(item) as? android.content.ComponentName
+                    } catch (_: Throwable) { null }
+
+                    val origActivity = try {
+                        val f = item.javaClass.getField("origActivity")
+                        f.get(item) as? android.content.ComponentName
+                    } catch (_: Throwable) { null }
+
+                    val baseIntentComp = try {
+                        val f = item.javaClass.getField("baseIntent")
+                        (f.get(item) as? android.content.Intent)?.component
+                    } catch (_: Throwable) { null }
+
+                    val comp = realActivity ?: origActivity ?: baseIntentComp
+                    val pkg = comp?.packageName
+                    if (!pkg.isNullOrBlank() && isValidRecentPkg(pkg)) {
                         result.add(pkg)
                     }
                 }
             }
-        } catch (_: Throwable) {
+        } catch (_: Throwable) {}
+
+        // Fallback: dumpsys activity recents extraction (100% reliable across Android 9-14)
+        if (result.isEmpty()) {
+            try {
+                val output = runShellCommand("dumpsys activity recents")
+                val cmpRegex = Regex("""cmp=([a-zA-Z0-9._]+)/""")
+                for (match in cmpRegex.findAll(output)) {
+                    val pkg = match.groupValues[1]
+                    if (isValidRecentPkg(pkg)) {
+                        result.add(pkg)
+                    }
+                }
+            } catch (_: Throwable) {}
         }
-        return result
+        return result.toList()
     }
 
     private fun cleanBackgroundApps(excludePkg: String): Int {

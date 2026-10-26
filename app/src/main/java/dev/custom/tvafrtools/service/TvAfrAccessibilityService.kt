@@ -148,6 +148,8 @@ class TvAfrAccessibilityService : AccessibilityService() {
             webRemoteServer?.start()
         }
         overlayToolkit.showBanner("⚡ TvAfrTools activo (Pulsa tu botón mapeado en Disney+/Prime/Netflix)")
+        // Pre-load recent apps history (like tvQuickActions base app)
+        dev.custom.tvafrtools.recents.RecentAppsManager.loadInitialRecents(this)
         // Ensure local ADB daemon is running automatically
         LocalAdbBootstrap.ensureServerRunningAsync(this)
     }
@@ -172,6 +174,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
                 pkg != "com.android.systemui" &&
                 !pkg.startsWith("android")
             ) {
+                dev.custom.tvafrtools.recents.RecentAppsManager.onAppForegrounded(this, pkg)
                 if (pkg != currentForegroundPkg) {
                     val oldPkg = currentForegroundPkg
                     if (oldPkg.isNotBlank() && !isLauncherPackage(oldPkg)) {
