@@ -16,6 +16,8 @@
   - [DATO ELIMINADO]
   - Launcher: **Projectivy Launcher** (`io.freemytv`).
 - **Dispositivo de prueba:** [ANONIMIZADO]
+  - IP ADB: `192.0.2.11:5555`
+  - Estado: Instalado y con permisos activos (`TvAfrTools-v1.1-android14.apk`).
 - **Dispositivo de prueba:** [ANONIMIZADO]
   - *Nota Importante CEC*: `hdmi_control_controlled_by_tv` debe mantenerse en `0` o filtrado con el debounce de accesibilidad para evitar dobles clics de mando enviados simultáneamente por BT y CEC.
 
