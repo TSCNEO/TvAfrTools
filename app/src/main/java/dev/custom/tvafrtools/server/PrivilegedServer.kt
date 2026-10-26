@@ -1,4 +1,5 @@
 package dev.custom.tvafrtools.server
+import java.net.InetSocketAddress
 
 import android.os.Binder
 import android.os.Build
@@ -105,7 +106,9 @@ object PrivilegedServer {
         val executor = Executors.newCachedThreadPool()
         Thread {
             try {
-                val server = ServerSocket(PORT, 50, InetAddress.getByName("127.0.0.1"))
+                val server = ServerSocket()
+                server.reuseAddress = true
+                server.bind(InetSocketAddress("127.0.0.1", PORT), 50)
                 println("TvAfrTools PrivilegedServer listening on 127.0.0.1:$PORT")
                 while (true) {
                     val client = server.accept()
