@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cinema_bg">#111216</color>
+    <color name="cinema_sidebar">#0C0D10</color>
+    <color name="cinema_card">#191B22</color>
+    <color name="cinema_card_focused">#26211C</color>
+    <color name="cinema_border">#282B35</color>
+    <color name="cinema_amber">#F59E0B</color>
+    <color name="cinema_amber_dark">#D97706</color>
+    <color name="cinema_text_title">#F8FAFC</color>
+    <color name="cinema_text_body">#94A3B8</color>
+    <color name="cinema_success">#10B981</color>
+</resources>
