@@ -110,3 +110,8 @@ Para futuras versiones:
   - Replaced squashed asset with 16:9 Leanback banner (`ic_tv_banner.png`, 320x180 & 640x360).
   - Added full mipmap suite (`ic_launcher.png`, `ic_launcher_round.png`) from mdpi (48px) to xxxhdpi (192px).
   - Explicitly registered `android:banner`, `android:icon`, and `android:roundIcon` in `AndroidManifest.xml`.
+
+### v1.2.4: Lenguaje Claro, Simplificación de UI y Test de Actualizador
+- **Textos Humanos y Claros**: Eliminado vocabulario técnico excesivo (LLM-style). Descripciones directas orientadas al usuario de TV ("Ajuste de Hz", "Evita tirones", "Apagar pantalla mientras suena música", "Control desde el móvil").
+- **Acciones y Diálogos Simplificados**: Opciones del mapeador de mando reducidas a términos sencillos ("1 Clic", "2 Clics rápidos", "Mantener pulsado", "Acción diferente dentro de apps de vídeo").
+- **Validación del Autoupdater**: Publicación de release `v1.2.4` en GitHub con APK firmado para probar el flujo de actualización completa directamente desde el televisor.

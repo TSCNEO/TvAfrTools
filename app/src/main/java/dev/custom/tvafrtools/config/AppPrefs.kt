@@ -7,27 +7,27 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 enum class QuickAction(val id: String, val label: String) {
-    NONE("none", "No hacer nada (Passthrough)"),
-    GO_HOME("go_home", "🏠 Ir al Inicio / Home (Launcher)"),
-    SYSTEM_RECENTS("system_recents", "🗂 Apps Recientes del Sistema"),
-    OPEN_APP("open_app", "📱 Abrir una Aplicación instalada..."),
-    OPEN_NOTIFICATIONS("notifications", "🔔 Abrir Panel de Notificaciones"),
-    ONE_CLICK_AFR("one_click_afr", "⚡ AFR en 1 Clic (Auto-detectar FPS en Android 9–14)"),
-    AFR_PANEL("afr_panel", "📺 Panel Selector Manual de Hz (23.976 / 24 / 25 / 50 / 60Hz)"),
-    STOP_AFR("stop_afr", "↩ Detener AFR / Restaurar Hz estándar (60Hz)"),
-    RECENT_APPS_SWITCHER("recent_apps_switcher", "🗂 Multitarea Flotante TvAfr (Apps + Limpiar RAM)"),
-    CLEAN_BACKGROUND_RAM("clean_background_ram", "🧹 Liberar RAM (Cerrar apps en segundo plano)"),
-    REAL_SCREEN_TOGGLE("real_screen_toggle", "🌑 Apagar/Encender Pantalla Real (OLED Off)"),
-    HUD_TOGGLE("hud_toggle", "📊 Mostrar/Ocultar HUD de FPS, Temp SoC y Red"),
-    HDR_MODE_CYCLE("hdr_mode_cycle", "🌈 Alternar Modo HDR/SDR (Auto / SDR)"),
-    AUDIO_PASSTHROUGH_CYCLE("audio_passthrough_cycle", "🔊 Alternar Salida Audio (Passthrough / PCM)"),
-    FORCE_STOP_FOREGROUND("force_stop_fg", "⏹ Cerrar Forzosamente App Actual (Force Stop)"),
-    RESTART_FOREGROUND("restart_fg", "🔄 Reiniciar App Actual (Force Stop + Relanzar)"),
-    PREVIOUS_APP("previous_app", "🔀 Alternar con la Última App (Alt+Tab)"),
-    MOUSE_TOGGLE("mouse_toggle", "🖱 Activar/Desactivar Ratón Virtual por D-Pad"),
-    NIGHT_DIMMER_TOGGLE("night_dimmer", "🌙 Activar/Desactivar Filtro Nocturno (Atenuador OLED)"),
-    SCREENSAVER_START("screensaver_start", "💤 Iniciar Salvapantallas de Android TV (Daydream)"),
-    SLEEP_TIMER_CYCLE("sleep_timer", "⏰ Temporizador de Apagado (30m / 60m / 90m / Off)");
+    NONE("none", "Sin acción (botón original)"),
+    GO_HOME("go_home", "🏠 Ir a la pantalla de inicio"),
+    RECENT_APPS_SWITCHER("recent_apps_switcher", "🗂 Ver apps abiertas y cambiar"),
+    OPEN_APP("open_app", "📱 Abrir una aplicación..."),
+    ONE_CLICK_AFR("one_click_afr", "⚡ Ajustar Hz al vídeo actual"),
+    AFR_PANEL("afr_panel", "📺 Elegir Hz manualmente"),
+    STOP_AFR("stop_afr", "↩ Volver a 60 Hz normales"),
+    REAL_SCREEN_TOGGLE("real_screen_toggle", "🌑 Apagar pantalla (música sonando)"),
+    HUD_TOGGLE("hud_toggle", "📊 Ver datos en pantalla (FPS y temp)"),
+    CLEAN_BACKGROUND_RAM("clean_background_ram", "🧹 Liberar memoria RAM"),
+    PREVIOUS_APP("previous_app", "🔀 Volver a la app anterior"),
+    FORCE_STOP_FOREGROUND("force_stop_fg", "⏹ Cerrar la app actual por completo"),
+    RESTART_FOREGROUND("restart_fg", "🔄 Reiniciar la app actual"),
+    HDR_MODE_CYCLE("hdr_mode_cycle", "🌈 Cambiar modo HDR / SDR"),
+    AUDIO_PASSTHROUGH_CYCLE("audio_passthrough_cycle", "🔊 Cambiar audio Passthrough / Estéreo"),
+    OPEN_NOTIFICATIONS("notifications", "🔔 Ver notificaciones"),
+    MOUSE_TOGGLE("mouse_toggle", "🖱 Ratón con flechas del mando"),
+    NIGHT_DIMMER_TOGGLE("night_dimmer", "🌙 Modo noche (bajar brillo)"),
+    SCREENSAVER_START("screensaver_start", "💤 Poner salvapantallas"),
+    SLEEP_TIMER_CYCLE("sleep_timer", "⏰ Temporizador de apagado"),
+    SYSTEM_RECENTS("system_recents", "🗂 Recientes del sistema");
 
     companion object {
         fun fromId(id: String?): QuickAction =
