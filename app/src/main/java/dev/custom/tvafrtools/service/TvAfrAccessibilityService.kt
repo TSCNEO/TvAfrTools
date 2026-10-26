@@ -376,6 +376,13 @@ class TvAfrAccessibilityService : AccessibilityService() {
 
     fun launchPackage(pkg: String) {
         try {
+            val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            val defaultHomePkg = packageManager.resolveActivity(homeIntent, 0)?.activityInfo?.packageName
+            if (pkg == defaultHomePkg || pkg == "io.freemytv") {
+                performGlobalAction(GLOBAL_ACTION_HOME)
+                return
+            }
+
             val intent = packageManager.getLeanbackLaunchIntentForPackage(pkg)
                 ?: packageManager.getLaunchIntentForPackage(pkg)
             if (intent != null) {
