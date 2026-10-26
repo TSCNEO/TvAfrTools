@@ -441,11 +441,11 @@ class MainActivity : AppCompatActivity() {
                 val detail = TextView(this).apply {
                     text = buildString {
                         append("🔘 ").append(keyName).append(" (código ").append(m.keyCode).append(")\n")
-                        append("   • 1 Clic : ").append(m.singleClick.label).append("\n")
-                        append("   • 2 Clics: ").append(m.doubleClick.label).append("\n")
-                        append("   • Larga  : ").append(m.longPress.label)
+                        append("   • 1 Clic : ").append(formatActionLabel(m.singleClick, m.singleClickPkg)).append("\n")
+                        append("   • 2 Clics: ").append(formatActionLabel(m.doubleClick, m.doubleClickPkg)).append("\n")
+                        append("   • Larga  : ").append(formatActionLabel(m.longPress, m.longPressPkg))
                         if (m.appOverrides.isNotEmpty()) {
-                            append("\n   • Streaming Override: ").append(m.appOverrides.values.first().label)
+                            append("\n   • Streaming Override: ").append(formatActionLabel(m.appOverrides.values.first(), m.overridePkg))
                         }
                     }
                     setTextColor(Color.parseColor("#F1F5F9"))
@@ -811,15 +811,63 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    data class AppItem(val label: String, val packageName: String)
+
+    private fun getInstalledTvApps(): List<AppItem> {
+        val pm = packageManager
+        val apps = mutableMapOf<String, String>()
+
+        val tvIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+        val tvList = pm.queryIntentActivities(tvIntent, 0)
+        for (info in tvList) {
+            val pkg = info.activityInfo.packageName
+            if (pkg == packageName) continue
+            val label = info.loadLabel(pm).toString()
+            apps[pkg] = label
+        }
+
+        val normalIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val normalList = pm.queryIntentActivities(normalIntent, 0)
+        for (info in normalList) {
+            val pkg = info.activityInfo.packageName
+            if (pkg == packageName) continue
+            if (!apps.containsKey(pkg)) {
+                val label = info.loadLabel(pm).toString()
+                apps[pkg] = label
+            }
+        }
+
+        return apps.map { AppItem(it.value, it.key) }.sortedBy { it.label.lowercase() }
+    }
+
+    private fun formatActionLabel(action: QuickAction, pkg: String?): String {
+        return if (action == QuickAction.OPEN_APP && !pkg.isNullOrBlank()) {
+            val appName = try {
+                val info = packageManager.getApplicationInfo(pkg, 0)
+                packageManager.getApplicationLabel(info).toString()
+            } catch (_: Throwable) {
+                pkg
+            }
+            "📱 Abrir app: $appName"
+        } else {
+            action.label
+        }
+    }
+
     private fun showEditMappingDialog(mapping: ButtonMapping) {
         val actions = QuickAction.values()
         val labels = actions.map { it.label }.toTypedArray()
 
-        val streamingActiveAction = mapping.appOverrides.values.firstOrNull()?.label ?: "Desactivado (usa acción normal)"
+        val streamingActiveAction = if (mapping.appOverrides.isNotEmpty()) {
+            formatActionLabel(mapping.appOverrides.values.first(), mapping.overridePkg)
+        } else {
+            "Desactivado (usa acción normal)"
+        }
+
         val steps = arrayOf(
-            "1 Clic estándar: ${mapping.singleClick.label}",
-            "Doble Clic: ${mapping.doubleClick.label}",
-            "Pulsación Larga: ${mapping.longPress.label}",
+            "1 Clic estándar: ${formatActionLabel(mapping.singleClick, mapping.singleClickPkg)}",
+            "Doble Clic: ${formatActionLabel(mapping.doubleClick, mapping.doubleClickPkg)}",
+            "Pulsación Larga: ${formatActionLabel(mapping.longPress, mapping.longPressPkg)}",
             "Acción especial solo dentro de Streaming: $streamingActiveAction"
         )
 
@@ -835,32 +883,61 @@ class MainActivity : AppCompatActivity() {
                     .setTitle(dialogTitle)
                     .setItems(labels) { _, actIdx ->
                         val chosen = actions[actIdx]
-                        val updated = when (stepIdx) {
-                            0 -> mapping.copy(singleClick = chosen)
-                            1 -> mapping.copy(doubleClick = chosen)
-                            2 -> mapping.copy(longPress = chosen)
-                            else -> {
-                                val map = mapping.appOverrides.toMutableMap()
-                                if (chosen == QuickAction.NONE) {
-                                    map.clear()
-                                } else {
-                                    map["com.disney.disneyplus"] = chosen
-                                    map["com.amazon.amazonvideo.livingroom"] = chosen
-                                    map["com.amazon.avod.thirdpartyclient"] = chosen
-                                    map["com.netflix.ninja"] = chosen
-                                    map["com.apple.atve.androidtv.appletv"] = chosen
-                                    map["com.max.nordic"] = chosen
-                                }
-                                mapping.copy(appOverrides = map)
-                            }
+                        if (chosen == QuickAction.OPEN_APP) {
+                            showAppPickerDialog(mapping, stepIdx)
+                        } else {
+                            applyActionToStep(mapping, stepIdx, chosen, null)
                         }
-                        prefs.upsertMapping(updated)
-                        refreshSectionContent()
                     }
                     .show()
             }
             .setPositiveButton("Cerrar", null)
             .show()
+    }
+
+    private fun showAppPickerDialog(mapping: ButtonMapping, stepIdx: Int) {
+        val installedApps = getInstalledTvApps()
+        if (installedApps.isEmpty()) {
+            Toast.makeText(this, "No se encontraron otras aplicaciones instaladas", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val appNames = installedApps.map { it.label }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Selecciona la aplicación a abrir")
+            .setItems(appNames) { _, appIdx ->
+                val chosenApp = installedApps[appIdx]
+                applyActionToStep(mapping, stepIdx, QuickAction.OPEN_APP, chosenApp.packageName)
+            }
+            .show()
+    }
+
+    private fun applyActionToStep(
+        mapping: ButtonMapping,
+        stepIdx: Int,
+        action: QuickAction,
+        targetPkg: String?
+    ) {
+        val updated = when (stepIdx) {
+            0 -> mapping.copy(singleClick = action, singleClickPkg = targetPkg)
+            1 -> mapping.copy(doubleClick = action, doubleClickPkg = targetPkg)
+            2 -> mapping.copy(longPress = action, longPressPkg = targetPkg)
+            else -> {
+                val map = mapping.appOverrides.toMutableMap()
+                if (action == QuickAction.NONE) {
+                    map.clear()
+                } else {
+                    map["com.disney.disneyplus"] = action
+                    map["com.amazon.amazonvideo.livingroom"] = action
+                    map["com.amazon.avod.thirdpartyclient"] = action
+                    map["com.netflix.ninja"] = action
+                    map["com.apple.atve.androidtv.appletv"] = action
+                    map["com.max.nordic"] = action
+                }
+                mapping.copy(appOverrides = map, overridePkg = targetPkg)
+            }
+        }
+        prefs.upsertMapping(updated)
+        refreshSectionContent()
     }
 
     private fun runServiceAction(action: QuickAction) {
