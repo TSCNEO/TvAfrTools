@@ -2,6 +2,7 @@ package dev.custom.tvafrtools.adb
 
 import android.content.Context
 import android.util.Base64
+import android.util.Log
 import dev.custom.tvafrtools.server.PrivilegedServer
 import java.io.DataInputStream
 import java.io.OutputStream
@@ -19,16 +20,20 @@ import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 
 /**
- * Clean-room Kotlin port of c4.a + V3.g + V3.Q from tvQuickActions:
- * Connects directly from inside the app to the local ADB daemon at 127.0.0.1:5555,
+ * Direct internal ADB connection for 1-click self-activation on Android TV:
+ * Connects directly to local ADB daemon (127.0.0.1:5555 / localhost / WiFi IP),
  * performs the ADB CNXN + AUTH_SIGNATURE / AUTH_RSAPUBLICKEY handshake,
  * and automatically executes:
- *   1. appops set <pkg> SYSTEM_ALERT_WINDOW allow
- *   2. settings put secure enabled_accessibility_services ...
- *   3. CLASSPATH=<apk> app_process /system/bin dev.custom.tvafrtools.server.PrivilegedServer &
- * Zero external PC or manual commands required!
+ *   1. appops set <pkg> ACCESS_RESTRICTED_SETTINGS allow (Bypasses Android 13/14 restrictions)
+ *   2. appops set <pkg> SYSTEM_ALERT_WINDOW allow
+ *   3. appops set <pkg> GET_USAGE_STATS allow
+ *   4. settings put secure enabled_accessibility_services <service>
+ *   5. settings put secure accessibility_enabled 1
+ *   6. app_process /system/bin PrivilegedServer &
  */
 object LocalAdbBootstrap {
+    private const val TAG = "LocalAdbBootstrap"
+
     private const val A_CNXN = 0x4e584e43
     private const val A_AUTH = 0x48545541
     private const val A_OPEN = 0x4e45504f
@@ -57,6 +62,9 @@ object LocalAdbBootstrap {
         val accService = "$pkg/dev.custom.tvafrtools.service.TvAfrAccessibilityService"
 
         val shellCmd = buildString {
+            // Android 13+ and Android 14 Restricted Settings bypass (allows accessibility for sideloaded APKs)
+            append("appops set $pkg ACCESS_RESTRICTED_SETTINGS allow 2>/dev/null || true; ")
+            append("appops set $pkg 119 allow 2>/dev/null || true; ")
             append("appops set $pkg SYSTEM_ALERT_WINDOW allow; ")
             append("appops set $pkg GET_USAGE_STATS allow; ")
             append("pm grant $pkg android.permission.PACKAGE_USAGE_STATS 2>/dev/null || true; ")
@@ -70,7 +78,24 @@ object LocalAdbBootstrap {
             append("nohup app_process -Djava.class.path=$apkPath /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &")
         }
 
-        return runLocalAdbShellCommand(context, "127.0.0.1", port, shellCmd)
+        val hosts = mutableListOf("127.0.0.1", "localhost")
+        try {
+            val localIp = dev.custom.tvafrtools.web.WebRemoteServer.getLocalIpAddress()
+            if (localIp.isNotBlank() && !hosts.contains(localIp)) {
+                hosts.add(localIp)
+            }
+        } catch (_: Throwable) {}
+
+        var lastResult = BootstrapResult(false, false, "No se pudo conectar al puerto ADB $port")
+        for (host in hosts) {
+            Log.d(TAG, "Trying internal ADB connection to $host:$port...")
+            val res = runLocalAdbShellCommand(context, host, port, shellCmd)
+            if (res.success || res.waitingForTvAuthPopup) {
+                return res
+            }
+            lastResult = res
+        }
+        return lastResult
     }
 
     fun runLocalAdbShellCommand(
@@ -81,6 +106,9 @@ object LocalAdbBootstrap {
     ): BootstrapResult {
         val keyPair = getOrCreateRsaKeyPair(context)
         val socket = Socket()
+        var sentPubKey = false
+        var pubKeyBytes: ByteArray? = null
+
         try {
             socket.connect(InetSocketAddress(host, port), 2500)
             socket.soTimeout = 6000
@@ -94,62 +122,73 @@ object LocalAdbBootstrap {
             sendPacket(output, A_CNXN, 0x01000001, 1024 * 1024, banner)
 
             var sentSignature = false
-            var sentPubKey = false
 
             while (true) {
                 val pkt = readPacket(input) ?: return BootstrapResult(false, false, "Conexión ADB cerrada")
+                Log.d(TAG, "ADB pkt cmd=0x${Integer.toHexString(pkt.command)} arg0=${pkt.arg0} len=${pkt.payload.size}")
                 when (pkt.command) {
                     A_AUTH -> {
                         if (pkt.arg0 == ADB_AUTH_TOKEN) {
                             if (!sentSignature) {
                                 sentSignature = true
+                                Log.d(TAG, "Signing ADB auth token with local RSA key...")
                                 val sig = signAdbToken(keyPair, pkt.payload)
                                 sendPacket(output, A_AUTH, ADB_AUTH_SIGNATURE, 0, sig)
-                            } else if (!sentPubKey) {
+                            } else {
                                 sentPubKey = true
-                                val pubKeyBytes = encodeAndroidRsaPublicKey(keyPair.public as RSAPublicKey)
+                                Log.d(TAG, "Sending ADB RSA public key for TV authorization...")
+                                if (pubKeyBytes == null) {
+                                    pubKeyBytes = encodeAndroidRsaPublicKey(keyPair.public as RSAPublicKey)
+                                }
                                 sendPacket(output, A_AUTH, ADB_AUTH_RSAPUBLICKEY, 0, pubKeyBytes)
-                                // Increase timeout while user accepts the "Allow USB debugging" popup on TV
-                                socket.soTimeout = 20000
+                                // Increase timeout to 35s while user accepts the "Allow USB debugging" popup on TV
+                                socket.soTimeout = 35000
                             }
                         }
                     }
                     A_CNXN -> {
                         // Connected! Open shell stream
+                        Log.d(TAG, "ADB connected! Executing privileged shell command...")
                         val dest = "shell:$command\u0000".toByteArray(Charsets.UTF_8)
                         sendPacket(output, A_OPEN, 1, 0, dest)
                     }
                     A_OKAY -> {
-                        // Command accepted and running
-                        Thread.sleep(600L)
+                        Log.d(TAG, "ADB shell stream open. Waiting briefly for commands to finish...")
+                        Thread.sleep(1200L)
                         return BootstrapResult(
                             success = true,
                             waitingForTvAuthPopup = false,
-                            message = "Demonio iniciado automáticamente vía ADB interno"
+                            message = "Permisos concedidos y demonio iniciado"
                         )
                     }
                     A_WRTE -> {
                         sendPacket(output, A_OKAY, 1, pkt.arg0, ByteArray(0))
+                        Thread.sleep(1200L)
                         return BootstrapResult(
                             success = true,
                             waitingForTvAuthPopup = false,
-                            message = "Demonio iniciado automáticamente vía ADB interno"
+                            message = "Permisos concedidos y demonio iniciado"
                         )
                     }
                     A_CLSE -> {
                         return BootstrapResult(
                             success = true,
                             waitingForTvAuthPopup = false,
-                            message = "Comando ADB ejecutado"
+                            message = "Comandos ADB ejecutados con éxito"
                         )
                     }
                 }
             }
         } catch (t: Throwable) {
+            Log.e(TAG, "ADB communication error on $host:$port: ${t.message}", t)
+            val isTimeout = t is java.net.SocketTimeoutException
             return BootstrapResult(
                 success = false,
-                waitingForTvAuthPopup = true,
-                message = "ADB local ($host:$port): ${t.message ?: "Acepta el diálogo de Depuración USB en la TV"}"
+                waitingForTvAuthPopup = sentPubKey || isTimeout,
+                message = if (sentPubKey || isTimeout)
+                    "Por favor acepta el diálogo de Depuración USB en la pantalla de tu TV"
+                else
+                    "ADB local ($host:$port): ${t.message ?: "Sin conexión"}"
             )
         } finally {
             try { socket.close() } catch (_: Throwable) {}
