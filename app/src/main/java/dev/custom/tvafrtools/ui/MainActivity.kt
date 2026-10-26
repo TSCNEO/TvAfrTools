@@ -815,18 +815,24 @@ class MainActivity : AppCompatActivity() {
         val actions = QuickAction.values()
         val labels = actions.map { it.label }.toTypedArray()
 
+        val streamingActiveAction = mapping.appOverrides.values.firstOrNull()?.label ?: "Desactivado (usa acción normal)"
         val steps = arrayOf(
-            "1 Clic: ${mapping.singleClick.label}",
+            "1 Clic estándar: ${mapping.singleClick.label}",
             "Doble Clic: ${mapping.doubleClick.label}",
             "Pulsación Larga: ${mapping.longPress.label}",
-            "Override exclusivo en Streaming (Disney+, Prime Video, Netflix)"
+            "Acción especial solo dentro de Streaming: $streamingActiveAction"
         )
 
         AlertDialog.Builder(this)
-            .setTitle("Configurar ${KeyEvent.keyCodeToString(mapping.keyCode)}")
+            .setTitle("Configurar botón: ${KeyEvent.keyCodeToString(mapping.keyCode)}")
             .setItems(steps) { _, stepIdx ->
+                val dialogTitle = if (stepIdx == 3) {
+                    "¿Qué hacer al pulsar este botón DENTRO de Disney+, Netflix o Prime Video?"
+                } else {
+                    steps[stepIdx]
+                }
                 AlertDialog.Builder(this)
-                    .setTitle(steps[stepIdx])
+                    .setTitle(dialogTitle)
                     .setItems(labels) { _, actIdx ->
                         val chosen = actions[actIdx]
                         val updated = when (stepIdx) {
@@ -842,6 +848,8 @@ class MainActivity : AppCompatActivity() {
                                     map["com.amazon.amazonvideo.livingroom"] = chosen
                                     map["com.amazon.avod.thirdpartyclient"] = chosen
                                     map["com.netflix.ninja"] = chosen
+                                    map["com.apple.atve.androidtv.appletv"] = chosen
+                                    map["com.max.nordic"] = chosen
                                 }
                                 mapping.copy(appOverrides = map)
                             }
