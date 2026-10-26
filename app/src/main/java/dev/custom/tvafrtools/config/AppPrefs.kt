@@ -8,22 +8,26 @@ import org.json.JSONObject
 
 enum class QuickAction(val id: String, val label: String) {
     NONE("none", "No hacer nada (Passthrough)"),
-    ONE_CLICK_AFR("one_click_afr", "AFR en 1 Clic (Auto-detectar FPS en Android 9–14)"),
-    AFR_PANEL("afr_panel", "Panel Selector Manual de Hz (23.976 / 24 / 25 / 50 / 60Hz)"),
-    STOP_AFR("stop_afr", "Detener AFR / Restaurar Hz originales"),
-    HUD_TOGGLE("hud_toggle", "Mostrar/Ocultar HUD de FPS, Temp SoC, RAM y Red"),
-    REAL_SCREEN_TOGGLE("real_screen_toggle", "Apagar/Encender Pantalla Real (Solo Audio / OLED Off)"),
-    RECENT_APPS_SWITCHER("recent_apps_switcher", "Multitarea Universal (Apps Recientes + Limpiar RAM)"),
-    CLEAN_BACKGROUND_RAM("clean_background_ram", "Liberar RAM (Cerrar apps en segundo plano)"),
-    HDR_MODE_CYCLE("hdr_mode_cycle", "Alternar Modo HDR/SDR (Auto Passthrough / Forzar SDR)"),
-    AUDIO_PASSTHROUGH_CYCLE("audio_passthrough_cycle", "Alternar Salida Audio (Passthrough / PCM / Diálogos)"),
-    FORCE_STOP_FOREGROUND("force_stop_fg", "Cerrar Forzosamente App Actual (Force Stop)"),
-    RESTART_FOREGROUND("restart_fg", "Reiniciar App Actual (Force Stop + Relanzar)"),
-    PREVIOUS_APP("previous_app", "Alternar con la Última App (Alt+Tab)"),
-    MOUSE_TOGGLE("mouse_toggle", "Activar/Desactivar Ratón Virtual por D-Pad"),
-    NIGHT_DIMMER_TOGGLE("night_dimmer", "Activar/Desactivar Filtro Nocturno (Atenuador OLED)"),
-    SCREENSAVER_START("screensaver_start", "Iniciar Salvapantallas de Android TV (Daydream)"),
-    SLEEP_TIMER_CYCLE("sleep_timer", "Temporizador de Apagado (30m / 60m / 90m / Off)");
+    GO_HOME("go_home", "🏠 Ir al Inicio / Home (Launcher)"),
+    SYSTEM_RECENTS("system_recents", "🗂 Apps Recientes del Sistema"),
+    OPEN_APP("open_app", "📱 Abrir una Aplicación instalada..."),
+    OPEN_NOTIFICATIONS("notifications", "🔔 Abrir Panel de Notificaciones"),
+    ONE_CLICK_AFR("one_click_afr", "⚡ AFR en 1 Clic (Auto-detectar FPS en Android 9–14)"),
+    AFR_PANEL("afr_panel", "📺 Panel Selector Manual de Hz (23.976 / 24 / 25 / 50 / 60Hz)"),
+    STOP_AFR("stop_afr", "↩ Detener AFR / Restaurar Hz estándar (60Hz)"),
+    RECENT_APPS_SWITCHER("recent_apps_switcher", "🗂 Multitarea Flotante TvAfr (Apps + Limpiar RAM)"),
+    CLEAN_BACKGROUND_RAM("clean_background_ram", "🧹 Liberar RAM (Cerrar apps en segundo plano)"),
+    REAL_SCREEN_TOGGLE("real_screen_toggle", "🌑 Apagar/Encender Pantalla Real (OLED Off)"),
+    HUD_TOGGLE("hud_toggle", "📊 Mostrar/Ocultar HUD de FPS, Temp SoC y Red"),
+    HDR_MODE_CYCLE("hdr_mode_cycle", "🌈 Alternar Modo HDR/SDR (Auto / SDR)"),
+    AUDIO_PASSTHROUGH_CYCLE("audio_passthrough_cycle", "🔊 Alternar Salida Audio (Passthrough / PCM)"),
+    FORCE_STOP_FOREGROUND("force_stop_fg", "⏹ Cerrar Forzosamente App Actual (Force Stop)"),
+    RESTART_FOREGROUND("restart_fg", "🔄 Reiniciar App Actual (Force Stop + Relanzar)"),
+    PREVIOUS_APP("previous_app", "🔀 Alternar con la Última App (Alt+Tab)"),
+    MOUSE_TOGGLE("mouse_toggle", "🖱 Activar/Desactivar Ratón Virtual por D-Pad"),
+    NIGHT_DIMMER_TOGGLE("night_dimmer", "🌙 Activar/Desactivar Filtro Nocturno (Atenuador OLED)"),
+    SCREENSAVER_START("screensaver_start", "💤 Iniciar Salvapantallas de Android TV (Daydream)"),
+    SLEEP_TIMER_CYCLE("sleep_timer", "⏰ Temporizador de Apagado (30m / 60m / 90m / Off)");
 
     companion object {
         fun fromId(id: String?): QuickAction =
@@ -36,13 +40,21 @@ data class ButtonMapping(
     val singleClick: QuickAction = QuickAction.ONE_CLICK_AFR,
     val doubleClick: QuickAction = QuickAction.AFR_PANEL,
     val longPress: QuickAction = QuickAction.REAL_SCREEN_TOGGLE,
-    val appOverrides: Map<String, QuickAction> = emptyMap()
+    val appOverrides: Map<String, QuickAction> = emptyMap(),
+    val singleClickPkg: String? = null,
+    val doubleClickPkg: String? = null,
+    val longPressPkg: String? = null,
+    val overridePkg: String? = null
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("keyCode", keyCode)
         put("singleClick", singleClick.id)
         put("doubleClick", doubleClick.id)
         put("longPress", longPress.id)
+        singleClickPkg?.let { put("singleClickPkg", it) }
+        doubleClickPkg?.let { put("doubleClickPkg", it) }
+        longPressPkg?.let { put("longPressPkg", it) }
+        overridePkg?.let { put("overridePkg", it) }
         val overridesObj = JSONObject()
         appOverrides.forEach { (pkg, action) -> overridesObj.put(pkg, action.id) }
         put("appOverrides", overridesObj)
@@ -64,7 +76,11 @@ data class ButtonMapping(
                 singleClick = QuickAction.fromId(obj.optString("singleClick")),
                 doubleClick = QuickAction.fromId(obj.optString("doubleClick")),
                 longPress = QuickAction.fromId(obj.optString("longPress")),
-                appOverrides = overrides
+                appOverrides = overrides,
+                singleClickPkg = obj.optString("singleClickPkg").takeIf { it.isNotBlank() },
+                doubleClickPkg = obj.optString("doubleClickPkg").takeIf { it.isNotBlank() },
+                longPressPkg = obj.optString("longPressPkg").takeIf { it.isNotBlank() },
+                overridePkg = obj.optString("overridePkg").takeIf { it.isNotBlank() }
             )
         }
     }

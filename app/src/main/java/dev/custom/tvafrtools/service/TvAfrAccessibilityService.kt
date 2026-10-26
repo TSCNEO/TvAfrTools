@@ -97,7 +97,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
             clickCount = 0
             val mapping = findMapping(code)
             if (mapping != null) {
-                executeQuickAction(mapping.longPress)
+                executeQuickAction(mapping.longPress, mapping.longPressPkg)
             }
         }
     }
@@ -109,8 +109,8 @@ class TvAfrAccessibilityService : AccessibilityService() {
             activeKeyCode = -1
             val mapping = findMapping(code)
             if (mapping != null) {
-                val action = resolveSingleClickAction(mapping)
-                executeQuickAction(action)
+                val (action, targetPkg) = resolveSingleClickAction(mapping)
+                executeQuickAction(action, targetPkg)
             }
         }
     }
@@ -345,14 +345,15 @@ class TvAfrAccessibilityService : AccessibilityService() {
             if (mapping.doubleClick == QuickAction.NONE) {
                 clickCount = 0
                 activeKeyCode = -1
-                executeQuickAction(resolveSingleClickAction(mapping))
+                val (act, pkg) = resolveSingleClickAction(mapping)
+                executeQuickAction(act, pkg)
             } else if (clickCount == 1) {
                 mainHandler.postDelayed(singleClickCommitRunnable, prefs.doubleClickTimeoutMs)
             } else if (clickCount >= 2) {
                 mainHandler.removeCallbacks(singleClickCommitRunnable)
                 clickCount = 0
                 activeKeyCode = -1
-                executeQuickAction(mapping.doubleClick)
+                executeQuickAction(mapping.doubleClick, mapping.doubleClickPkg)
             }
             return true
         }
@@ -363,19 +364,50 @@ class TvAfrAccessibilityService : AccessibilityService() {
     private fun findMapping(keyCode: Int): ButtonMapping? =
         prefs.getMappings().firstOrNull { it.keyCode == keyCode }
 
-    private fun resolveSingleClickAction(mapping: ButtonMapping): QuickAction {
+    private fun resolveSingleClickAction(mapping: ButtonMapping): Pair<QuickAction, String?> {
         if (currentForegroundPkg.isNotBlank()) {
             val override = mapping.appOverrides[currentForegroundPkg]
             if (override != null && override != QuickAction.NONE) {
-                return override
+                return override to mapping.overridePkg
             }
         }
-        return mapping.singleClick
+        return mapping.singleClick to mapping.singleClickPkg
     }
 
-    fun executeQuickAction(action: QuickAction) {
+    fun launchPackage(pkg: String) {
+        try {
+            val intent = packageManager.getLeanbackLaunchIntentForPackage(pkg)
+                ?: packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                startActivity(intent)
+            } else {
+                overlayToolkit.showBanner("No se pudo abrir $pkg")
+            }
+        } catch (e: Throwable) {
+            overlayToolkit.showBanner("Error al abrir: ${e.message}")
+        }
+    }
+
+    fun executeQuickAction(action: QuickAction, targetPkg: String? = null) {
         when (action) {
             QuickAction.NONE -> {}
+            QuickAction.GO_HOME -> {
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }
+            QuickAction.SYSTEM_RECENTS -> {
+                performGlobalAction(GLOBAL_ACTION_RECENTS)
+            }
+            QuickAction.OPEN_NOTIFICATIONS -> {
+                performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
+            }
+            QuickAction.OPEN_APP -> {
+                if (!targetPkg.isNullOrBlank()) {
+                    launchPackage(targetPkg)
+                } else {
+                    overlayToolkit.showBanner("No hay aplicación asignada")
+                }
+            }
             QuickAction.ONE_CLICK_AFR -> {
                 afrController.triggerOneClickAfr()
             }
