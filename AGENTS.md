@@ -15,7 +15,9 @@
   - IP ADB: `192.0.2.10:5555`
   - Mando: Bluetooth B21 Keyboard + Homatics Remote.
   - Launcher: **Projectivy Launcher** (`io.freemytv`).
-- **Dispositivo Secundario del Usuario**: Xiaomi Mi Box / TV Stick.
+- **Dispositivo Secundario del Usuario**: Xiaomi Mi TV Box (`MiTV-AFMU0`, Android 14 / SDK 34, `armeabi-v7a`).
+  - IP ADB: `192.0.2.11:5555`
+  - Estado: Instalado y con permisos activos (`TvAfrTools-v1.1-android14.apk`).
 - **Televisor Conectado**: Samsung 4K (`QBQ90S`) con Anynet+ (HDMI-CEC).
   - *Nota Importante CEC*: `hdmi_control_controlled_by_tv` debe mantenerse en `0` o filtrado con el debounce de accesibilidad para evitar dobles clics de mando enviados simultáneamente por BT y CEC.
 
