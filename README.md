@@ -66,15 +66,18 @@
 ## 📺 Supported Devices & Requirements
 
 - **Operating System**: Android TV / Google TV 9.0 (API 28) up to Android 14 (API 34).
+- **Target Platforms**: **Certified Android TV & Google TV only (Android 9.0 to 14)**.
 - **Tested & Verified Devices**:
-  - Homatics Box R 4K Plus / SEI Robotics boxes
+  - Homatics Box R 4K Plus / SEI Robotics boxes (Amlogic S905X4)
   - Xiaomi Mi TV Box S (1st & 2nd Gen) / Mi TV Stick 4K
   - Chromecast with Google TV (HD & 4K)
-  - NVIDIA Shield TV / Pro
+  - NVIDIA Shield TV / Shield TV Pro
   - Nokia Streaming Box 8000 / 8010
-  - Strong Leap-S1 / S3
-  - Fire TV Stick 4K Max (2nd gen) / Fire TV Cube (3rd gen) running Fire OS 7/8 (Android 9+)
-  - *Note*: 1st Gen Fire TV 4K (`AFTMM` - 2018) runs Fire OS 6 (based on Android 7.1.2 / API 25) and is **not supported** due to Android 9+ API requirements.
+  - Strong Leap-S1 / S3 & other standard Google TV / Android TV boxes.
+- ⛔ **Amazon Fire TV / Fire OS is NOT supported**:
+  - Amazon deliberately blocks local loopback ADB connections (`127.0.0.1:5555`) in Fire OS updates (CVE-2024-27350), preventing autonomous on-device self-activation.
+  - Fire OS hides third-party accessibility services from the system UI.
+  - Fire OS runs a proprietary MediaTek display stack that blocks background refresh rate switching (AFR) for third-party streaming apps.
 
 ---
 

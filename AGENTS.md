@@ -149,3 +149,15 @@ Para futuras versiones:
   - Al pulsar "🧹 Liberar RAM", `RecentAppsManager.onRamCleaned()` purga inmediatamente todos los paquetes en segundo plano de la memoria activa, conservando únicamente la aplicación en pantalla.
   - Al realizar pulsación prolongada sobre una aplicación concreta, se invoca `removePackage(pkg)` para eliminarla de la vista flotante y finalizarla en el sistema.
   - Se suprimió la consulta recurrente de `UsageStatsManager` a las 48 horas previas durante la ejecución en vivo, restringiéndola exclusivamente a la precarga en frío (`loadInitialRecents`).
+
+---
+
+## 6. Política de Plataformas y Exclusión de Fire OS
+- **Plataformas Soportadas Oficialmente**: **Únicamente Android TV y Google TV estándar / puros (Android 9.0 a 14 / APIs 28 a 34)**.
+  - Ejemplos: Xiaomi Mi TV Box S, Homatics Box R 4K Plus, Chromecast con Google TV, NVIDIA Shield, Nokia Streaming Box, etc.
+- **Exclusión Definitiva de Amazon Fire TV (Fire OS)**:
+  - **No se da soporte a Fire OS**: Amazon opera un fork fuertemente cerrado y modificado de Android que bloquea activamente los pilares de la app:
+    1. *Bloqueo de Loopback ADB (CVE-2024-27350)*: Impide la activación autónoma en el dispositivo (`127.0.0.1:5555 Broken pipe`).
+    2. *Ocultación de Accesibilidad*: Fire OS no permite activar servicios de accesibilidad de terceros desde sus menús.
+    3. *Pila de Pantalla Cerrada*: Utiliza controladores propietarios en chips MediaTek que rechazan el cambio forzado de frecuencia de refresco (`Display.Mode` / AFR) desde procesos en segundo plano.
+  - En toda la documentación y comunicaciones públicas se aclara que la app es exclusivamente para Android TV / Google TV.
