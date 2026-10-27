@@ -761,18 +761,43 @@ object PrivilegedServer {
 
     private fun forceStopPackage(pkg: String): Boolean {
         if (pkg.isBlank()) return false
-        return try {
+        var ok = false
+        try {
             val amBinder = getSystemServiceBinder("activity")
-            val amStub = Class.forName("android.app.IActivityManager\$Stub")
-            val asIntf = amStub.getMethod("asInterface", IBinder::class.java)
-            val am = asIntf.invoke(null, amBinder)
-            val forceStop = am.javaClass.getMethod("forceStopPackage", String::class.java, Int::class.javaPrimitiveType)
-            forceStop.invoke(am, pkg, 0)
-            true
-        } catch (e: Throwable) {
-            e.printStackTrace()
-            false
+            if (amBinder != null) {
+                val amStub = Class.forName("android.app.IActivityManager\$Stub")
+                val asIntf = amStub.getMethod("asInterface", IBinder::class.java)
+                val am = asIntf.invoke(null, amBinder)
+                val forceStop = am.javaClass.getMethod("forceStopPackage", String::class.java, Int::class.javaPrimitiveType)
+                forceStop.invoke(am, pkg, 0)
+                ok = true
+            }
+        } catch (_: Throwable) {}
+
+        if (!ok) {
+            try {
+                runShellCommand("am force-stop $pkg")
+                ok = true
+            } catch (_: Throwable) {}
         }
+        return ok
+    }
+
+    private fun getRunningPackages(): Set<String> {
+        val running = linkedSetOf<String>()
+        try {
+            val output = runShellCommand("ps -A")
+            for (line in output.lines()) {
+                val parts = line.trim().split(Regex("\\s+"))
+                if (parts.size >= 9 && parts[0].startsWith("u0_a")) {
+                    val proc = parts[8].split(":")[0]
+                    if (isValidRecentPkg(proc)) {
+                        running.add(proc)
+                    }
+                }
+            }
+        } catch (_: Throwable) {}
+        return running
     }
 
     /**
@@ -852,9 +877,11 @@ object PrivilegedServer {
     }
 
     private fun cleanBackgroundApps(excludePkg: String): Int {
-        val recents = getRecentPackages()
+        val candidates = linkedSetOf<String>()
+        candidates.addAll(getRunningPackages())
+        candidates.addAll(getRecentPackages())
         var killed = 0
-        for (pkg in recents) {
+        for (pkg in candidates) {
             if (pkg != excludePkg && pkg != "dev.custom.tvafrtools") {
                 if (forceStopPackage(pkg)) {
                     killed++

@@ -77,7 +77,11 @@ object LocalAdbBootstrap {
             append("sleep 0.2; ")
             append("apk=\$(pm path $pkg | tr -d \"\\r\" | head -n 1 | cut -d: -f2); ")
             append("if [ -z \"\$apk\" ]; then apk=\"$apkPath\"; fi; ")
-            append("nohup app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &")
+            append("if [ -x /system/bin/setsid ]; then ")
+            append("nohup /system/bin/setsid app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 & ")
+            append("else ")
+            append("nohup app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 & ")
+            append("fi")
         }
 
         val hosts = mutableListOf("127.0.0.1", "localhost")
@@ -155,28 +159,18 @@ object LocalAdbBootstrap {
                         sendPacket(output, A_OPEN, 1, 0, dest)
                     }
                     A_OKAY -> {
-                        Log.d(TAG, "ADB shell stream open. Waiting briefly for commands to finish...")
-                        Thread.sleep(1200L)
-                        return BootstrapResult(
-                            success = true,
-                            waitingForTvAuthPopup = false,
-                            message = "Permisos concedidos y demonio iniciado"
-                        )
+                        Log.d(TAG, "ADB shell stream open. Executing commands...")
+                        // Channel established, wait for output or close
                     }
                     A_WRTE -> {
                         sendPacket(output, A_OKAY, 1, pkt.arg0, ByteArray(0))
-                        Thread.sleep(1200L)
+                    }
+                    A_CLSE -> {
+                        Log.d(TAG, "ADB shell stream closed successfully.")
                         return BootstrapResult(
                             success = true,
                             waitingForTvAuthPopup = false,
                             message = "Permisos concedidos y demonio iniciado"
-                        )
-                    }
-                    A_CLSE -> {
-                        return BootstrapResult(
-                            success = true,
-                            waitingForTvAuthPopup = false,
-                            message = "Comandos ADB ejecutados con éxito"
                         )
                     }
                 }
