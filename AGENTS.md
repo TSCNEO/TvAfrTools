@@ -131,3 +131,21 @@ Para futuras versiones:
 ### v1.2.6: Robustez de Demonios Privilegiados y Clarificación de UI Android TV
 - **Prevención de Caídas por Timeout**: Protegido `handleClient` en `PrivilegedServer.kt` con captura global de excepciones por sockets o timeouts para evitar caídas del demonio en segundo plano (`SocketTimeoutException`).
 - **Clarificación de Ajustes Restringidos**: En Android TV no existe el menú de 3 puntos de los móviles. Se actualizó el diálogo explicativo informando de que la activación es 100% automática a través de la opción "⚡ Activar automáticamente".
+
+### v1.2.7: Ajuste de Compatibilidad y Optimización de Permisos
+- **Diagnóstico de Compatibilidad Fire OS**:
+  - Se confirmó que los dispositivos Fire TV 4K de 1ª generación (`AFTMM` - 2018) ejecutan **Fire OS 6** (basado en **Android 7.1.2 / API 25**).
+  - La aplicación requiere `minSdk = 28` (Android 9.0 Pie) por el uso intensivo de APIs modernas de Display (`Display.Mode`), `ActivityTaskManager` y arquitectura de superposiciones segura de Android 9+. Dispositivos con Fire OS 6 arrojan error de análisis de sintaxis al instalar (`There was a problem parsing the package`).
+  - Compatible oficialmente a partir de **Android 9.0 hasta Android 14** (incluyendo Fire TV Stick 4K Max 2ª gen y Fire TV Cube 3ª gen con Fire OS 8 / Android 11+).
+
+### v1.2.8: Motor Dual de Liberación de RAM y Sincronización de Multitarea
+- **Persistencia Desasociada del Demonio ADB Local**:
+  - En `LocalAdbBootstrap.kt`, el comando de arranque del demonio privileged ahora invoca `/system/bin/setsid` (`nohup /system/bin/setsid app_process ... </dev/null >... 2>&1 &`). Esto independiza el proceso con `PPID 1` (`init`), evitando que `adbd` termine el subshell al cerrar la conexión TCP del cliente ADB local.
+- **Doble Capa de Cierre de Procesos y Escaneo Real de RAM**:
+  - Detección en vivo de procesos en segundo plano mediante escaneo de subprocesos de usuario (`ps -A | grep u0_a...`).
+  - Terminación dual: `ActivityManager.killBackgroundProcesses(pkg)` universal (nivel SDK) combinado con `am force-stop` a nivel demonio privilegiado.
+  - Medición dinámica de incremento de memoria RAM disponible (`memInfo.availMem`) informando al usuario de los megabytes recuperados en tiempo real.
+- **Sincronización Inmediata de la Multitarea**:
+  - Al pulsar "🧹 Liberar RAM", `RecentAppsManager.onRamCleaned()` purga inmediatamente todos los paquetes en segundo plano de la memoria activa, conservando únicamente la aplicación en pantalla.
+  - Al realizar pulsación prolongada sobre una aplicación concreta, se invoca `removePackage(pkg)` para eliminarla de la vista flotante y finalizarla en el sistema.
+  - Se suprimió la consulta recurrente de `UsageStatsManager` a las 48 horas previas durante la ejecución en vivo, restringiéndola exclusivamente a la precarga en frío (`loadInitialRecents`).
