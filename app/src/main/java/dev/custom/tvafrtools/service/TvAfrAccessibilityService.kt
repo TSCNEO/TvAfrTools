@@ -1,5 +1,7 @@
 package dev.custom.tvafrtools.service
 
+import dev.custom.tvafrtools.R
+
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Context
@@ -147,7 +149,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
         if (prefs.webRemoteEnabled) {
             webRemoteServer?.start()
         }
-        overlayToolkit.showBanner("⚡ TvAfrTools activo (Pulsa tu botón mapeado en Disney+/Prime/Netflix)")
+        overlayToolkit.showBanner(getString(R.string.service_started_banner))
         // Pre-load recent apps history (like tvQuickActions base app)
         dev.custom.tvafrtools.recents.RecentAppsManager.loadInitialRecents(this)
         // Ensure local ADB daemon is running automatically
@@ -256,7 +258,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
             isRealScreenOff = false
             Thread {
                 ServerClient.setRealScreenOff(false)
-                overlayToolkit.showBanner("☀ Pantalla encendida")
+                overlayToolkit.showBanner(getString(R.string.screen_turned_on))
             }.start()
             return true
         }
@@ -415,7 +417,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
                 if (!targetPkg.isNullOrBlank()) {
                     launchPackage(targetPkg)
                 } else {
-                    overlayToolkit.showBanner("No hay aplicación asignada")
+                    overlayToolkit.showBanner(getString(R.string.banner_no_assigned_app))
                 }
             }
             QuickAction.ONE_CLICK_AFR -> {
@@ -437,12 +439,12 @@ class TvAfrAccessibilityService : AccessibilityService() {
                     if (ok) {
                         isRealScreenOff = targetOff
                         if (targetOff) {
-                            overlayToolkit.showBanner("🌑 Pantalla apagada (Pulsa cualquier botón para encender)")
+                            overlayToolkit.showBanner(getString(R.string.screen_turned_off))
                         } else {
-                            overlayToolkit.showBanner("☀ Pantalla encendida")
+                            overlayToolkit.showBanner(getString(R.string.screen_turned_on))
                         }
                     } else {
-                        overlayToolkit.showBanner("⚠ Reconectando demonio ADB local para Apagado Real...")
+                        overlayToolkit.showBanner(getString(R.string.reconnecting_daemon))
                         LocalAdbBootstrap.ensureServerRunningAsync(this)
                     }
                 }.start()
@@ -456,27 +458,27 @@ class TvAfrAccessibilityService : AccessibilityService() {
             QuickAction.HDR_MODE_CYCLE -> {
                 Thread {
                     val mode = ServerClient.cycleHdrMode()
-                    overlayToolkit.showBanner("🌈 Modo HDR/SDR: $mode")
+                    overlayToolkit.showBanner(getString(R.string.hdr_mode_banner, mode))
                 }.start()
             }
             QuickAction.AUDIO_PASSTHROUGH_CYCLE -> {
                 Thread {
                     val mode = ServerClient.cycleAudioPassthrough()
-                    overlayToolkit.showBanner("🔊 Salida de Audio: $mode")
+                    overlayToolkit.showBanner(getString(R.string.audio_output_banner, mode))
                 }.start()
             }
             QuickAction.FORCE_STOP_FOREGROUND -> {
                 val pkg = currentForegroundPkg
                 if (pkg.isBlank() || isLauncherPackage(pkg)) {
-                    overlayToolkit.showBanner("ℹ No hay app en primer plano para cerrar")
+                    overlayToolkit.showBanner(getString(R.string.no_foreground_app))
                 } else {
                     Thread {
                         val ok = ServerClient.forceStopPackage(pkg)
                         if (ok) {
-                            overlayToolkit.showBanner("🛑 App cerrada forzosamente: $pkg")
+                            overlayToolkit.showBanner(getString(R.string.app_closed_force, pkg))
                         } else {
                             performGlobalAction(GLOBAL_ACTION_HOME)
-                            overlayToolkit.showBanner("⚠ Enviado a Inicio (Reconectando demonio local...)")
+                            overlayToolkit.showBanner(getString(R.string.sent_to_home))
                             LocalAdbBootstrap.ensureServerRunningAsync(this)
                         }
                     }.start()
@@ -485,7 +487,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
             QuickAction.RESTART_FOREGROUND -> {
                 val pkg = currentForegroundPkg
                 if (pkg.isBlank() || isLauncherPackage(pkg)) {
-                    overlayToolkit.showBanner("ℹ No hay app en primer plano para reiniciar")
+                    overlayToolkit.showBanner(getString(R.string.no_foreground_app))
                 } else {
                     Thread {
                         ServerClient.forceStopPackage(pkg)
@@ -496,7 +498,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
                             if (launchIntent != null) {
                                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 startActivity(launchIntent)
-                                overlayToolkit.showBanner("🔄 App reiniciada: $pkg")
+                                overlayToolkit.showBanner(getString(R.string.app_restarted, pkg))
                             }
                         }
                     }.start()
@@ -505,14 +507,14 @@ class TvAfrAccessibilityService : AccessibilityService() {
             QuickAction.PREVIOUS_APP -> {
                 val prev = previousForegroundPkg
                 if (prev.isBlank()) {
-                    overlayToolkit.showBanner("ℹ Aún no hay una app anterior registrada")
+                    overlayToolkit.showBanner(getString(R.string.no_previous_app))
                 } else {
                     val launchIntent = packageManager.getLeanbackLaunchIntentForPackage(prev)
                         ?: packageManager.getLaunchIntentForPackage(prev)
                     if (launchIntent != null) {
                         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(launchIntent)
-                        overlayToolkit.showBanner("⇄ Cambiando a: $prev")
+                        overlayToolkit.showBanner(getString(R.string.switching_to, prev))
                     }
                 }
             }
@@ -526,7 +528,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
                 Thread {
                     val ok = ServerClient.startScreensaver()
                     if (ok) {
-                        overlayToolkit.showBanner("🖼 Salvapantallas iniciado")
+                        overlayToolkit.showBanner(getString(R.string.screensaver_started))
                     }
                 }.start()
             }
@@ -539,10 +541,10 @@ class TvAfrAccessibilityService : AccessibilityService() {
                     else -> 0
                 }
                 if (sleepTimerMinutes == 0) {
-                    overlayToolkit.showBanner("⏲ Temporizador de Apagado: Desactivado")
+                    overlayToolkit.showBanner(getString(R.string.sleep_timer_off))
                 } else {
                     mainHandler.postDelayed(sleepTimerRunnable, sleepTimerMinutes * 60_000L)
-                    overlayToolkit.showBanner("⏲ Temporizador de Apagado: $sleepTimerMinutes minutos")
+                    overlayToolkit.showBanner(getString(R.string.sleep_timer_min, sleepTimerMinutes))
                 }
             }
         }

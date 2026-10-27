@@ -1,5 +1,7 @@
 package dev.custom.tvafrtools.update
 
+import dev.custom.tvafrtools.R
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -70,7 +72,7 @@ object UpdateManager {
                 val currentVer = BuildConfig.VERSION_NAME.trim()
 
                 if (!isNewerVersion(remoteVer, currentVer)) {
-                    mainHandler.post { onResult(null, "TvAfrTools está actualizado a la última versión (v$currentVer).") }
+                    mainHandler.post { onResult(null, context.getString(R.string.update_up_to_date, currentVer)) }
                     return@Thread
                 }
 
@@ -104,7 +106,7 @@ object UpdateManager {
                 mainHandler.post { onResult(info, null) }
             } catch (e: Exception) {
                 Log.w(TAG, "Error checking for updates", e)
-                mainHandler.post { onResult(null, "Error al comprobar actualizaciones: ${e.message}") }
+                mainHandler.post { onResult(null, context.getString(R.string.update_error, e.message ?: "Unknown")) }
             }
         }.start()
     }

@@ -1,5 +1,250 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TV AFR &amp; Power Tools</string>
-    <string name="accessibility_service_description">Motor AFR para Android 14 (Disney+ / Prime Video), mapeador de botones multisecuencia, Real Screen Off y HUD de sistema.</string>
+    <!-- App & Service -->
+    <string name="app_name">TvAfrTools</string>
+    <string name="accessibility_service_description">Auto Frame Rate (AFR) engine for Android TV / Google TV, remote button remapping, screen dimmer, and multitasking overlay.</string>
+
+    <!-- Navigation Tabs -->
+    <string name="nav_afr">⚡ Frame Rate (AFR)</string>
+    <string name="nav_mapper">🎮 Remote Buttons</string>
+    <string name="nav_actions">🛠 Quick Actions</string>
+    <string name="nav_webremote">🌐 Web Remote</string>
+    <string name="nav_system">ℹ Info &amp; Update</string>
+
+    <!-- Navigation Subtitles -->
+    <string name="nav_afr_sub">Eliminate judder by matching display to 24, 50, or 60 Hz</string>
+    <string name="nav_mapper_sub">Assign actions to 1 click, 2 clicks, or long press</string>
+    <string name="nav_actions_sub">Useful tools: screen off, app switcher, or RAM cleaner</string>
+    <string name="nav_webremote_sub">Control your TV from mobile browser or PC</string>
+    <string name="nav_system_sub">System information, permissions, and updates</string>
+
+    <!-- Daemon Status Pill -->
+    <string name="daemon_active">🟢 Engine active (%s)</string>
+    <string name="daemon_starting">⏳ Starting engine...</string>
+    <string name="daemon_stopped">🔴 Engine stopped</string>
+
+    <!-- Permission Banner -->
+    <string name="banner_acc_inactive_title">⚠ Accessibility Service Inactive</string>
+    <string name="banner_acc_inactive_desc">TvAfrTools requires the accessibility service to detect the current app and adjust display frame rate.</string>
+    <string name="btn_auto_activate">⚡ Auto-activate in 1 click</string>
+    <string name="btn_open_accessibility">Open Accessibility</string>
+    <string name="btn_setup_guide">Step-by-step Guide</string>
+
+    <!-- AFR Section -->
+    <string name="afr_section_title">Auto Frame Rate (AFR)</string>
+    <string name="afr_section_desc">Match HDMI refresh rate to video fps to eliminate judder in 24p movies and streaming.</string>
+    <string name="afr_opt_auto_streaming">Auto-match refresh rate in streaming apps</string>
+    <string name="afr_opt_auto_streaming_desc">Automatically changes Hz when opening Netflix, Disney+, Prime Video, etc.</string>
+    <string name="afr_opt_fractional">Precise fractional rates (23.976p / 59.94p)</string>
+    <string name="afr_opt_fractional_desc">Avoids micro-stutter every 41 seconds on standard 24.000 Hz panels.</string>
+    <string name="afr_opt_25_to_50">Convert 25 fps to 50 Hz (European TV / Live Sports)</string>
+    <string name="afr_opt_25_to_50_desc">Optimal for European broadcasts and sports apps like DAZN or Movistar.</string>
+    <string name="afr_opt_24_to_48">Double 24 fps to 48 Hz (if TV supports it)</string>
+    <string name="afr_opt_24_to_48_desc">Smooth 2:2 pulldown without motion interpolation artifacts.</string>
+    <string name="afr_opt_pause_switch">Brief pause during HDMI mode switch</string>
+    <string name="afr_opt_pause_switch_desc">Pauses video for 1.2s to prevent missing the intro during HDMI handshake.</string>
+    <string name="afr_opt_auto_restore">Restore 60 Hz when exiting to TV launcher</string>
+    <string name="afr_opt_auto_restore_desc">Ensures system UI and launchers stay smooth at 60 Hz.</string>
+    <string name="afr_btn_test_manual">Test manual switching now</string>
+    <string name="afr_btn_test_manual_desc">Opens the floating selector to manually switch Hz with your remote.</string>
+
+    <!-- Remote Mapper Section -->
+    <string name="mapper_section_title">Remote Button Remapper</string>
+    <string name="mapper_section_desc">Assign actions to your remote buttons (Single click, double click, or long press).</string>
+    <string name="mapper_configured_buttons">Configured Buttons</string>
+    <string name="mapper_empty_hint">No custom buttons configured. Click below to add one.</string>
+    <string name="mapper_btn_add">Configure a new remote button</string>
+    <string name="mapper_btn_add_desc">Press any button on your remote to detect and configure it.</string>
+    <string name="mapper_press_dialog_title">Detect Remote Button</string>
+    <string name="mapper_press_dialog_msg">Press the remote button you want to configure now...
+
+(Tip: Color buttons, Bookmark, Info, or Settings buttons work best)</string>
+    <string name="mapper_btn_cancel">Cancel</string>
+    <string name="mapper_btn_delete">Delete</string>
+    <string name="mapper_single_click">1 Click</string>
+    <string name="mapper_double_click">2 Quick clicks</string>
+    <string name="mapper_long_press">Long press</string>
+    <string name="mapper_video_override">Action inside video apps</string>
+    <string name="mapper_dialog_title">Configure Button: %s</string>
+    <string name="mapper_choose_action">Choose action for %s</string>
+    <string name="mapper_select_app">Select Application to Launch</string>
+    <string name="mapper_open_app_format">📱 Open app: %s</string>
+    <string name="mapper_no_change">No change (same action)</string>
+    <string name="toast_button_deleted">Button removed: %s</string>
+    <string name="no_other_apps_installed">No other installed applications found</string>
+
+    <!-- Quick Actions Section -->
+    <string name="action_screen_off_title">🌑 Screen Off</string>
+    <string name="action_screen_off_desc">Turn off display panel while music keeps playing (Spotify, YouTube, Radio).</string>
+    <string name="action_hud_title">📊 On-Screen Stats</string>
+    <string name="action_hud_desc">Show real-time FPS, CPU temperature, and HDMI refresh rate.</string>
+    <string name="action_clean_ram_title">🧹 Free Memory</string>
+    <string name="action_clean_ram_desc">Kill background apps to keep your TV running fast and smooth.</string>
+    <string name="action_recents_title">🗂 Open Apps</string>
+    <string name="action_recents_desc">Floating panel to quickly switch between recent applications.</string>
+    <string name="action_night_dimmer_title">🌙 Night Mode</string>
+    <string name="action_night_dimmer_desc">Dims screen brightness for comfortable late-night viewing in the dark.</string>
+    <string name="action_mouse_title">🖱 Remote Mouse</string>
+    <string name="action_mouse_desc">Virtual pointer controlled by D-Pad for sideloaded mobile apps.</string>
+
+    <!-- Web Remote Section -->
+    <string name="webremote_title">Mobile Web Remote</string>
+    <string name="webremote_desc">Open this URL in any mobile browser on the same Wi-Fi network:</string>
+    <string name="webremote_hint">Allows comfortable text typing, password pasting, and D-Pad navigation from your phone.</string>
+
+    <!-- System & Update Section -->
+    <string name="system_title">Device &amp; System Info</string>
+    <string name="system_check_update">Check for Updates on GitHub</string>
+    <string name="system_device">Device</string>
+    <string name="system_android_version">Android Version</string>
+    <string name="system_display_mode">Current Display</string>
+    <string name="system_temperature">Processor Temperature</string>
+    <string name="system_daemon">ADB Daemon Status</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_guide_title">ℹ️ Android TV Restricted Settings</string>
+    <string name="dialog_guide_msg">On Android TV and Google TV, app settings do not have the 3-dot menu found on phones.
+
+Therefore, TvAfrTools unlocks permissions automatically:
+
+1. Make sure "USB Debugging" is enabled in Developer Options on your TV.
+2. Click "⚡ Auto-activate in 1 click".
+3. If a confirmation dialog appears on your TV, check "Always allow" and press OK with your remote.</string>
+    <string name="dialog_auto_setup_title">⚡ Activating permissions on your TV</string>
+    <string name="dialog_auto_setup_msg">Connecting to internal ADB system...
+
+👉 IMPORTANT: If a prompt appears on your TV asking to allow USB debugging, check Always allow and press OK with your remote.</string>
+    <string name="dialog_ready_title">✓ All set!</string>
+    <string name="dialog_ready_msg">Remote permissions and the display refresh rate engine are now active. You can start using your configured buttons.</string>
+    <string name="dialog_auth_popup_title">Accept the prompt on your TV</string>
+    <string name="dialog_failed_title">Could not activate automatically</string>
+    <string name="dialog_auth_popup_msg">A confirmation window has appeared on your TV.
+
+1. Check Always allow from this computer
+2. Press OK with your remote
+
+Once accepted, click Retry.</string>
+    <string name="btn_retry">Retry</string>
+    <string name="btn_got_it">Got it</string>
+    <string name="btn_great">Great</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_save_back">✓ Save and Return</string>
+    <string name="dialog_select_button_manual">Select a remote button</string>
+    <string name="dialog_press_button_title">Press the remote button you want to map</string>
+    <string name="dialog_press_button_msg">Waiting for button press (except D-Pad and OK)...</string>
+    <string name="dialog_streaming_override_title">What should this button do while watching Disney+, Netflix, or Prime?</string>
+
+    <!-- QuickAction Enum Strings -->
+    <string name="qa_none">No action (original button)</string>
+    <string name="qa_go_home">🏠 Go to Home Screen</string>
+    <string name="qa_recent_apps_switcher">🗂 Open Apps Switcher &amp; Multitask</string>
+    <string name="qa_open_app">📱 Launch an installed app...</string>
+    <string name="qa_one_click_afr">⚡ Auto-match Hz to current video</string>
+    <string name="qa_afr_panel">📺 Choose Hz manually</string>
+    <string name="qa_stop_afr">↩ Revert to normal 60 Hz</string>
+    <string name="qa_real_screen_toggle">🌑 Turn screen off (keep audio)</string>
+    <string name="qa_hud_toggle">📊 On-Screen Stats (FPS &amp; Temp)</string>
+    <string name="qa_clean_background_ram">🧹 Free memory RAM</string>
+    <string name="qa_previous_app">🔀 Switch to previous app</string>
+    <string name="qa_force_stop_foreground">⏹ Force stop current app</string>
+    <string name="qa_restart_foreground">🔄 Restart current app</string>
+    <string name="qa_hdr_mode_cycle">🌈 Toggle HDR / SDR mode</string>
+    <string name="qa_audio_passthrough_cycle">🔊 Toggle Audio Passthrough / Stereo</string>
+    <string name="qa_open_notifications">🔔 Show notifications</string>
+    <string name="qa_mouse_toggle">🖱 Remote mouse cursor</string>
+    <string name="qa_night_dimmer_toggle">🌙 Night mode (dimmer)</string>
+    <string name="qa_screensaver_start">💤 Start screensaver</string>
+    <string name="qa_sleep_timer_cycle">⏰ Sleep timer</string>
+    <string name="qa_system_recents">🗂 System recents</string>
+
+    <!-- Floating Overlays & Banners -->
+    <string name="overlay_manual_afr_title">📺 Display Refresh Rate</string>
+    <string name="overlay_auto_afr_btn">⚡ Auto-Detect Frame Rate</string>
+    <string name="overlay_revert_60hz_btn">↩ Revert to Standard 60 Hz</string>
+    <string name="overlay_current_rate">Current: %s</string>
+    <string name="overlay_recents_title">🗂 Open Applications</string>
+    <string name="overlay_clean_ram_btn">🧹 Free RAM (Close background apps)</string>
+    <string name="overlay_recents_hint">🛑 Long-press OK to force close an app</string>
+    <string name="overlay_free_mem">Free Memory: %1$d MB / %2$d MB</string>
+    <string name="overlay_no_recents">No recent applications</string>
+    <string name="overlay_on_screen">[ON SCREEN]</string>
+    <string name="banner_ram_freed">🧹 RAM freed: %1$d apps closed (+%2$d MB free)</string>
+    <string name="banner_ram_freed_simple">🧹 RAM freed: %d background apps closed</string>
+    <string name="banner_ram_clean">🧹 Clean memory: No background apps running</string>
+    <string name="banner_app_force_stopped">🛑 Force stopped: %s</string>
+    <string name="banner_no_assigned_app">No app assigned</string>
+    <string name="banner_night_dimmer_off">🌙 Night Mode: Disabled</string>
+    <string name="banner_night_dimmer_on">🌙 Night Mode: %d%%</string>
+    <string name="banner_mouse_on">🖱 Virtual mouse enabled (Use D-Pad arrows)</string>
+    <string name="banner_mouse_off">🖱 Virtual mouse disabled</string>
+    <string name="banner_afr_switched">🎬 Switched to %1$s Hz for %2$s fps video</string>
+    <string name="banner_afr_reverted">↩ Display restored to 60 Hz</string>
+    <string name="banner_afr_no_video">No active video playback detected</string>
+
+    <!-- Service & Actions Banners -->
+    <string name="service_started_banner">⚡ TvAfrTools active (Press your mapped remote button in Disney+/Prime/Netflix)</string>
+    <string name="screen_turned_on">☀ Screen on</string>
+    <string name="screen_turned_off">🌑 Screen off (Press any button to turn on)</string>
+    <string name="reconnecting_daemon">⚠ Reconnecting local ADB daemon...</string>
+    <string name="hdr_mode_banner">🌈 HDR/SDR Mode: %s</string>
+    <string name="audio_output_banner">🔊 Audio Output: %s</string>
+    <string name="no_foreground_app">ℹ No foreground app to close</string>
+    <string name="app_closed_force">🛑 App force closed: %s</string>
+    <string name="sent_to_home">⚠ Sent to Home (Reconnecting local daemon...)</string>
+    <string name="app_restarted">🔄 App restarted: %s</string>
+    <string name="no_previous_app">ℹ No previous app recorded yet</string>
+    <string name="switching_to">⇄ Switching to: %s</string>
+    <string name="screensaver_started">🖼 Screensaver started</string>
+    <string name="sleep_timer_off">⏲ Sleep Timer: Disabled</string>
+    <string name="sleep_timer_min">⏲ Sleep Timer: %d minutes</string>
+    <string name="could_not_open_pkg">Could not open %s</string>
+    <string name="error_opening_pkg">Error opening: %s</string>
+    <string name="hdmi_synced">✓ HDMI synced: %1$dx%2$d @ %3$.3f Hz</string>
+    <string name="video_detected_switching">🎬 Video Detected: %1$.3f fps (%2$s) → %3$.3f Hz</string>
+    <string name="video_adjusting">🎬 Video: %1$.3f fps (%2$s) → Switching to %3$.3f Hz</string>
+    <string name="daemon_disconnected_manual">⚠ AFR daemon disconnected. Opening Manual Hz Selector...</string>
+    <string name="no_active_stream_manual">ℹ No active stream detected. Opening Manual Hz Selector...</string>
+    <string name="display_already_at_mode">✓ Screen is already at %1$dx%2$d @ %3$.3f Hz</string>
+    <string name="mode_already_active">✓ Current mode already active (%1$.3f Hz)</string>
+    <string name="afr_stopped_default">↺ AFR stopped (restoring system default Hz)</string>
+    <string name="overlay_perm_required">⚠ &quot;Display over other apps&quot; permission required to switch Hz</string>
+
+    <!-- Update Manager -->
+    <string name="update_available_title">🚀 Update Available: v%s</string>
+    <string name="update_available_msg">A new version of TvAfrTools is ready to install.
+
+Changes:
+%s</string>
+    <string name="update_btn_install">Download &amp; Install</string>
+    <string name="update_downloading">Downloading update (%d%%)...</string>
+    <string name="update_installing">Installing version v%s...</string>
+    <string name="update_up_to_date">You already have the latest version (v%s)</string>
+    <string name="update_checking">Checking for updates...</string>
+    <string name="update_error">Error checking updates: %s</string>
+
+    <!-- System Section Details -->
+    <string name="btn_edit">Edit</string>
+    <string name="btn_delete">Delete</string>
+    <string name="button_label_key">🔘 %1$s (key %2$d)</string>
+    <string name="webremote_toggle_title">Enable mobile phone remote control</string>
+    <string name="webremote_toggle_desc">Allows using your phone as a remote to quickly type text and control the TV</string>
+    <string name="system_btn_overlay">🪟 Allow overlay</string>
+    <string name="system_btn_app_settings">⚙️ App Settings</string>
+    <string name="system_card_title">📋 System Information &amp; Status</string>
+    <string name="system_row_device">📱 Device</string>
+    <string name="system_row_hdmi">📺 HDMI Display</string>
+    <string name="system_row_acc">🛡 Accessibility Service</string>
+    <string name="system_row_overlay">🪟 Overlay Permission</string>
+    <string name="system_row_daemon">⚙️ Background Engine</string>
+    <string name="system_row_web_remote">🌐 Local Web Remote</string>
+    <string name="status_active_linked">🟢 Active &amp; bound</string>
+    <string name="status_inactive">🔴 Inactive</string>
+    <string name="status_granted">🟢 Granted</string>
+    <string name="status_pending">🔴 Pending</string>
+    <string name="status_standard_mode">🟢 Standard mode (Buttons active)</string>
+    <string name="status_inactive_activate_hint">⚪ Inactive (Click Activate Permissions)</string>
+    <string name="system_updates_title">🔄 Software Updates</string>
+    <string name="system_installed_version">Installed version: v%1$s (Build %2$d)
+Repository: https://github.com/TSCNEO/TvAfrTools</string>
+    <string name="toast_overlay_granted">✓ Overlay permission already granted</string>
 </resources>

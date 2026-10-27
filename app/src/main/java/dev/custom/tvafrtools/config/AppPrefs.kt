@@ -6,28 +6,33 @@ import android.view.KeyEvent
 import org.json.JSONArray
 import org.json.JSONObject
 
-enum class QuickAction(val id: String, val label: String) {
-    NONE("none", "Sin acción (botón original)"),
-    GO_HOME("go_home", "🏠 Ir a la pantalla de inicio"),
-    RECENT_APPS_SWITCHER("recent_apps_switcher", "🗂 Ver apps abiertas y cambiar"),
-    OPEN_APP("open_app", "📱 Abrir una aplicación..."),
-    ONE_CLICK_AFR("one_click_afr", "⚡ Ajustar Hz al vídeo actual"),
-    AFR_PANEL("afr_panel", "📺 Elegir Hz manualmente"),
-    STOP_AFR("stop_afr", "↩ Volver a 60 Hz normales"),
-    REAL_SCREEN_TOGGLE("real_screen_toggle", "🌑 Apagar pantalla (música sonando)"),
-    HUD_TOGGLE("hud_toggle", "📊 Ver datos en pantalla (FPS y temp)"),
-    CLEAN_BACKGROUND_RAM("clean_background_ram", "🧹 Liberar memoria RAM"),
-    PREVIOUS_APP("previous_app", "🔀 Volver a la app anterior"),
-    FORCE_STOP_FOREGROUND("force_stop_fg", "⏹ Cerrar la app actual por completo"),
-    RESTART_FOREGROUND("restart_fg", "🔄 Reiniciar la app actual"),
-    HDR_MODE_CYCLE("hdr_mode_cycle", "🌈 Cambiar modo HDR / SDR"),
-    AUDIO_PASSTHROUGH_CYCLE("audio_passthrough_cycle", "🔊 Cambiar audio Passthrough / Estéreo"),
-    OPEN_NOTIFICATIONS("notifications", "🔔 Ver notificaciones"),
-    MOUSE_TOGGLE("mouse_toggle", "🖱 Ratón con flechas del mando"),
-    NIGHT_DIMMER_TOGGLE("night_dimmer", "🌙 Modo noche (bajar brillo)"),
-    SCREENSAVER_START("screensaver_start", "💤 Poner salvapantallas"),
-    SLEEP_TIMER_CYCLE("sleep_timer", "⏰ Temporizador de apagado"),
-    SYSTEM_RECENTS("system_recents", "🗂 Recientes del sistema");
+import dev.custom.tvafrtools.R
+
+enum class QuickAction(val id: String, val label: String, val stringRes: Int) {
+    NONE("none", "Sin acción (botón original)", R.string.qa_none),
+    GO_HOME("go_home", "🏠 Ir a la pantalla de inicio", R.string.qa_go_home),
+    RECENT_APPS_SWITCHER("recent_apps_switcher", "🗂 Ver apps abiertas y cambiar", R.string.qa_recent_apps_switcher),
+    OPEN_APP("open_app", "📱 Abrir una aplicación...", R.string.qa_open_app),
+    ONE_CLICK_AFR("one_click_afr", "⚡ Ajustar Hz al vídeo actual", R.string.qa_one_click_afr),
+    AFR_PANEL("afr_panel", "📺 Elegir Hz manualmente", R.string.qa_afr_panel),
+    STOP_AFR("stop_afr", "↩ Volver a 60 Hz normales", R.string.qa_stop_afr),
+    REAL_SCREEN_TOGGLE("real_screen_toggle", "🌑 Apagar pantalla (música sonando)", R.string.qa_real_screen_toggle),
+    HUD_TOGGLE("hud_toggle", "📊 Ver datos en pantalla (FPS y temp)", R.string.qa_hud_toggle),
+    CLEAN_BACKGROUND_RAM("clean_background_ram", "🧹 Liberar memoria RAM", R.string.qa_clean_background_ram),
+    PREVIOUS_APP("previous_app", "🔀 Volver a la app anterior", R.string.qa_previous_app),
+    FORCE_STOP_FOREGROUND("force_stop_fg", "⏹ Cerrar la app actual por completo", R.string.qa_force_stop_foreground),
+    RESTART_FOREGROUND("restart_fg", "🔄 Reiniciar la app actual", R.string.qa_restart_foreground),
+    HDR_MODE_CYCLE("hdr_mode_cycle", "🌈 Cambiar modo HDR / SDR", R.string.qa_hdr_mode_cycle),
+    AUDIO_PASSTHROUGH_CYCLE("audio_passthrough_cycle", "🔊 Cambiar audio Passthrough / Estéreo", R.string.qa_audio_passthrough_cycle),
+    OPEN_NOTIFICATIONS("notifications", "🔔 Ver notificaciones", R.string.qa_open_notifications),
+    MOUSE_TOGGLE("mouse_toggle", "🖱 Ratón con flechas del mando", R.string.qa_mouse_toggle),
+    NIGHT_DIMMER_TOGGLE("night_dimmer", "🌙 Modo noche (bajar brillo)", R.string.qa_night_dimmer_toggle),
+    SCREENSAVER_START("screensaver_start", "💤 Poner salvapantallas", R.string.qa_screensaver_start),
+    SLEEP_TIMER_CYCLE("sleep_timer", "⏰ Temporizador de apagado", R.string.qa_sleep_timer_cycle),
+    SYSTEM_RECENTS("system_recents", "🗂 Recientes del sistema", R.string.qa_system_recents);
+
+    fun getLocalizedLabel(context: Context): String =
+        try { context.getString(stringRes) } catch (_: Throwable) { label }
 
     companion object {
         fun fromId(id: String?): QuickAction =
