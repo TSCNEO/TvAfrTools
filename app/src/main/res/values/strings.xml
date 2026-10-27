@@ -5,11 +5,11 @@
     <string name="accessibility_service_description">Auto Frame Rate (AFR) engine for Android TV / Google TV, remote button remapping, screen dimmer, and multitasking overlay.</string>
 
     <!-- Navigation Tabs -->
-    <string name="nav_afr">⚡ Frame Rate (AFR)</string>
-    <string name="nav_mapper">🎮 Remote Buttons</string>
-    <string name="nav_actions">🛠 Quick Actions</string>
-    <string name="nav_webremote">🌐 Web Remote</string>
-    <string name="nav_system">ℹ Info &amp; Update</string>
+    <string name="nav_afr">Frame Rate (AFR)</string>
+    <string name="nav_mapper">Remote Buttons</string>
+    <string name="nav_actions">Quick Actions</string>
+    <string name="nav_webremote">Web Remote</string>
+    <string name="nav_system">Info &amp; Update</string>
 
     <!-- Navigation Subtitles -->
     <string name="nav_afr_sub">Eliminate judder by matching display to 24, 50, or 60 Hz</string>
@@ -182,7 +182,7 @@ Once accepted, click Retry.</string>
     <string name="banner_afr_no_video">No active video playback detected</string>
 
     <!-- Service & Actions Banners -->
-    <string name="service_started_banner">⚡ TvAfrTools active (Press your mapped remote button in Disney+/Prime/Netflix)</string>
+    <string name="service_started_banner">⚡ TvAfrTools Active</string>
     <string name="screen_turned_on">☀ Screen on</string>
     <string name="screen_turned_off">🌑 Screen off (Press any button to turn on)</string>
     <string name="reconnecting_daemon">⚠ Reconnecting local ADB daemon...</string>
@@ -247,4 +247,5 @@ Changes:
     <string name="system_installed_version">Installed version: v%1$s (Build %2$d)
 Repository: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="toast_overlay_granted">✓ Overlay permission already granted</string>
+    <string name="btn_later">Later</string>
 </resources>

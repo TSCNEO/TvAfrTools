@@ -25,7 +25,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import android.text.Spanned
 import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
 import androidx.lifecycle.lifecycleScope
 import dev.custom.tvafrtools.R
 import dev.custom.tvafrtools.adb.LocalAdbBootstrap
@@ -149,14 +151,14 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
         }
 
-        btnRow.addView(makeActionButton("⚡ Activar automáticamente") {
+        btnRow.addView(makeActionButton(getString(R.string.btn_auto_activate)) {
             showAutoSetupDialog()
         })
         btnRow.addView(makeActionButton(getString(R.string.btn_open_accessibility)) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         })
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            btnRow.addView(makeActionButton("ℹ️ Si dice Ajuste restringido (Android 13/14)") {
+            btnRow.addView(makeActionButton(getString(R.string.btn_setup_guide)) {
                 showRestrictedSettingsGuideDialog()
             })
         }
@@ -383,7 +385,7 @@ class MainActivity : AppCompatActivity() {
         val sectionTitle = TextView(this).apply {
             id = View.generateViewId()
             tag = "SECTION_TITLE"
-            text = currentSection.getTitle(this@MainActivity)
+            text = "${currentSection.icon}   ${currentSection.getTitle(this@MainActivity)}"
             setTextColor(Color.parseColor("#F8FAFC"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             typeface = Typeface.DEFAULT_BOLD
@@ -471,7 +473,7 @@ class MainActivity : AppCompatActivity() {
         // Update headers
         val titleView = window.decorView.findViewWithTag<TextView>("SECTION_TITLE")
         val subView = window.decorView.findViewWithTag<TextView>("SECTION_SUBTITLE")
-        titleView?.text = section.getTitle(this)
+        titleView?.text = "${section.icon}   ${section.getTitle(this)}"
         subView?.text = section.getSubtitle(this)
 
         refreshSectionContent()
@@ -527,9 +529,9 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dpToPx(14), 0, 0)
         }
-        testRow.addView(makeActionButton("🎬 Ajustar al vídeo ahora") { runServiceAction(QuickAction.ONE_CLICK_AFR) })
-        testRow.addView(makeActionButton("📺 Elegir Hz en pantalla") { runServiceAction(QuickAction.AFR_PANEL) })
-        testRow.addView(makeActionButton("↩ Volver a 60 Hz") { runServiceAction(QuickAction.STOP_AFR) })
+        testRow.addView(makeActionButton(getString(R.string.qa_one_click_afr)) { runServiceAction(QuickAction.ONE_CLICK_AFR) })
+        testRow.addView(makeActionButton(getString(R.string.qa_afr_panel)) { runServiceAction(QuickAction.AFR_PANEL) })
+        testRow.addView(makeActionButton(getString(R.string.qa_stop_afr)) { runServiceAction(QuickAction.STOP_AFR) })
         col.addView(testRow)
 
         return scroll
@@ -555,7 +557,7 @@ class MainActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         topRow.addView(infoText)
-        topRow.addView(makeActionButton("➕ Añadir botón del mando") { showCaptureKeyDialog() })
+        topRow.addView(makeActionButton(getString(R.string.mapper_btn_add)) { showCaptureKeyDialog() })
         col.addView(topRow)
 
         val mappings = prefs.getMappings()
@@ -887,26 +889,39 @@ class MainActivity : AppCompatActivity() {
             visibility = View.GONE
         }
 
-        val checkUpdateBtn = makeActionButton("🔍 Comprobar si hay nueva versión") {
+        val checkUpdateBtn = makeActionButton(getString(R.string.system_check_update)) {
             updateStatusText.visibility = View.VISIBLE
-            updateStatusText.text = "Consultando releases en GitHub..."
+            updateStatusText.text = getString(R.string.update_checking)
             updateStatusText.setTextColor(Color.parseColor("#F59E0B"))
 
             UpdateManager.checkForUpdate(this) { info, err ->
                 if (info != null) {
-                    updateStatusText.text = "🎉 ¡Nueva versión ${info.tagName} disponible!"
+                    updateStatusText.text = getString(R.string.update_available_title, info.tagName)
                     updateStatusText.setTextColor(Color.parseColor("#10B981"))
 
+                    val changelogView = ScrollView(this).apply {
+                        isFocusable = true
+                        descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+                        setPadding(dpToPx(24), dpToPx(12), dpToPx(24), dpToPx(12))
+                    }
+                    val notesTv = TextView(this).apply {
+                        text = markdownToSpanned(info.releaseNotes)
+                        setTextColor(Color.parseColor("#E2E8F0"))
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                        setLineSpacing(dpToPx(2).toFloat(), 1f)
+                    }
+                    changelogView.addView(notesTv)
+
                     AlertDialog.Builder(this)
-                        .setTitle("Nueva versión ${info.tagName}")
-                        .setMessage("Notas de la versión:\n\n${info.releaseNotes}\n\n¿Deseas descargar e instalar ahora?")
-                        .setPositiveButton("Descargar e Instalar") { _, _ ->
-                            updateStatusText.text = "Descargando actualización..."
+                        .setTitle(getString(R.string.update_available_title, info.tagName))
+                        .setView(changelogView)
+                        .setPositiveButton(getString(R.string.update_btn_install)) { _, _ ->
+                            updateStatusText.text = getString(R.string.update_downloading, 0)
                             UpdateManager.downloadAndInstall(
                                 this,
                                 info,
                                 onProgress = { pct ->
-                                    updateStatusText.text = "Descargando: $pct%"
+                                    updateStatusText.text = getString(R.string.update_downloading, pct)
                                 },
                                 onStatus = { status ->
                                     updateStatusText.text = status
@@ -921,10 +936,10 @@ class MainActivity : AppCompatActivity() {
                                 }
                             )
                         }
-                        .setNegativeButton("Más tarde", null)
+                        .setNegativeButton(getString(R.string.btn_later), null)
                         .show()
                 } else {
-                    updateStatusText.text = err ?: "Estás en la última versión."
+                    updateStatusText.text = err ?: getString(R.string.update_up_to_date, BuildConfig.VERSION_NAME)
                     updateStatusText.setTextColor(Color.parseColor("#94A3B8"))
                 }
             }
@@ -1148,6 +1163,46 @@ class MainActivity : AppCompatActivity() {
         }
 
         return apps.map { AppItem(it.value, it.key) }.sortedBy { it.label.lowercase() }
+    }
+
+    private fun markdownToSpanned(markdown: String): Spanned {
+        val lines = markdown.lines()
+        val sb = StringBuilder()
+        for (line in lines) {
+            var l = line.trim()
+            if (l.isEmpty()) {
+                sb.append("<br/>")
+                continue
+            }
+            when {
+                l.startsWith("### ") -> {
+                    l = "<br/><b><font color='#F59E0B'>" + l.substring(4).trim() + "</font></b><br/>"
+                }
+                l.startsWith("## ") -> {
+                    l = "<br/><big><b><font color='#F59E0B'>" + l.substring(3).trim() + "</font></b></big><br/>"
+                }
+                l.startsWith("# ") -> {
+                    l = "<br/><h3><font color='#F59E0B'>" + l.substring(2).trim() + "</font></h3>"
+                }
+                l.startsWith("- ") || l.startsWith("* ") -> {
+                    l = "&nbsp;&nbsp;• " + l.substring(2).trim() + "<br/>"
+                }
+                else -> {
+                    l = l + "<br/>"
+                }
+            }
+
+            // Bold: **text** -> <b>text</b>
+            l = l.replace(Regex("""\*\*(.*?)\*\*"""), "<b>$1</b>")
+            // Italic: *text* -> <i>text</i>
+            l = l.replace(Regex("""\*(.*?)\*"""), "<i>$1</i>")
+            // Backticks: `code` -> <font color='#38BDF8'><code>$1</code></font>
+            l = l.replace(Regex("""`(.*?)`"""), "<font color='#38BDF8'><code>$1</code></font>")
+
+            sb.append(l)
+        }
+
+        return HtmlCompat.fromHtml(sb.toString(), HtmlCompat.FROM_HTML_MODE_LEGACY)
     }
 
     private fun formatActionLabel(action: QuickAction, pkg: String?): String {
