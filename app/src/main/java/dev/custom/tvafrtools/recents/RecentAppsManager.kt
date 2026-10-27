@@ -13,11 +13,10 @@ import java.util.concurrent.CopyOnWriteArrayList
 /**
  * Universal Recent Apps Manager for Android TV.
  *
- * Implements the proven tvQuickActions mechanism (AbstractC0281c.f4637k + W1.H + W1.J):
+ * Implements the proven tvQuickActions mechanism:
  * 1. Live session tracking from TvAfrAccessibilityService (TYPE_WINDOW_STATE_CHANGED)
- * 2. Historical query from UsageStatsManager (last 48 hours)
- * 3. Privileged / ADB recents fallback (dumpsys activity recents / ActivityTaskManager)
- * 4. Resolves app labels and TV banners / icons for native D-Pad switching & closing.
+ * 2. Instant removal upon Clean RAM or Force Stop so closed apps do not stay in the list
+ * 3. Resolves app labels and TV banners / icons for native D-Pad switching & closing.
  */
 object RecentAppsManager {
 
@@ -68,32 +67,51 @@ object RecentAppsManager {
 
     /**
      * Called whenever TvAfrAccessibilityService detects TYPE_WINDOW_STATE_CHANGED
-     * (matches AbstractC0281c.e in tvQuickActions).
      */
     fun onAppForegrounded(context: Context, packageName: String) {
         if (isExcluded(context, packageName)) return
 
         liveRecentPackages.remove(packageName)
         liveRecentPackages.add(0, packageName)
-        while (liveRecentPackages.size > 30) {
+        while (liveRecentPackages.size > 25) {
             liveRecentPackages.removeAt(liveRecentPackages.lastIndex)
         }
         Log.d("RecentAppsManager", "onAppForegrounded -> $packageName (count: ${liveRecentPackages.size})")
     }
 
     /**
-     * Pre-loads historical recent apps from UsageStatsManager or PrivilegedServer/dumpsys
-     * on service start or cold start.
+     * Removes an app when force-stopped or swiped away.
+     */
+    fun removePackage(packageName: String) {
+        liveRecentPackages.remove(packageName)
+    }
+
+    /**
+     * Clears all background apps from recents when RAM is cleaned.
+     */
+    fun onRamCleaned(currentFgPkg: String) {
+        liveRecentPackages.retainAll(setOf(currentFgPkg))
+    }
+
+    /**
+     * Returns tracked packages currently in session history.
+     */
+    fun getTrackedPackages(): List<String> {
+        return liveRecentPackages.toList()
+    }
+
+    /**
+     * Pre-loads recent apps on service start or cold start (last 3 hours max).
      */
     fun loadInitialRecents(context: Context) {
         Thread {
             try {
-                // 1. Query UsageStatsManager
+                // 1. Query UsageStatsManager for very recent apps (last 3 hours)
                 val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
                 if (usm != null) {
                     val calendar = Calendar.getInstance()
                     val end = calendar.timeInMillis
-                    calendar.add(Calendar.DAY_OF_YEAR, -2) // last 48 hours
+                    calendar.add(Calendar.HOUR_OF_DAY, -3)
                     val start = calendar.timeInMillis
                     val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
                     if (!stats.isNullOrEmpty()) {
@@ -117,7 +135,6 @@ object RecentAppsManager {
                         liveRecentPackages.add(0, pkg)
                     }
                 }
-                Log.d("RecentAppsManager", "RecentAppsManager initialized: ${liveRecentPackages.size} apps in history")
             } catch (e: Exception) {
                 Log.w("RecentAppsManager", "Error loading initial recents")
             }
@@ -125,8 +142,7 @@ object RecentAppsManager {
     }
 
     /**
-     * Resolves display metadata (label, TV banner / icon) for recent packages
-     * (matches W1.H in tvQuickActions).
+     * Resolves display metadata (label, TV banner / icon) for currently active recent packages.
      */
     fun getRecentApps(context: Context, currentFgPkg: String): List<AppInfo> {
         val pm = context.packageManager
@@ -138,35 +154,11 @@ object RecentAppsManager {
             packageCandidates.add(currentFgPkg)
         }
 
-        // 2. Add live recorded packages
-        packageCandidates.addAll(liveRecentPackages.filter { !isExcluded(context, it) })
-
-        // 3. Fallback: UsageStatsManager if list is still small
-        if (packageCandidates.size < 6) {
-            try {
-                val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-                if (usm != null) {
-                    val calendar = Calendar.getInstance()
-                    val end = calendar.timeInMillis
-                    calendar.add(Calendar.DAY_OF_YEAR, -2)
-                    val start = calendar.timeInMillis
-                    val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start, end)
-                    if (!stats.isNullOrEmpty()) {
-                        val sorted = stats.filter { it.lastTimeUsed > 0 && !isExcluded(context, it.packageName) }
-                            .sortedByDescending { it.lastTimeUsed }
-                            .map { it.packageName }
-                        packageCandidates.addAll(sorted)
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-
-        // 4. Fallback: PrivilegedServer / dumpsys recents
-        if (packageCandidates.size < 6) {
-            try {
-                val serverRecents = ServerClient.getRecentPackages()
-                packageCandidates.addAll(serverRecents.filter { !isExcluded(context, it) })
-            } catch (_: Exception) {}
+        // 2. Add live recorded packages that are not excluded
+        for (pkg in liveRecentPackages) {
+            if (!isExcluded(context, pkg)) {
+                packageCandidates.add(pkg)
+            }
         }
 
         // Resolve info for each candidate
@@ -200,7 +192,7 @@ object RecentAppsManager {
                     )
                 )
             } catch (_: PackageManager.NameNotFoundException) {
-                // Not installed or not an application, skip
+                liveRecentPackages.remove(pkg)
             }
         }
 

@@ -25,6 +25,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import dev.custom.tvafrtools.afr.AfrController
 import dev.custom.tvafrtools.server.ServerClient
+import dev.custom.tvafrtools.adb.LocalAdbBootstrap
+
 import java.util.Locale
 import kotlin.math.abs
 
@@ -426,6 +428,55 @@ class OverlayToolkit(
         }
     }
 
+    fun performRamClean(currentForegroundPkg: String) {
+        Thread {
+            val memBefore = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memBefore)
+
+            val tracked = dev.custom.tvafrtools.recents.RecentAppsManager.getTrackedPackages()
+            var killedCount = 0
+
+            // 1. Android ActivityManager SDK process termination (works universally without ADB)
+            for (pkg in tracked) {
+                if (pkg != currentForegroundPkg && !dev.custom.tvafrtools.recents.RecentAppsManager.isExcluded(context, pkg)) {
+                    try {
+                        activityManager.killBackgroundProcesses(pkg)
+                        killedCount++
+                    } catch (_: Exception) {}
+                }
+            }
+
+            // 2. PrivilegedServer termination (am force-stop) if daemon online
+            if (ServerClient.isServerRunning()) {
+                val serverKilled = ServerClient.cleanBackgroundRam(currentForegroundPkg)
+                if (serverKilled > killedCount) {
+                    killedCount = serverKilled
+                }
+            } else {
+                LocalAdbBootstrap.ensureServerRunningAsync(context)
+            }
+
+            // 3. Clear tracked background apps from RecentAppsManager
+            dev.custom.tvafrtools.recents.RecentAppsManager.onRamCleaned(currentForegroundPkg)
+
+            // 4. Measure freed memory
+            val memAfter = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memAfter)
+            val freedMb = maxOf(0L, (memAfter.availMem - memBefore.availMem) / (1024 * 1024))
+
+            val banner = if (killedCount > 0) {
+                if (freedMb > 5) {
+                    "🧹 RAM liberada: $killedCount apps cerradas (+$freedMb MB libres)"
+                } else {
+                    "🧹 RAM liberada: $killedCount apps cerradas en 2º plano"
+                }
+            } else {
+                "🧹 Memoria limpia: No había aplicaciones activas en 2º plano"
+            }
+            showBanner(banner)
+        }.start()
+    }
+
     fun closeRecentsPanel() {
         isRecentsVisible = false
         recentsContainer?.let {
@@ -491,10 +542,7 @@ class OverlayToolkit(
 
                 val cleanBtn = createPanelButton("🧹 Liberar RAM (Cerrar todas las apps en 2º plano)", isHighlighted = true) {
                     closeRecentsPanel()
-                    Thread {
-                        val killed = ServerClient.cleanBackgroundRam(currentForegroundPkg)
-                        showBanner("🧹 RAM liberada: $killed apps cerradas en 2º plano")
-                    }.start()
+                    performRamClean(currentForegroundPkg)
                 }
                 card.addView(cleanBtn)
 
@@ -528,7 +576,13 @@ class OverlayToolkit(
                             onLongClick = {
                                 closeRecentsPanel()
                                 Thread {
-                                    ServerClient.forceStopPackage(app.packageName)
+                                    dev.custom.tvafrtools.recents.RecentAppsManager.removePackage(app.packageName)
+                                    try {
+                                        activityManager.killBackgroundProcesses(app.packageName)
+                                    } catch (_: Exception) {}
+                                    if (ServerClient.isServerRunning()) {
+                                        ServerClient.forceStopPackage(app.packageName)
+                                    }
                                     showBanner("🛑 Cerrada forzosamente: ${app.label}")
                                 }.start()
                             }

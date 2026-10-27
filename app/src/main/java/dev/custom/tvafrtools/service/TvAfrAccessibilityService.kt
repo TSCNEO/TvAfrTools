@@ -451,10 +451,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
                 overlayToolkit.toggleRecentsPanel(currentForegroundPkg)
             }
             QuickAction.CLEAN_BACKGROUND_RAM -> {
-                Thread {
-                    val killed = ServerClient.cleanBackgroundRam(currentForegroundPkg)
-                    overlayToolkit.showBanner("🧹 RAM liberada: $killed apps cerradas en 2º plano")
-                }.start()
+                overlayToolkit.performRamClean(currentForegroundPkg)
             }
             QuickAction.HDR_MODE_CYCLE -> {
                 Thread {
