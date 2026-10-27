@@ -152,6 +152,15 @@ Para futuras versiones:
 
 ---
 
+### v1.2.9: Soporte Bilingüe Completo (Inglés / Español) e Internacionalización
+- **Arquitectura de Recursos Nativos Android (i18n)**:
+  - `res/values/strings.xml`: Recursos base por defecto en **Inglés** (para la comunidad internacional en GitHub y Reddit).
+  - `res/values-es/strings.xml`: Recursos completos en **Español** para dispositivos configurados en idioma español.
+  - Simetría del 100% de claves (197 cadenas traducidas) cubriendo interfaz principal (Master-Detail UI), selector de Hz manual, multitarea, limpiador de RAM, avisos flotantes (banners HUD), diálogo del instalador de actualizaciones y mapeador de botones.
+- **Localización Dinámica de Enums y Botones**:
+  - `QuickAction` en `AppPrefs.kt` implementa `getLocalizedLabel(context: Context)` vinculada a recursos `@string/qa_*`.
+  - Mapeo de botones del mando muestra acciones y secuencias (1 clic, doble clic, pulsación larga) en el idioma correspondiente del sistema operativo.
+
 ## 6. Política de Plataformas y Exclusión de Fire OS
 - **Plataformas Soportadas Oficialmente**: **Únicamente Android TV y Google TV estándar / puros (Android 9.0 a 14 / APIs 28 a 34)**.
   - Ejemplos: Xiaomi Mi TV Box S, Homatics Box R 4K Plus, Chromecast con Google TV, NVIDIA Shield, Nokia Streaming Box, etc.

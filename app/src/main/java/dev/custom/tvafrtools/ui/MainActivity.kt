@@ -53,12 +53,15 @@ class MainActivity : AppCompatActivity() {
     private var autoBootstrapAttempted = false
 
     // UI navigation state
-    private enum class NavSection(val title: String, val subtitle: String, val icon: String) {
-        AFR("Ajuste de Hz", "Evita tirones ajustando la tele a 24, 50 o 60 Hz", "🎬"),
-        MAPPER("Botones del Mando", "Elige qué hace cada botón con 1 clic, 2 clics o mantener pulsado", "🎮"),
-        ACTIONS("Acciones Rápidas", "Accesos útiles: apagar pantalla, cambiar de app o liberar memoria", "🚀"),
-        WEBREMOTE("Mando desde el Móvil", "Controla la tele desde el navegador del móvil o el ordenador", "🌐"),
-        SYSTEM("Estado y Ajustes", "Información del sistema, permisos y actualizaciones", "⚡")
+    private enum class NavSection(val titleRes: Int, val subRes: Int, val icon: String) {
+        AFR(R.string.nav_afr, R.string.nav_afr_sub, "🎬"),
+        MAPPER(R.string.nav_mapper, R.string.nav_mapper_sub, "🎮"),
+        ACTIONS(R.string.nav_actions, R.string.nav_actions_sub, "🚀"),
+        WEBREMOTE(R.string.nav_webremote, R.string.nav_webremote_sub, "🌐"),
+        SYSTEM(R.string.nav_system, R.string.nav_system_sub, "⚡");
+
+        fun getTitle(ctx: Context): String = ctx.getString(titleRes)
+        fun getSubtitle(ctx: Context): String = ctx.getString(subRes)
     }
 
     private var currentSection = NavSection.AFR
@@ -149,7 +152,7 @@ class MainActivity : AppCompatActivity() {
         btnRow.addView(makeActionButton("⚡ Activar automáticamente") {
             showAutoSetupDialog()
         })
-        btnRow.addView(makeActionButton("🛡 Abrir Accesibilidad") {
+        btnRow.addView(makeActionButton(getString(R.string.btn_open_accessibility)) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         })
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -166,7 +169,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showRestrictedSettingsGuideDialog() {
         AlertDialog.Builder(this)
-            .setTitle("ℹ️ Ajustes restringidos en Android TV")
+            .setTitle(getString(R.string.dialog_guide_title))
             .setMessage(
                 "En Android TV y Google TV, la ficha de la app no tiene el menú de 3 puntos que tienen los teléfonos móviles.\n\n" +
                 "Por eso, TvAfrTools desbloquea los permisos automáticamente:\n\n" +
@@ -174,22 +177,22 @@ class MainActivity : AppCompatActivity() {
                 "2. Pulsa en \"⚡ Activar automáticamente\".\n" +
                 "3. Si tu TV muestra la ventana de confirmación, marca \"Permitir siempre\" y pulsa Aceptar con el mando."
             )
-            .setPositiveButton("⚡ Activar automáticamente") { _, _ ->
+            .setPositiveButton(getString(R.string.btn_auto_activate)) { _, _ ->
                 showAutoSetupDialog()
             }
-            .setNegativeButton("Entendido", null)
+            .setNegativeButton(getString(R.string.btn_got_it), null)
             .show()
     }
 
     private fun showAutoSetupDialog() {
         val dialog = AlertDialog.Builder(this)
-            .setTitle("⚡ Activando permisos en tu TV")
+            .setTitle(getString(R.string.dialog_auto_setup_title))
             .setMessage(
                 "Conectando al sistema ADB interno...\n\n" +
                 "👉 IMPORTANTE: Si aparece una ventana en tu televisor preguntando si permites la depuración USB, marca la casilla Permitir siempre y pulsa Aceptar con el mando."
             )
             .setCancelable(false)
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.mapper_btn_cancel), null)
             .show()
 
         lifecycleScope.launch {
@@ -210,13 +213,13 @@ class MainActivity : AppCompatActivity() {
 
             if (onlineNow) {
                 AlertDialog.Builder(this@MainActivity)
-                    .setTitle("✓ ¡Todo listo!")
-                    .setMessage("Los permisos del mando y el motor de cambio de Hz se han activado con éxito. Ya puedes usar tus botones configurados.")
-                    .setPositiveButton("Genial", null)
+                    .setTitle(getString(R.string.dialog_ready_title))
+                    .setMessage(getString(R.string.dialog_ready_msg))
+                    .setPositiveButton(getString(R.string.btn_great), null)
                     .show()
             } else {
                 AlertDialog.Builder(this@MainActivity)
-                    .setTitle(if (res.waitingForTvAuthPopup) "Acepta el mensaje en tu TV" else "No se pudo activar automáticamente")
+                    .setTitle(if (res.waitingForTvAuthPopup) getString(R.string.dialog_auth_popup_title) else getString(R.string.dialog_failed_title))
                     .setMessage(
                         if (res.waitingForTvAuthPopup) {
                             "Ha aparecido una ventana de confirmación en tu televisor.\n\n" +
@@ -309,7 +312,7 @@ class MainActivity : AppCompatActivity() {
         // Navigation Items
         for (sec in NavSection.values()) {
             val navItem = TextView(this).apply {
-                text = "${sec.icon}   ${sec.title}"
+                text = "${sec.icon}   ${sec.getTitle(this@MainActivity)}"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 setPadding(dpToPx(16), dpToPx(13), dpToPx(16), dpToPx(13))
                 isFocusable = true
@@ -380,7 +383,7 @@ class MainActivity : AppCompatActivity() {
         val sectionTitle = TextView(this).apply {
             id = View.generateViewId()
             tag = "SECTION_TITLE"
-            text = currentSection.title
+            text = currentSection.getTitle(this@MainActivity)
             setTextColor(Color.parseColor("#F8FAFC"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             typeface = Typeface.DEFAULT_BOLD
@@ -388,7 +391,7 @@ class MainActivity : AppCompatActivity() {
         val sectionSubtitle = TextView(this).apply {
             id = View.generateViewId()
             tag = "SECTION_SUBTITLE"
-            text = currentSection.subtitle
+            text = currentSection.getSubtitle(this@MainActivity)
             setTextColor(Color.parseColor("#8E95A5"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
         }
@@ -468,8 +471,8 @@ class MainActivity : AppCompatActivity() {
         // Update headers
         val titleView = window.decorView.findViewWithTag<TextView>("SECTION_TITLE")
         val subView = window.decorView.findViewWithTag<TextView>("SECTION_SUBTITLE")
-        titleView?.text = section.title
-        subView?.text = section.subtitle
+        titleView?.text = section.getTitle(this)
+        subView?.text = section.getSubtitle(this)
 
         refreshSectionContent()
     }
@@ -590,12 +593,12 @@ class MainActivity : AppCompatActivity() {
                 val keyName = KeyEvent.keyCodeToString(m.keyCode)
                 val detail = TextView(this).apply {
                     text = buildString {
-                        append("🔘 ").append(keyName).append(" (botón ").append(m.keyCode).append(")\n")
-                        append("   • 1 Clic : ").append(formatActionLabel(m.singleClick, m.singleClickPkg)).append("\n")
-                        append("   • 2 Clics: ").append(formatActionLabel(m.doubleClick, m.doubleClickPkg)).append("\n")
-                        append("   • Mantener pulsado: ").append(formatActionLabel(m.longPress, m.longPressPkg))
+                        append(getString(R.string.button_label_key, keyName, m.keyCode)).append("\n")
+                        append("   • ").append(getString(R.string.mapper_single_click)).append(": ").append(formatActionLabel(m.singleClick, m.singleClickPkg)).append("\n")
+                        append("   • ").append(getString(R.string.mapper_double_click)).append(": ").append(formatActionLabel(m.doubleClick, m.doubleClickPkg)).append("\n")
+                        append("   • ").append(getString(R.string.mapper_long_press)).append(": ").append(formatActionLabel(m.longPress, m.longPressPkg))
                         if (m.appOverrides.isNotEmpty()) {
-                            append("\n   • Solo en apps de vídeo: ").append(formatActionLabel(m.appOverrides.values.first(), m.overridePkg))
+                            append("\n   • ").append(getString(R.string.mapper_video_override)).append(": ").append(formatActionLabel(m.appOverrides.values.first(), m.overridePkg))
                         }
                     }
                     setTextColor(Color.parseColor("#F1F5F9"))
@@ -604,8 +607,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 card.addView(detail)
 
-                card.addView(makeActionButton("✏ Editar") { showEditMappingDialog(m) })
-                card.addView(makeActionButton("🗑 Borrar") {
+                card.addView(makeActionButton("✏ " + getString(R.string.btn_edit)) { showEditMappingDialog(m) })
+                card.addView(makeActionButton("🗑 " + getString(R.string.btn_delete)) {
                     prefs.removeMapping(m.keyCode)
                     refreshSectionContent()
                 })
@@ -629,10 +632,10 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(10))
         }
-        grid1.addView(makeCardButton("🌑 Apagar Pantalla", "Apaga la pantalla mientras sigues escuchando música en Spotify o YouTube") {
+        grid1.addView(makeCardButton(getString(R.string.action_screen_off_title), getString(R.string.action_screen_off_desc)) {
             runServiceAction(QuickAction.REAL_SCREEN_TOGGLE)
         })
-        grid1.addView(makeCardButton("📊 Datos en Pantalla", "Muestra los fotogramas (FPS), la temperatura y los Hz actuales") {
+        grid1.addView(makeCardButton(getString(R.string.action_hud_title), getString(R.string.action_hud_desc)) {
             runServiceAction(QuickAction.HUD_TOGGLE)
         })
         col.addView(grid1)
@@ -641,10 +644,10 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(10))
         }
-        grid2.addView(makeCardButton("🧹 Liberar Memoria", "Cierra apps de fondo para que la tele vaya más fluida") {
+        grid2.addView(makeCardButton(getString(R.string.action_clean_ram_title), getString(R.string.action_clean_ram_desc)) {
             runServiceAction(QuickAction.CLEAN_BACKGROUND_RAM)
         })
-        grid2.addView(makeCardButton("🗂 Apps Abiertas", "Panel flotante para cambiar rápido entre tus últimas aplicaciones") {
+        grid2.addView(makeCardButton(getString(R.string.action_recents_title), getString(R.string.action_recents_desc)) {
             runServiceAction(QuickAction.RECENT_APPS_SWITCHER)
         })
         col.addView(grid2)
@@ -653,10 +656,10 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(10))
         }
-        grid3.addView(makeCardButton("🌙 Modo Noche", "Atenúa la pantalla para ver la tele a oscuras sin deslumbrarte") {
+        grid3.addView(makeCardButton(getString(R.string.action_night_dimmer_title), getString(R.string.action_night_dimmer_desc)) {
             runServiceAction(QuickAction.NIGHT_DIMMER_TOGGLE)
         })
-        grid3.addView(makeCardButton("🖱 Ratón con el Mando", "Mueve un cursor con las flechas en apps pensadas para móvil o tablet") {
+        grid3.addView(makeCardButton(getString(R.string.action_mouse_title), getString(R.string.action_mouse_desc)) {
             runServiceAction(QuickAction.MOUSE_TOGGLE)
         })
         col.addView(grid3)
@@ -673,8 +676,8 @@ class MainActivity : AppCompatActivity() {
         scroll.addView(col)
 
         col.addView(makeInteractiveToggleCard(
-            title = "Activar control desde el móvil",
-            desc = "Te permite usar el móvil como mando a distancia para escribir rápido y controlar la tele",
+            title = getString(R.string.webremote_toggle_title),
+            desc = getString(R.string.webremote_toggle_desc),
             initial = prefs.webRemoteEnabled
         ) { prefs.webRemoteEnabled = it })
 
@@ -736,24 +739,24 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 0, 0, dpToPx(16))
         }
 
-        val b1 = makeActionButton("⚡ Activar permisos automáticamente") {
+        val b1 = makeActionButton(getString(R.string.btn_auto_activate)) {
             showAutoSetupDialog()
         }.apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                 rightMargin = dpToPx(10)
             }
         }
-        val b2 = makeActionButton("🛡 Abrir Accesibilidad") {
+        val b2 = makeActionButton(getString(R.string.btn_open_accessibility)) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }.apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
 
-        val b3 = makeActionButton("🪟 Permitir superposición") {
+        val b3 = makeActionButton(getString(R.string.system_btn_overlay)) {
             if (!Settings.canDrawOverlays(this)) {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             } else {
-                Toast.makeText(this, "✓ Permiso de superposición ya concedido", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_overlay_granted), Toast.LENGTH_SHORT).show()
             }
         }.apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
@@ -761,7 +764,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val b4 = makeActionButton("⚙️ Ajustes de la App") {
+        val b4 = makeActionButton(getString(R.string.system_btn_app_settings)) {
             showRestrictedSettingsGuideDialog()
         }.apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -783,7 +786,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val cardTitle = TextView(this).apply {
-            text = "📋 Información del Sistema y Estado"
+            text = getString(R.string.system_card_title)
             setTextColor(Color.parseColor("#F59E0B"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             typeface = Typeface.DEFAULT_BOLD
@@ -834,17 +837,17 @@ class MainActivity : AppCompatActivity() {
             val dispStr = if (curMode != null) "${curMode.physicalWidth}x${curMode.physicalHeight} @ ${"%.3f".format(curMode.refreshRate)} Hz" else "N/A"
 
             statusRowsContainer.removeAllViews()
-            statusRowsContainer.addView(createStatusRow("📱 Dispositivo", "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})", Color.parseColor("#F1F5F9")))
-            statusRowsContainer.addView(createStatusRow("📺 Pantalla HDMI", dispStr, Color.parseColor("#38BDF8")))
-            statusRowsContainer.addView(createStatusRow("🛡 Servicio Accesibilidad", if (accActive) "🟢 Activo y vinculado" else "🔴 Inactivo", if (accActive) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
-            statusRowsContainer.addView(createStatusRow("🪟 Permiso Superposición", if (overlayGranted) "🟢 Concedido" else "🔴 Pendiente", if (overlayGranted) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_device), "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})", Color.parseColor("#F1F5F9")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_hdmi), dispStr, Color.parseColor("#38BDF8")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_acc), if (accActive) getString(R.string.status_active_linked) else getString(R.string.status_inactive), if (accActive) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_overlay), if (overlayGranted) getString(R.string.status_granted) else getString(R.string.status_pending), if (overlayGranted) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
             val daemonText = when {
                 daemonSample.online -> "🟢 Listo (${"%.2f".format(daemonSample.fps)} FPS | ${"%.1f".format(daemonSample.cpuTempC)}°C)"
-                accActive -> "🟢 Modo estándar (Botones activos)"
-                else -> "⚪ Inactivo (Pulsa Activar permisos)"
+                accActive -> getString(R.string.status_standard_mode)
+                else -> getString(R.string.status_inactive_activate_hint)
             }
-            statusRowsContainer.addView(createStatusRow("⚙️ Motor en 2º plano", daemonText, if (daemonSample.online || accActive) Color.parseColor("#4ADE80") else Color.parseColor("#F59E0B")))
-            statusRowsContainer.addView(createStatusRow("🌐 Mando Web Local", "http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}", Color.parseColor("#38BDF8")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_daemon), daemonText, if (daemonSample.online || accActive) Color.parseColor("#4ADE80") else Color.parseColor("#F59E0B")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_web_remote), "http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}", Color.parseColor("#38BDF8")))
         }
 
         col.addView(statusCard)
@@ -864,13 +867,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val updateTitle = TextView(this).apply {
-            text = "🔄 Actualizaciones"
+            text = getString(R.string.system_updates_title)
             setTextColor(Color.parseColor("#F59E0B"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             typeface = Typeface.DEFAULT_BOLD
         }
         val updateDesc = TextView(this).apply {
-            text = "Versión instalada: v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})\nRepositorio: https://github.com/TSCNEO/TvAfrTools"
+            text = getString(R.string.system_installed_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
             setTextColor(Color.parseColor("#94A3B8"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dpToPx(6), 0, dpToPx(14))
@@ -1094,9 +1097,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Pulsa ahora el botón de tu mando que quieras mapear")
-            .setMessage("Esperando pulsación de cualquier botón físico (excepto cruceta D-Pad y OK)...")
-            .setNegativeButton("Cancelar") { _, _ ->
+            .setTitle(getString(R.string.dialog_press_button_title))
+            .setMessage(getString(R.string.dialog_press_button_msg))
+            .setNegativeButton(getString(R.string.mapper_btn_cancel)) { _, _ ->
                 TvAfrAccessibilityService.keyCaptureCallback = null
             }
             .create()
@@ -1155,9 +1158,9 @@ class MainActivity : AppCompatActivity() {
             } catch (_: Throwable) {
                 pkg
             }
-            "📱 Abrir app: $appName"
+            getString(R.string.mapper_open_app_format, appName)
         } else {
-            action.label
+            action.getLocalizedLabel(this)
         }
     }
 
@@ -1167,26 +1170,26 @@ class MainActivity : AppCompatActivity() {
         try { activeEditDialog?.dismiss() } catch (_: Throwable) {}
 
         val actions = QuickAction.values()
-        val labels = actions.map { it.label }.toTypedArray()
+        val labels = actions.map { it.getLocalizedLabel(this) }.toTypedArray()
 
         val streamingActiveAction = if (mapping.appOverrides.isNotEmpty()) {
             formatActionLabel(mapping.appOverrides.values.first(), mapping.overridePkg)
         } else {
-            "Sin cambio (misma acción)"
+            getString(R.string.mapper_no_change)
         }
 
         val steps = arrayOf(
-            "1 Clic: ${formatActionLabel(mapping.singleClick, mapping.singleClickPkg)}",
-            "2 Clics rápidos: ${formatActionLabel(mapping.doubleClick, mapping.doubleClickPkg)}",
-            "Mantener pulsado: ${formatActionLabel(mapping.longPress, mapping.longPressPkg)}",
-            "Cambiar acción solo en apps de vídeo: $streamingActiveAction"
+            "${getString(R.string.mapper_single_click)}: ${formatActionLabel(mapping.singleClick, mapping.singleClickPkg)}",
+            "${getString(R.string.mapper_double_click)}: ${formatActionLabel(mapping.doubleClick, mapping.doubleClickPkg)}",
+            "${getString(R.string.mapper_long_press)}: ${formatActionLabel(mapping.longPress, mapping.longPressPkg)}",
+            "${getString(R.string.mapper_video_override)}: $streamingActiveAction"
         )
 
         activeEditDialog = AlertDialog.Builder(this)
-            .setTitle("Configurar botón: ${KeyEvent.keyCodeToString(mapping.keyCode)}")
+            .setTitle(getString(R.string.mapper_dialog_title, KeyEvent.keyCodeToString(mapping.keyCode)))
             .setItems(steps) { _, stepIdx ->
                 val dialogTitle = if (stepIdx == 3) {
-                    "¿Qué debe hacer este botón cuando estés viendo Disney+, Netflix o Prime?"
+                    getString(R.string.dialog_streaming_override_title)
                 } else {
                     steps[stepIdx]
                 }
@@ -1200,12 +1203,12 @@ class MainActivity : AppCompatActivity() {
                             applyActionToStep(mapping, stepIdx, chosen, null)
                         }
                     }
-                    .setNegativeButton("Volver") { _, _ ->
+                    .setNegativeButton(getString(R.string.btn_back)) { _, _ ->
                         showEditMappingDialog(mapping)
                     }
                     .show()
             }
-            .setPositiveButton("✓ Guardar y Volver") { d, _ ->
+            .setPositiveButton(getString(R.string.btn_save_back)) { d, _ ->
                 d.dismiss()
                 refreshSectionContent()
             }
@@ -1218,18 +1221,18 @@ class MainActivity : AppCompatActivity() {
     private fun showAppPickerDialog(mapping: ButtonMapping, stepIdx: Int) {
         val installedApps = getInstalledTvApps()
         if (installedApps.isEmpty()) {
-            Toast.makeText(this, "No se encontraron otras aplicaciones instaladas", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.no_other_apps_installed), Toast.LENGTH_SHORT).show()
             showEditMappingDialog(mapping)
             return
         }
         val appNames = installedApps.map { it.label }.toTypedArray()
         AlertDialog.Builder(this)
-            .setTitle("Selecciona la aplicación a abrir")
+            .setTitle(getString(R.string.mapper_select_app))
             .setItems(appNames) { _, appIdx ->
                 val chosenApp = installedApps[appIdx]
                 applyActionToStep(mapping, stepIdx, QuickAction.OPEN_APP, chosenApp.packageName)
             }
-            .setNegativeButton("Volver") { _, _ ->
+            .setNegativeButton(getString(R.string.btn_back)) { _, _ ->
                 showEditMappingDialog(mapping)
             }
             .show()

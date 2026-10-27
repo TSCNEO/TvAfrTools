@@ -13,6 +13,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import dev.custom.tvafrtools.R
 import dev.custom.tvafrtools.config.AppPrefs
 import dev.custom.tvafrtools.server.ServerClient
 import java.io.File
@@ -69,9 +70,8 @@ class AfrController(
             val mode = getCurrentDisplayMode()
             if (mode != null && isAfrActive) {
                 onBannerMessage(
-                    String.format(
-                        Locale.US,
-                        "✓ HDMI sincronizado: %dx%d @ %.3f Hz",
+                    context.getString(
+                        R.string.hdmi_synced,
                         mode.physicalWidth,
                         mode.physicalHeight,
                         mode.refreshRate
@@ -154,9 +154,9 @@ class AfrController(
                 if (detected <= 1.0f) {
                     val serverUp = ServerClient.isServerRunning()
                     if (!serverUp) {
-                        onBannerMessage("⚠ Demonio AFR desconectado. Abriendo Selector Manual de Hz...")
+                        onBannerMessage(context.getString(R.string.daemon_disconnected_manual))
                     } else {
-                        onBannerMessage("ℹ No se detectó stream activo. Abriendo Selector Manual de Hz...")
+                        onBannerMessage(context.getString(R.string.no_active_stream_manual))
                     }
                 } else {
                     val targetHz = normalizeTargetRefreshRate(detected)
@@ -318,9 +318,8 @@ class AfrController(
 
         if (chosen.modeId == currentMode.modeId && abs(currentMode.refreshRate - chosen.refreshRate) < 0.02f) {
             onBannerMessage(
-                String.format(
-                    Locale.US,
-                    "✓ La pantalla ya está en %dx%d @ %.3f Hz",
+                context.getString(
+                    R.string.display_already_at_mode,
                     currentMode.physicalWidth,
                     currentMode.physicalHeight,
                     currentMode.refreshRate
@@ -345,9 +344,8 @@ class AfrController(
         val currentMode = getCurrentDisplayMode()
         if (currentMode != null && currentMode.modeId == modeId) {
             onBannerMessage(
-                String.format(
-                    Locale.US,
-                    "✓ Modo actual ya activo (%.3f Hz)",
+                context.getString(
+                    R.string.mode_already_active,
                     currentMode.refreshRate
                 )
             )
@@ -427,7 +425,7 @@ class AfrController(
         }.start()
 
         if (wasActive && !silent) {
-            onBannerMessage("↺ AFR detenido (restaurando Hz por defecto del sistema)")
+            onBannerMessage(context.getString(R.string.afr_stopped_default))
         }
     }
 
@@ -464,7 +462,7 @@ class AfrController(
             afrOverlayParams = params
         } catch (e: Exception) {
             e.printStackTrace()
-            onBannerMessage("⚠ Permiso 'Mostrar sobre otras apps' requerido para cambiar Hz")
+            onBannerMessage(context.getString(R.string.overlay_perm_required))
         }
     }
 

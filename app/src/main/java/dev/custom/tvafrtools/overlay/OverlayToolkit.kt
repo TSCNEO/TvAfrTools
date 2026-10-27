@@ -1,5 +1,7 @@
 package dev.custom.tvafrtools.overlay
 
+import dev.custom.tvafrtools.R
+
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
@@ -343,14 +345,14 @@ class OverlayToolkit(
         }
         card.addView(subtitle)
 
-        val autoBtn = createPanelButton("⚡ Auto-Ajustar al FPS del Vídeo (1-Click AFR)", isHighlighted = true) {
+        val autoBtn = createPanelButton(context.getString(R.string.overlay_auto_afr_btn), isHighlighted = true) {
             closeAfrPanel()
             afrController.triggerOneClickAfr()
         }
         card.addView(autoBtn)
 
         // Opción Revertir / Restaurar Frecuencia nativa 60Hz inmediatamente debajo de Auto
-        val revertBtn = createPanelButton("↺ Revertir a Frecuencia Estándar (Restaurar 60Hz)", isHighlighted = false) {
+        val revertBtn = createPanelButton(context.getString(R.string.overlay_revert_60hz_btn), isHighlighted = false) {
             closeAfrPanel()
             afrController.stopAfr()
         }
@@ -466,12 +468,12 @@ class OverlayToolkit(
 
             val banner = if (killedCount > 0) {
                 if (freedMb > 5) {
-                    "🧹 RAM liberada: $killedCount apps cerradas (+$freedMb MB libres)"
+                    context.getString(R.string.banner_ram_freed, killedCount, freedMb)
                 } else {
-                    "🧹 RAM liberada: $killedCount apps cerradas en 2º plano"
+                    context.getString(R.string.banner_ram_freed_simple, killedCount)
                 }
             } else {
-                "🧹 Memoria limpia: No había aplicaciones activas en 2º plano"
+                context.getString(R.string.banner_ram_clean)
             }
             showBanner(banner)
         }.start()
@@ -525,7 +527,7 @@ class OverlayToolkit(
                 }
 
                 val headerTitle = TextView(context).apply {
-                    text = "🗂 Multitarea Universal y Limpiador de RAM"
+                    text = context.getString(R.string.overlay_recents_title)
                     setTextColor(Color.WHITE)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                     typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
@@ -533,14 +535,14 @@ class OverlayToolkit(
                 card.addView(headerTitle)
 
                 val subtitle = TextView(context).apply {
-                    text = "RAM Libre: $availMb MB / $totalMb MB  •  OK = Abrir App  |  Mantener OK = Cerrar (Force Stop)"
+                    text = context.getString(R.string.overlay_free_mem, availMb, totalMb) + "  •  OK  |  " + context.getString(R.string.overlay_recents_hint)
                     setTextColor(Color.parseColor("#94A3B8"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                     setPadding(0, dp(4), 0, dp(12))
                 }
                 card.addView(subtitle)
 
-                val cleanBtn = createPanelButton("🧹 Liberar RAM (Cerrar todas las apps en 2º plano)", isHighlighted = true) {
+                val cleanBtn = createPanelButton(context.getString(R.string.overlay_clean_ram_btn), isHighlighted = true) {
                     closeRecentsPanel()
                     performRamClean(currentForegroundPkg)
                 }
@@ -549,7 +551,7 @@ class OverlayToolkit(
                 val pm = context.packageManager
                 if (recentApps.isEmpty()) {
                     val emptyTv = TextView(context).apply {
-                        text = "No hay otras aplicaciones recientes en memoria."
+                        text = context.getString(R.string.overlay_no_recents)
                         setTextColor(Color.parseColor("#CBD5E1"))
                         setPadding(dp(8), dp(10), dp(8), dp(10))
                     }
@@ -558,7 +560,7 @@ class OverlayToolkit(
                     recentApps.forEach { app ->
                         val rowText = buildString {
                             append(app.label)
-                            if (app.isForeground) append("  [EN PANTALLA]")
+                            if (app.isForeground) append("  " + context.getString(R.string.overlay_on_screen))
                         }
                         val btn = createPanelButton(
                             text = rowText,
@@ -583,7 +585,7 @@ class OverlayToolkit(
                                     if (ServerClient.isServerRunning()) {
                                         ServerClient.forceStopPackage(app.packageName)
                                     }
-                                    showBanner("🛑 Cerrada forzosamente: ${app.label}")
+                                    showBanner(context.getString(R.string.banner_app_force_stopped, app.label))
                                 }.start()
                             }
                         )
