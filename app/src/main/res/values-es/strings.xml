@@ -5,11 +5,11 @@
     <string name="accessibility_service_description">Motor AFR para Android TV / Google TV, mapeador de botones, apagado de pantalla y multitarea.</string>
 
     <!-- Navigation Tabs -->
-    <string name="nav_afr">⚡ Ajuste de Hz</string>
-    <string name="nav_mapper">🎮 Botones del Mando</string>
-    <string name="nav_actions">🛠 Acciones Rápidas</string>
-    <string name="nav_webremote">🌐 Control Web</string>
-    <string name="nav_system">ℹ Información</string>
+    <string name="nav_afr">Ajuste de Hz</string>
+    <string name="nav_mapper">Botones del Mando</string>
+    <string name="nav_actions">Acciones Rápidas</string>
+    <string name="nav_webremote">Control Web</string>
+    <string name="nav_system">Información</string>
 
     <!-- Navigation Subtitles -->
     <string name="nav_afr_sub">Evita tirones ajustando la tele a 24, 50 o 60 Hz</string>
@@ -182,7 +182,7 @@ Una vez aceptado, pulsa Reintentar.</string>
     <string name="banner_afr_no_video">No se detectó reproducción activa de vídeo</string>
 
     <!-- Service & Actions Banners -->
-    <string name="service_started_banner">⚡ TvAfrTools activo (Pulsa tu botón mapeado en Disney+/Prime/Netflix)</string>
+    <string name="service_started_banner">⚡ TvAfrTools Activo</string>
     <string name="screen_turned_on">☀ Pantalla encendida</string>
     <string name="screen_turned_off">🌑 Pantalla apagada (Pulsa cualquier botón para encender)</string>
     <string name="reconnecting_daemon">⚠ Reconectando demonio ADB local...</string>
@@ -247,4 +247,5 @@ Novedades:
     <string name="system_installed_version">Versión instalada: v%1$s (Build %2$d)
 Repositorio: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="toast_overlay_granted">✓ Permiso de superposición ya concedido</string>
+    <string name="btn_later">Más tarde</string>
 </resources>

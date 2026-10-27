@@ -152,6 +152,15 @@ Para futuras versiones:
 
 ---
 
+### v1.2.10: Renderizado Markdown en Changelog, Corrección de Emojis y Banner Simplificado
+- **Renderizador Nativo de Markdown en Diálogo de Actualizaciones**:
+  - Implementado helper `markdownToSpanned` en `MainActivity.kt` que interpreta dinámicamente títulos (`#`, `##`, `###`), viñetas (`-`, `*`), negrita (`**text**`), cursiva (`*text*`) y fragmentos de código (`` `code` ``) convirtiéndolos a HTML estilizado compatible con `HtmlCompat.fromHtml(..., FROM_HTML_MODE_LEGACY)`.
+  - Integrado en un contenedor `ScrollView` navegable con D-Pad para lectura fluida en televisores.
+- **Eliminación de Emojis Duplicados en la Barra Lateral**:
+  - Depuración de las cadenas de navegación (`nav_afr`, `nav_mapper`, `nav_actions`, `nav_webremote`, `nav_system`) eliminando prefijos de emoji en los diccionarios `strings.xml` y `values-es/strings.xml`, unificando la renderización con un único icono por sección tanto en el menú lateral como en la cabecera.
+- **Banner Flotante de Inicio Conciso**:
+  - Sustituido el texto informativo extenso por `⚡ TvAfrTools Activo` (ES) / `⚡ TvAfrTools Active` (EN) en `service_started_banner` para minimizar la intrusión visual en pantalla al arrancar la app.
+
 ### v1.2.9: Soporte Bilingüe Completo (Inglés / Español) e Internacionalización
 - **Arquitectura de Recursos Nativos Android (i18n)**:
   - `res/values/strings.xml`: Recursos base por defecto en **Inglés** (para la comunidad internacional en GitHub y Reddit).
