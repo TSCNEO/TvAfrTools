@@ -324,17 +324,12 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 setOnFocusChangeListener { v, hasFocus ->
-                    if (hasFocus) {
-                        (v as TextView).typeface = Typeface.DEFAULT_BOLD
-                        if (currentSection != sec) {
-                            switchSection(sec)
-                        }
-                    } else {
-                        (v as TextView).typeface = Typeface.DEFAULT
-                    }
+                    (v as TextView).typeface = if (hasFocus) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                 }
                 setOnClickListener {
-                    switchSection(sec)
+                    if (currentSection != sec) {
+                        switchSection(sec)
+                    }
                 }
             }
             navButtons[sec] = navItem
@@ -732,29 +727,53 @@ class MainActivity : AppCompatActivity() {
         }
         scroll.addView(col)
 
-        val btnRow = LinearLayout(this).apply {
+        val btnRow1 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, dpToPx(10))
+        }
+        val btnRow2 = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(16))
         }
-        btnRow.addView(makeActionButton("⚡ Activar permisos automáticamente") {
+
+        val b1 = makeActionButton("⚡ Activar permisos automáticamente") {
             showAutoSetupDialog()
-        })
-        btnRow.addView(makeActionButton("🛡 Abrir Accesibilidad") {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        })
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            btnRow.addView(makeActionButton("⚙️ Info App (Ajustes restringidos)") {
-                showRestrictedSettingsGuideDialog()
-            })
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                rightMargin = dpToPx(10)
+            }
         }
-        btnRow.addView(makeActionButton("🪟 Permitir superposición") {
+        val b2 = makeActionButton("🛡 Abrir Accesibilidad") {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val b3 = makeActionButton("🪟 Permitir superposición") {
             if (!Settings.canDrawOverlays(this)) {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             } else {
                 Toast.makeText(this, "✓ Permiso de superposición ya concedido", Toast.LENGTH_SHORT).show()
             }
-        })
-        col.addView(btnRow)
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                rightMargin = dpToPx(10)
+            }
+        }
+
+        val b4 = makeActionButton("⚙️ Ajustes de la App") {
+            showRestrictedSettingsGuideDialog()
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        btnRow1.addView(b1)
+        btnRow1.addView(b2)
+        btnRow2.addView(b3)
+        btnRow2.addView(b4)
+
+        col.addView(btnRow1)
+        col.addView(btnRow2)
 
         val statusCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -763,33 +782,69 @@ class MainActivity : AppCompatActivity() {
             isFocusable = false
         }
 
+        val cardTitle = TextView(this).apply {
+            text = "📋 Información del Sistema y Estado"
+            setTextColor(Color.parseColor("#F59E0B"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, dpToPx(12))
+        }
+        statusCard.addView(cardTitle)
+
         val overlayGranted = Settings.canDrawOverlays(this)
         val accActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this)
+
+        fun createStatusRow(label: String, value: String, valueColor: Int): LinearLayout {
+            return LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, dpToPx(6), 0, dpToPx(6))
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+
+                val labelTv = TextView(this@MainActivity).apply {
+                    text = label
+                    setTextColor(Color.parseColor("#94A3B8"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f)
+                }
+                val valueTv = TextView(this@MainActivity).apply {
+                    text = value
+                    setTextColor(valueColor)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    typeface = Typeface.DEFAULT_BOLD
+                    gravity = Gravity.END
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.9f)
+                }
+                addView(labelTv)
+                addView(valueTv)
+            }
+        }
+
+        val statusRowsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        statusCard.addView(statusRowsContainer)
 
         lifecycleScope.launch {
             val daemonSample = withContext(Dispatchers.IO) { ServerClient.querySysInfoSync() }
             val dm = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
             val curMode = dm.getDisplay(android.view.Display.DEFAULT_DISPLAY)?.mode
-            val dispStr = if (curMode != null) "${curMode.physicalWidth}x${curMode.physicalHeight} @ ${"%.3f".format(curMode.refreshRate)}Hz" else "N/A"
+            val dispStr = if (curMode != null) "${curMode.physicalWidth}x${curMode.physicalHeight} @ ${"%.3f".format(curMode.refreshRate)} Hz" else "N/A"
 
-            val info = buildString {
-                append("• Dispositivo : ${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})\n")
-                append("• Pantalla HDMI : $dispStr\n")
-                append("• Accesibilidad : ${if (accActive) "🟢 Activo" else "🔴 Inactivo"}\n")
-                append("• Superposición : ${if (overlayGranted) "🟢 Concedido" else "🔴 Pendiente"}\n")
-                append("• Motor Interno : ${if (daemonSample.online) "🟢 Listo (${"%.2f".format(daemonSample.fps)} FPS | ${"%.1f".format(daemonSample.cpuTempC)}°C)" else "🟡 Iniciando..."}\n")
-                append("• Mando Web     : http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}")
+            statusRowsContainer.removeAllViews()
+            statusRowsContainer.addView(createStatusRow("📱 Dispositivo", "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})", Color.parseColor("#F1F5F9")))
+            statusRowsContainer.addView(createStatusRow("📺 Pantalla HDMI", dispStr, Color.parseColor("#38BDF8")))
+            statusRowsContainer.addView(createStatusRow("🛡 Servicio Accesibilidad", if (accActive) "🟢 Activo y vinculado" else "🔴 Inactivo", if (accActive) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
+            statusRowsContainer.addView(createStatusRow("🪟 Permiso Superposición", if (overlayGranted) "🟢 Concedido" else "🔴 Pendiente", if (overlayGranted) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
+            val daemonText = when {
+                daemonSample.online -> "🟢 Listo (${"%.2f".format(daemonSample.fps)} FPS | ${"%.1f".format(daemonSample.cpuTempC)}°C)"
+                accActive -> "🟢 Modo estándar (Botones activos)"
+                else -> "⚪ Inactivo (Pulsa Activar permisos)"
             }
-
-            statusCard.removeAllViews()
-            val tv = TextView(this@MainActivity).apply {
-                text = info
-                setTextColor(Color.parseColor("#F1F5F9"))
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                typeface = Typeface.MONOSPACE
-                setLineSpacing(0f, 1.35f)
-            }
-            statusCard.addView(tv)
+            statusRowsContainer.addView(createStatusRow("⚙️ Motor en 2º plano", daemonText, if (daemonSample.online || accActive) Color.parseColor("#4ADE80") else Color.parseColor("#F59E0B")))
+            statusRowsContainer.addView(createStatusRow("🌐 Mando Web Local", "http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}", Color.parseColor("#38BDF8")))
         }
 
         col.addView(statusCard)
@@ -996,10 +1051,17 @@ class MainActivity : AppCompatActivity() {
         val dm = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
         val m = dm.getDisplay(android.view.Display.DEFAULT_DISPLAY)?.mode
         val hzStr = if (m != null) "%.2f Hz".format(m.refreshRate) else "60.00 Hz"
+        val a11yActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this)
         lifecycleScope.launch {
             val daemonOnline = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
-            val statusText = "📺 $hzStr  •  ${if (daemonOnline) "🟢 Sistema listo" else "🟡 Iniciando..."}"
+            val (statusText, textColor) = when {
+                daemonOnline && a11yActive -> ("📺 $hzStr  •  🟢 Sistema listo" to Color.parseColor("#4ADE80"))
+                a11yActive -> ("📺 $hzStr  •  🟢 Botones activos" to Color.parseColor("#38BDF8"))
+                daemonOnline -> ("📺 $hzStr  •  🟡 Accesibilidad pendiente" to Color.parseColor("#F59E0B"))
+                else -> ("📺 $hzStr  •  ⚠️ Permisos pendientes" to Color.parseColor("#EF4444"))
+            }
             liveStatusPill.text = statusText
+            liveStatusPill.setTextColor(textColor)
         }
     }
 
@@ -1099,7 +1161,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var activeEditDialog: AlertDialog? = null
+
     private fun showEditMappingDialog(mapping: ButtonMapping) {
+        try { activeEditDialog?.dismiss() } catch (_: Throwable) {}
+
         val actions = QuickAction.values()
         val labels = actions.map { it.label }.toTypedArray()
 
@@ -1116,7 +1182,7 @@ class MainActivity : AppCompatActivity() {
             "Cambiar acción solo en apps de vídeo: $streamingActiveAction"
         )
 
-        AlertDialog.Builder(this)
+        activeEditDialog = AlertDialog.Builder(this)
             .setTitle("Configurar botón: ${KeyEvent.keyCodeToString(mapping.keyCode)}")
             .setItems(steps) { _, stepIdx ->
                 val dialogTitle = if (stepIdx == 3) {
@@ -1134,9 +1200,18 @@ class MainActivity : AppCompatActivity() {
                             applyActionToStep(mapping, stepIdx, chosen, null)
                         }
                     }
+                    .setNegativeButton("Volver") { _, _ ->
+                        showEditMappingDialog(mapping)
+                    }
                     .show()
             }
-            .setPositiveButton("Cerrar", null)
+            .setPositiveButton("✓ Guardar y Volver") { d, _ ->
+                d.dismiss()
+                refreshSectionContent()
+            }
+            .setOnDismissListener {
+                refreshSectionContent()
+            }
             .show()
     }
 
@@ -1144,6 +1219,7 @@ class MainActivity : AppCompatActivity() {
         val installedApps = getInstalledTvApps()
         if (installedApps.isEmpty()) {
             Toast.makeText(this, "No se encontraron otras aplicaciones instaladas", Toast.LENGTH_SHORT).show()
+            showEditMappingDialog(mapping)
             return
         }
         val appNames = installedApps.map { it.label }.toTypedArray()
@@ -1152,6 +1228,9 @@ class MainActivity : AppCompatActivity() {
             .setItems(appNames) { _, appIdx ->
                 val chosenApp = installedApps[appIdx]
                 applyActionToStep(mapping, stepIdx, QuickAction.OPEN_APP, chosenApp.packageName)
+            }
+            .setNegativeButton("Volver") { _, _ ->
+                showEditMappingDialog(mapping)
             }
             .show()
     }
@@ -1183,6 +1262,7 @@ class MainActivity : AppCompatActivity() {
         }
         prefs.upsertMapping(updated)
         refreshSectionContent()
+        showEditMappingDialog(updated)
     }
 
     private fun runServiceAction(action: QuickAction) {

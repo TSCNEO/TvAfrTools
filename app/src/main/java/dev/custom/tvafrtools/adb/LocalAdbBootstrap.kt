@@ -75,7 +75,9 @@ object LocalAdbBootstrap {
             append("settings put secure accessibility_enabled 1; ")
             append("pkill -f ${PrivilegedServer::class.java.name} 2>/dev/null || true; ")
             append("sleep 0.2; ")
-            append("nohup app_process -Djava.class.path=$apkPath /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &")
+            append("apk=\$(pm path $pkg | tr -d \"\\r\" | head -n 1 | cut -d: -f2); ")
+            append("if [ -z \"\$apk\" ]; then apk=\"$apkPath\"; fi; ")
+            append("nohup app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &")
         }
 
         val hosts = mutableListOf("127.0.0.1", "localhost")

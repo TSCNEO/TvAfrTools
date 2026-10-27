@@ -86,9 +86,21 @@ data class ButtonMapping(
     }
 }
 
-class AppPrefs(context: Context) {
+class AppPrefs(private val context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("tvafr_prefs", Context.MODE_PRIVATE)
+
+    private fun getBackupFiles(): List<java.io.File> {
+        val list = mutableListOf<java.io.File>()
+        try {
+            list.add(java.io.File(context.filesDir, "button_mappings_backup.json"))
+            context.getExternalFilesDir(null)?.let {
+                list.add(java.io.File(it, "button_mappings_backup.json"))
+            }
+            list.add(java.io.File("/data/local/tmp/tvafr_button_mappings.json"))
+        } catch (_: Throwable) {}
+        return list
+    }
 
     var afrEnabled: Boolean
         get() = prefs.getBoolean("afr_enabled", true)
@@ -161,7 +173,21 @@ class AppPrefs(context: Context) {
     }
 
     fun getMappings(): List<ButtonMapping> {
-        val raw = prefs.getString("button_mappings_json", null)
+        var raw = prefs.getString("button_mappings_json", null)
+        if (raw.isNullOrBlank()) {
+            for (file in getBackupFiles()) {
+                if (file.exists() && file.length() > 0) {
+                    try {
+                        val content = file.readText().trim()
+                        if (content.startsWith("[") && content.endsWith("]")) {
+                            raw = content
+                            prefs.edit().putString("button_mappings_json", raw).apply()
+                            break
+                        }
+                    } catch (_: Throwable) {}
+                }
+            }
+        }
         if (raw.isNullOrBlank()) {
             val defaults = listOf(
                 ButtonMapping(
@@ -206,11 +232,14 @@ class AppPrefs(context: Context) {
         }
         return try {
             val arr = JSONArray(raw)
-            buildList {
-                for (i in 0 until arr.length()) {
-                    add(ButtonMapping.fromJson(arr.getJSONObject(i)))
-                }
+            val list = mutableListOf<ButtonMapping>()
+            for (i in 0 until arr.length()) {
+                try {
+                    val obj = arr.optJSONObject(i) ?: continue
+                    list.add(ButtonMapping.fromJson(obj))
+                } catch (_: Throwable) {}
             }
+            if (list.isNotEmpty()) list else emptyList()
         } catch (_: Exception) {
             emptyList()
         }
@@ -219,7 +248,14 @@ class AppPrefs(context: Context) {
     fun saveMappings(mappings: List<ButtonMapping>) {
         val arr = JSONArray()
         mappings.forEach { arr.put(it.toJson()) }
-        prefs.edit().putString("button_mappings_json", arr.toString()).apply()
+        val jsonStr = arr.toString()
+        prefs.edit().putString("button_mappings_json", jsonStr).apply()
+        try {
+            for (file in getBackupFiles()) {
+                file.parentFile?.mkdirs()
+                file.writeText(jsonStr)
+            }
+        } catch (_: Throwable) {}
     }
 
     fun upsertMapping(mapping: ButtonMapping) {
