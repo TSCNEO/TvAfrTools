@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import dev.custom.tvafrtools.server.PrivilegedServer
+import dev.custom.tvafrtools.server.ServerClient
 import java.io.DataInputStream
 import java.io.OutputStream
 import java.math.BigInteger
@@ -29,7 +30,7 @@ import javax.crypto.Cipher
  *   3. appops set <pkg> GET_USAGE_STATS allow
  *   4. settings put secure enabled_accessibility_services <service>
  *   5. settings put secure accessibility_enabled 1
- *   6. app_process /system/bin PrivilegedServer &
+ *   6. export CLASSPATH="<apk>"; nohup app_process /system/bin PrivilegedServer </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 &
  */
 object LocalAdbBootstrap {
     private const val TAG = "LocalAdbBootstrap"
@@ -65,8 +66,8 @@ object LocalAdbBootstrap {
             // Android 13+ and Android 14 Restricted Settings bypass (allows accessibility for sideloaded APKs)
             append("appops set $pkg ACCESS_RESTRICTED_SETTINGS allow 2>/dev/null || true; ")
             append("appops set $pkg 119 allow 2>/dev/null || true; ")
-            append("appops set $pkg SYSTEM_ALERT_WINDOW allow; ")
-            append("appops set $pkg GET_USAGE_STATS allow; ")
+            append("appops set $pkg SYSTEM_ALERT_WINDOW allow 2>/dev/null || true; ")
+            append("appops set $pkg GET_USAGE_STATS allow 2>/dev/null || true; ")
             append("pm grant $pkg android.permission.PACKAGE_USAGE_STATS 2>/dev/null || true; ")
             append("pm grant $pkg android.permission.GET_TASKS 2>/dev/null || true; ")
             // Append rather than overwrite so other services (like Projectivy Launcher RemoteKeyService) are not disabled
@@ -78,11 +79,9 @@ object LocalAdbBootstrap {
             append("apk=\$(pm path $pkg | tr -d \"\\r\" | head -n 1 | cut -d: -f2); ")
             append("if [ -z \"\$apk\" ]; then apk=\"$apkPath\"; fi; ")
             append("export CLASSPATH=\"\$apk\"; ")
-            append("if [ -x /system/bin/setsid ]; then ")
-            append("nohup /system/bin/setsid app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/dev/null 2>&1 & ")
-            append("else ")
-            append("nohup app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/dev/null 2>&1 & ")
-            append("fi")
+            append("nohup app_process /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 & ")
+            append("sleep 0.3; ")
+            append("exit 0")
         }
 
         val hosts = mutableListOf("127.0.0.1", "localhost")
@@ -118,7 +117,7 @@ object LocalAdbBootstrap {
 
         try {
             socket.connect(InetSocketAddress(host, port), 2500)
-            socket.soTimeout = 6000
+            socket.soTimeout = 6500
             socket.tcpNoDelay = true
 
             val input = DataInputStream(socket.getInputStream())
@@ -161,21 +160,16 @@ object LocalAdbBootstrap {
                     }
                     A_OKAY -> {
                         Log.d(TAG, "ADB shell stream open. Executing commands...")
-                        Thread.sleep(1000L)
-                        return BootstrapResult(
-                            success = true,
-                            waitingForTvAuthPopup = false,
-                            message = "Permisos concedidos y demonio iniciado"
-                        )
                     }
                     A_WRTE -> {
                         sendPacket(output, A_OKAY, 1, pkt.arg0, ByteArray(0))
-                        Thread.sleep(1000L)
-                        return BootstrapResult(
-                            success = true,
-                            waitingForTvAuthPopup = false,
-                            message = "Permisos concedidos y demonio iniciado"
-                        )
+                        if (ServerClient.isServerRunning()) {
+                            return BootstrapResult(
+                                success = true,
+                                waitingForTvAuthPopup = false,
+                                message = "Permisos concedidos y demonio iniciado"
+                            )
+                        }
                     }
                     A_CLSE -> {
                         Log.d(TAG, "ADB shell stream closed successfully.")
@@ -255,7 +249,7 @@ object LocalAdbBootstrap {
     }
 
     /**
-     * Encodes an RSA 2048 public key into Android's RSAPublicKey binary struct + Base64 + " tvafr@tv\0"
+     * Encodes an RSA 2048 public key into Androids RSAPublicKey binary struct + Base64 + " tvafr@tv\0"
      */
     private fun encodeAndroidRsaPublicKey(pub: RSAPublicKey): ByteArray {
         val modulusBytes = 2048 / 8
