@@ -514,8 +514,15 @@ class MainActivity : AppCompatActivity() {
         ) { prefs.convert25To50Hz = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Volver a 60 Hz al salir al menú principal",
-            desc = "Al volver a la pantalla de inicio, la tele vuelve automáticamente a 60 Hz para que los menús vayan rápidos",
+            title = "Duplicar 30 fps a 60 Hz",
+            desc = "Usa 60 Hz para 30 fps y 59,94 Hz para 29,97 fps, si están disponibles",
+            initial = prefs.convert30To60Hz
+        ) { prefs.convert30To60Hz = it })
+
+        col.addView(makeInteractiveToggleCard(
+            title = "Restaurar el modo anterior al salir",
+
+            desc = "Recupera la resolución y frecuencia previas al AFR",
             initial = prefs.autoStopAfrOnExit
         ) { prefs.autoStopAfrOnExit = it })
 

@@ -119,6 +119,10 @@ class AppPrefs(private val context: Context) {
         get() = prefs.getBoolean("pause_on_switch", true)
         set(value) = prefs.edit().putBoolean("pause_on_switch", value).apply()
 
+    var convert30To60Hz: Boolean
+        get() = prefs.getBoolean("convert_30_to_60", false)
+        set(value) = prefs.edit().putBoolean("convert_30_to_60", value).apply()
+
     var convert25To50Hz: Boolean
         get() = prefs.getBoolean("convert_25_to_50", true)
         set(value) = prefs.edit().putBoolean("convert_25_to_50", value).apply()
