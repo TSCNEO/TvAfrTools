@@ -107,6 +107,10 @@ class AppPrefs(private val context: Context) {
         return list
     }
 
+    var startOnBoot: Boolean
+        get() = prefs.getBoolean("start_on_boot", true)
+        set(value) = prefs.edit().putBoolean("start_on_boot", value).apply()
+
     var afrEnabled: Boolean
         get() = prefs.getBoolean("afr_enabled", true)
         set(value) = prefs.edit().putBoolean("afr_enabled", value).apply()

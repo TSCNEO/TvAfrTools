@@ -17,6 +17,8 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action !in setOf(Intent.ACTION_BOOT_COMPLETED,
                 Intent.ACTION_MY_PACKAGE_REPLACED, "android.intent.action.QUICKBOOT_POWERON")) return
+        val afterUpdate = intent?.action == Intent.ACTION_MY_PACKAGE_REPLACED
+        if (!afterUpdate && !dev.custom.tvafrtools.config.AppPrefs(context).startOnBoot) return
         val pending = goAsync()
         val appCtx = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {

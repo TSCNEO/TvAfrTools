@@ -787,6 +787,13 @@ class MainActivity : AppCompatActivity() {
         }
         scroll.addView(col)
 
+        col.addView(makeInteractiveToggleCard(
+            title = "Recuperar servicios al encender",
+            desc = "Intenta activar el demonio AFR y la accesibilidad al arrancar, sin abrir la pantalla de la app. Android puede restaurar por su cuenta la accesibilidad ya habilitada.",
+            initial = prefs.startOnBoot
+        ) { prefs.startOnBoot = it })
+
+
         val btnRow1 = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, dpToPx(10))
