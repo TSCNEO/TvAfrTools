@@ -57,9 +57,25 @@ object LocalAdbBootstrap {
         val message: String
     )
 
+    fun isAccessibilityConfigured(context: Context): Boolean {
+        val enabled = android.provider.Settings.Secure.getInt(context.contentResolver,
+            android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1
+        val component = android.content.ComponentName(context,
+            dev.custom.tvafrtools.service.TvAfrAccessibilityService::class.java)
+        val services = android.provider.Settings.Secure.getString(context.contentResolver,
+            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+        return enabled && services.split(':').any {
+            android.content.ComponentName.unflattenFromString(it) == component
+        }
+    }
+
+    fun isSetupReady(context: Context): Boolean =
+        isAccessibilityConfigured(context) && dev.custom.tvafrtools.server.ServerClient.isServerRunning()
+
     @Synchronized
     fun autoStartPrivilegedDaemon(context: Context, port: Int = 5555, forceRestart: Boolean = false): BootstrapResult {
-        if (!forceRestart && dev.custom.tvafrtools.server.ServerClient.isServerRunning()) {
+        val daemonRunning = dev.custom.tvafrtools.server.ServerClient.isServerRunning()
+        if (!forceRestart && daemonRunning && isAccessibilityConfigured(context)) {
             return BootstrapResult(true, false, "Demonio conectado")
         }
         val apkPath = context.applicationInfo.sourceDir
@@ -79,6 +95,7 @@ object LocalAdbBootstrap {
             append("case \":\$cur:\" in *\":$accService:\"*) ;; *) if [ -z \"\$cur\" ] || [ \"\$cur\" = \"null\" ]; then settings put secure enabled_accessibility_services \"$accService\"; else settings put secure enabled_accessibility_services \"\$cur:$accService\"; fi ;; esac; ")
             append("settings put secure accessibility_enabled 1; ")
             // Match only the daemon process, never the enclosing sh -c command.
+            if (daemonRunning && !forceRestart) append("exit 0; ")
             append("pkill -f ^app_process.*${PrivilegedServer::class.java.name} 2>/dev/null || true; ")
             append("sleep 0.2; ")
             append("apk=\$(pm path $pkg | tr -d \"\\r\" | head -n 1 | cut -d: -f2); ")
@@ -314,7 +331,7 @@ object LocalAdbBootstrap {
     fun ensureServerRunningAsync(context: Context) {
         Thread {
             try {
-                if (!dev.custom.tvafrtools.server.ServerClient.isServerRunning()) {
+                if (!isSetupReady(context)) {
                     autoStartPrivilegedDaemon(context.applicationContext)
                 }
             } catch (_: Throwable) {

@@ -23,7 +23,7 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 var force = intent?.action == Intent.ACTION_MY_PACKAGE_REPLACED
                 repeat(3) {
-                    if (!force && ServerClient.isDaemonOnlineSync()) return@launch
+                    if (!force && LocalAdbBootstrap.isSetupReady(appCtx)) return@launch
                     val result = LocalAdbBootstrap.autoStartPrivilegedDaemon(appCtx, forceRestart = force)
                     force = false
                     if (result.waitingForTvAuthPopup) return@launch

@@ -88,14 +88,14 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch {
-            val online = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
+            val online = withContext(Dispatchers.IO) { LocalAdbBootstrap.isSetupReady(applicationContext) }
             if (!online) {
                 withContext(Dispatchers.IO) {
                     LocalAdbBootstrap.autoStartPrivilegedDaemon(this@MainActivity)
                 }
                 for (i in 1..3) {
                     delay(1000L)
-                    if (withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }) break
+                    if (withContext(Dispatchers.IO) { LocalAdbBootstrap.isSetupReady(applicationContext) }) break
                     val result = withContext(Dispatchers.IO) {
                         LocalAdbBootstrap.autoStartPrivilegedDaemon(applicationContext)
                     }
