@@ -320,9 +320,17 @@ object PrivilegedServer {
             while (true) {
                 try {
                     val nowMs = SystemClock.elapsedRealtime()
-                    val tunnelRecent = (nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 0f
+                    var tunnelRecent = (nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 0f
 
                     val topTaskId = getForegroundTaskId()
+                    if (topTaskId > 0 && topTaskId != currentTaskId) {
+                        currentFps = 0f
+                        currentFpsSource = "IDLE"
+                        lastTunneledFps = 0f
+                        lastTunneledFpsTimestampMs = 0L
+                        tunneledVideoActive = false
+                        tunnelRecent = false
+                    }
                     if (topTaskId > 0 && topTaskId != currentTaskId && registerMethod != null && wm != null) {
                         registeredCallback?.let { oldCb ->
                             try {
@@ -344,18 +352,19 @@ object PrivilegedServer {
                         if (newCb != null) {
                             registerMethod.invoke(wm, topTaskId, newCb)
                             registeredCallback = newCb
-                            currentTaskId = topTaskId
                         }
                     }
 
+                    if (topTaskId > 0) currentTaskId = topTaskId
                     if (tunnelRecent) {
                         currentFps = lastTunneledFps
                     } else {
                         val fallbackFps = readUniversalFallbackFps()
                         if (fallbackFps > 1.0f) {
-                            if (currentFps <= 1.0f || (currentFps >= 55.0f && fallbackFps < 55.0f)) {
-                                currentFps = fallbackFps
-                            }
+                            currentFps = fallbackFps
+                        } else if (currentFpsSource != "SURFACE_FLINGER") {
+                            currentFps = 0f
+                            currentFpsSource = "IDLE"
                         }
                     }
                 } catch (_: Throwable) {
