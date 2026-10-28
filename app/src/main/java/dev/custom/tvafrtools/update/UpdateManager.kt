@@ -43,6 +43,26 @@ object UpdateManager {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    @Synchronized
+    fun checkOnAppOpen(context: Context, onAvailable: (String) -> Unit) {
+        val app = context.applicationContext
+        val settings = app.getSharedPreferences("update_checks", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        val last = settings.getLong("last_attempt", 0L)
+        if (now >= last && now - last < 6 * 60 * 60 * 1000L) {
+            val cached = settings.getString("available_version", "").orEmpty()
+            if (cached.isNotBlank() && isNewerVersion(cached.removePrefix("v"), BuildConfig.VERSION_NAME)) onAvailable(cached)
+            return
+        }
+        settings.edit().putLong("last_attempt", now).apply()
+        checkForUpdate(app) { info, _ ->
+            if (info != null) {
+                settings.edit().putString("available_version", info.tagName).apply()
+                onAvailable(info.tagName)
+            }
+        }
+    }
+
     fun checkForUpdate(
         context: Context,
         onResult: (UpdateInfo?, String?) -> Unit

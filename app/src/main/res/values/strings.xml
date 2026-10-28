@@ -277,4 +277,5 @@ Repository: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="afr_native_title">Match native video resolution</string>
     <string name="afr_native_desc">Lets the TV upscale. Uses a supported video resolution and refresh rate; keeps the current resolution if unavailable.</string>
     <string name="afr_native_marker">[VIDEO RESOLUTION]</string>
+    <string name="update_startup_notice">Update %1$s available. Open System → Check for updates.</string>
 </resources>

@@ -87,6 +87,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        UpdateManager.checkOnAppOpen(applicationContext) { version ->
+            if (!isFinishing && !isDestroyed && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                Toast.makeText(this, getString(R.string.update_startup_notice, version), Toast.LENGTH_LONG).show()
+            }
+        }
         lifecycleScope.launch {
             val online = withContext(Dispatchers.IO) { LocalAdbBootstrap.isSetupReady(applicationContext) }
             if (!online) {
