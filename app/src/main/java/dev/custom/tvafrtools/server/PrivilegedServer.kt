@@ -171,11 +171,10 @@ object PrivilegedServer {
             while (true) {
                 var proc: Process? = null
                 try {
-                    // Use -t 20 (line count) instead of -T to prevent date parsing failures on older Android TV ROMs
+                    // Stream continuously; -t exits and repeatedly replays historical samples.
                     proc = ProcessBuilder(
                         "logcat",
                         "-v", "epoch",
-                        "-t", "20",
                         "-s",
                         "VDA",
                         "VideoRenderQualityTracker",
@@ -192,6 +191,7 @@ object PrivilegedServer {
 
                     var lastVdaOutCount = -1L
                     var lastVdaTimeMs = 0L
+                    var lastVdaStream = ""
 
                     val regexQualityTracker = Regex("""Rendered frame is earlier than the next expected frame \((\d+),\s*(\d+)\)""")
                     val regexVdaOuts = Regex("""^\s*(\d+\.\d+).*?OUTs=(\d+)/(\d+)""")
@@ -200,6 +200,8 @@ object PrivilegedServer {
                     while (reader.readLine().also { line = it } != null) {
                         val l = line ?: continue
                         val nowMs = SystemClock.elapsedRealtime()
+                        val epoch = l.trim().substringBefore(' ').toDoubleOrNull() ?: continue
+                        if (kotlin.math.abs(System.currentTimeMillis() - (epoch * 1000).toLong()) > 2000) continue
 
                         // 1. Check Amlogic / Xiaomi / Homatics VideoSyncFRAC 3:2 pulldown detector
                         if (l.contains("3:2 pattern detected")) {
@@ -247,11 +249,17 @@ object PrivilegedServer {
                                 val epochSec = mVda.groupValues[1].toDoubleOrNull() ?: 0.0
                                 val logTimeMs = if (epochSec > 1000.0) (epochSec * 1000.0).toLong() else nowMs
                                 val outCount = mVda.groupValues[2].toLongOrNull() ?: -1L
+                                val stream = Regex("""\[([^]]+)\].*ServiceDeviceTask""").find(l)?.groupValues?.get(1).orEmpty()
+                                if (stream != lastVdaStream || outCount < lastVdaOutCount) {
+                                    lastVdaOutCount = -1L
+                                    lastVdaTimeMs = 0L
+                                    lastVdaStream = stream
+                                }
                                 if (outCount > 0L) {
                                     if (lastVdaOutCount > 0L && outCount > lastVdaOutCount && logTimeMs > lastVdaTimeMs) {
                                         val dtMs = logTimeMs - lastVdaTimeMs
                                         val dFrames = outCount - lastVdaOutCount
-                                        if (dtMs in 600L..3500L && dFrames in 10L..250L) {
+                                        if (dtMs in 4000L..10000L && dFrames in 40L..1200L) {
                                             val vdaFps = (dFrames * 1000f) / dtMs.toFloat()
                                             val snapped = snapTunneledFps(vdaFps)
                                             if (snapped > 0f) {
@@ -263,8 +271,10 @@ object PrivilegedServer {
                                             }
                                         }
                                     }
-                                    lastVdaOutCount = outCount
-                                    lastVdaTimeMs = logTimeMs
+                                    if (lastVdaOutCount < 0L || logTimeMs - lastVdaTimeMs >= 4000L) {
+                                        lastVdaOutCount = outCount
+                                        lastVdaTimeMs = logTimeMs
+                                    }
                                 }
                             }
                         }
