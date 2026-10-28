@@ -15,10 +15,22 @@ import kotlinx.coroutines.launch
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
+        if (intent?.action !in setOf(Intent.ACTION_BOOT_COMPLETED,
+                Intent.ACTION_MY_PACKAGE_REPLACED, "android.intent.action.QUICKBOOT_POWERON")) return
+        val pending = goAsync()
         val appCtx = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
-            if (!ServerClient.isDaemonOnlineSync()) {
-                LocalAdbBootstrap.autoStartPrivilegedDaemon(appCtx)
+            try {
+                var force = intent?.action == Intent.ACTION_MY_PACKAGE_REPLACED
+                repeat(3) {
+                    if (!force && ServerClient.isDaemonOnlineSync()) return@launch
+                    val result = LocalAdbBootstrap.autoStartPrivilegedDaemon(appCtx, forceRestart = force)
+                    force = false
+                    if (result.waitingForTvAuthPopup) return@launch
+                    kotlinx.coroutines.delay(1000L)
+                }
+            } finally {
+                pending.finish()
             }
         }
     }
