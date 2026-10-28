@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity() {
     // UI navigation state
     private enum class NavSection(val titleRes: Int, val subRes: Int, val icon: String) {
         AFR(R.string.nav_afr, R.string.nav_afr_sub, "🎬"),
+        AFR_APPS(R.string.nav_afr_apps, R.string.nav_afr_apps_sub, "📺"),
         MAPPER(R.string.nav_mapper, R.string.nav_mapper_sub, "🎮"),
         ACTIONS(R.string.nav_actions, R.string.nav_actions_sub, "🚀"),
         WEBREMOTE(R.string.nav_webremote, R.string.nav_webremote_sub, "🌐"),
@@ -454,6 +455,7 @@ class MainActivity : AppCompatActivity() {
 
         val contentView = when (currentSection) {
             NavSection.AFR -> buildAfrSection()
+            NavSection.AFR_APPS -> buildAfrAppsSection()
             NavSection.MAPPER -> buildMapperSection()
             NavSection.ACTIONS -> buildQuickActionsSection()
             NavSection.WEBREMOTE -> buildWebRemoteSection()
@@ -485,6 +487,27 @@ class MainActivity : AppCompatActivity() {
 
     // ================= SECTIONS BUILDERS =================
 
+    private fun buildAfrAppsSection(): View {
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(TextView(this).apply {
+            text = "Selecciona las apps donde actuará el AFR automático. Las demás conservan su propio ajuste."
+            setTextColor(Color.WHITE)
+            setPadding(0, 0, 0, dpToPx(20))
+        })
+        for (app in getInstalledTvApps()) {
+            col.addView(makeInteractiveToggleCard(
+                title = app.label,
+                desc = app.packageName,
+                initial = app.packageName in prefs.automaticAfrApps
+            ) { enabled ->
+                val selected = prefs.automaticAfrApps.toMutableSet()
+                if (enabled) selected.add(app.packageName) else selected.remove(app.packageName)
+                prefs.automaticAfrApps = selected
+            })
+        }
+        return ScrollView(this).apply { addView(col) }
+    }
+
     private fun buildAfrSection(): View {
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val col = LinearLayout(this).apply {
@@ -510,6 +533,27 @@ class MainActivity : AppCompatActivity() {
             desc = "Pausa el vídeo un segundo mientras la tele cambia de señal para no perder imagen ni sonido",
             initial = prefs.pauseOnSwitch
         ) { prefs.pauseOnSwitch = it })
+
+        val delayLabel = TextView(this).apply {
+            setTextColor(Color.WHITE)
+            text = "Espera antes de reanudar: ${prefs.resumeDelayMs / 1000.0} s"
+        }
+        col.addView(delayLabel)
+        col.addView(android.widget.SeekBar(this).apply {
+            max = 18
+            progress = (prefs.resumeDelayMs - 1000) / 500
+            contentDescription = "Espera antes de reanudar el vídeo"
+            setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: android.widget.SeekBar?, value: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        prefs.resumeDelayMs = 1000 + value * 500
+                        delayLabel.text = "Espera antes de reanudar: ${prefs.resumeDelayMs / 1000.0} s"
+                    }
+                }
+                override fun onStartTrackingTouch(bar: android.widget.SeekBar?) {}
+                override fun onStopTrackingTouch(bar: android.widget.SeekBar?) {}
+            })
+        })
 
         col.addView(makeInteractiveToggleCard(
             title = "Series y deportes europeos a 50 Hz",

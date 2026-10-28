@@ -248,4 +248,6 @@ Changes:
 Repository: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="toast_overlay_granted">✓ Overlay permission already granted</string>
     <string name="btn_later">Later</string>
+    <string name="nav_afr_apps">AFR apps</string>
+    <string name="nav_afr_apps_sub">Choose where automatic AFR runs</string>
 </resources>

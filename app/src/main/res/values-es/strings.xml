@@ -248,4 +248,6 @@ Novedades:
 Repositorio: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="toast_overlay_granted">✓ Permiso de superposición ya concedido</string>
     <string name="btn_later">Más tarde</string>
+    <string name="nav_afr_apps">Apps AFR</string>
+    <string name="nav_afr_apps_sub">Elige dónde actúa el AFR automático</string>
 </resources>
