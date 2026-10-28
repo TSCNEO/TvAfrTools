@@ -103,6 +103,7 @@ class AfrController(
             var candidate = 0f
             var sampledPackage = ""
             var stable = 0
+            var lastAutomaticChange = 0L
             while (!destroyed) {
                 try {
                     if (prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
@@ -112,15 +113,22 @@ class AfrController(
                             stable = 0
                             candidate = 0f
                         }
-                        val fps = ServerClient.getLiveVideoFps()
+                        val info = ServerClient.getSysInfo()
+                        // Presentation timestamps are constrained by the current HDMI mode.
+                        // They must never drive automatic mode changes.
+                        val fps = if (info.fpsSource == "SURFACE_VIDEO" || info.fpsSource == "SURFACE_FLINGER") 0f else info.fps
                         val target = if (fps > 1f) normalizeTargetRefreshRate(fps) else 0f
                         stable = if (target > 1f && abs(target - candidate) < 0.1f) stable + 1 else 0
                         candidate = target
-                        if (stable == 3) mainHandler.post {
+                        if (stable >= 4 && SystemClock.elapsedRealtime() - lastAutomaticChange > 15000L) {
+                            lastAutomaticChange = SystemClock.elapsedRealtime()
+                            stable = 0
+                            mainHandler.post {
                             if (!destroyed && foregroundPackage == appPackage && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                                 val mode = getCurrentDisplayMode()
                                 if (mode != null && abs(mode.refreshRate - target) > 0.5f)
                                     applyRefreshRate(target)
+                            }
                             }
                         }
                     } else { stable = 0; candidate = 0f }
