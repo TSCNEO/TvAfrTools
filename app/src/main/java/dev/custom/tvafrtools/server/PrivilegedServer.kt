@@ -792,6 +792,7 @@ object PrivilegedServer {
      * Universal system-level display mode setter for devices/apps where Window preferredDisplayModeId
      * is ignored or overridden by the streaming app.
      */
+    private var savedDisplayMode: String? = null
     private var savedRefreshRange: Pair<String, String>? = null
 
     private fun setSystemPreferredDisplayMode(modeId: Int, width: Int, height: Int, refreshRate: Float): Boolean {
@@ -804,11 +805,18 @@ object PrivilegedServer {
                     }
                 }
                 savedRefreshRange = null
-                runShellCommand("cmd display clear-user-preferred-display-mode 0")
+                val previous = savedDisplayMode
+                if (previous != null) runShellCommand("cmd display set-user-preferred-display-mode $previous 0")
+                else runShellCommand("cmd display clear-user-preferred-display-mode 0")
+                savedDisplayMode = null
                 true
             } else {
                 runShellCommand("settings put secure match_content_frame_rate 2")
                 val hzStr = String.format(Locale.US, "%.6f", refreshRate)
+                if (savedRefreshRange == null) {
+                    val previous = runShellCommand("cmd display get-user-preferred-display-mode 0")
+                    savedDisplayMode = Regex("""(\d+)\s+(\d+)\s+(\d+(?:\.\d+)?)""").find(previous)?.value
+                }
                 if (savedRefreshRange == null) savedRefreshRange =
                     runShellCommand("settings get system min_refresh_rate").trim() to
                     runShellCommand("settings get system peak_refresh_rate").trim()

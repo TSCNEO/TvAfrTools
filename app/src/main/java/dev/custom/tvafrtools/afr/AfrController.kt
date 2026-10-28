@@ -53,6 +53,9 @@ class AfrController(
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val displayCommands = java.util.concurrent.Executors.newSingleThreadExecutor()
+    @Volatile var automaticAppEligible = false
+    @Volatile private var destroyed = false
+    @Volatile private var automaticSuspended = false
     private var afrOverlayView: View? = null
     private var afrOverlayParams: WindowManager.LayoutParams? = null
     private var isAfrActive: Boolean = false
@@ -91,9 +94,32 @@ class AfrController(
 
     init {
         displayManager.registerDisplayListener(displayListener, mainHandler)
+        Thread {
+            var candidate = 0f
+            var stable = 0
+            while (!destroyed) {
+                try {
+                    if (prefs.afrEnabled && automaticAppEligible && !automaticSuspended) {
+                        val fps = ServerClient.getLiveVideoFps()
+                        val target = if (fps > 1f) normalizeTargetRefreshRate(fps) else 0f
+                        stable = if (target > 1f && abs(target - candidate) < 0.1f) stable + 1 else 0
+                        candidate = target
+                        if (stable == 3) mainHandler.post {
+                            if (!destroyed && prefs.afrEnabled && automaticAppEligible && !automaticSuspended) {
+                                val mode = getCurrentDisplayMode()
+                                if (mode != null && abs(mode.refreshRate - target) > 0.5f)
+                                    applyRefreshRate(target)
+                            }
+                        }
+                    } else { stable = 0; candidate = 0f }
+                    Thread.sleep(1000)
+                } catch (_: Exception) { Thread.sleep(1000) }
+            }
+        }.apply { isDaemon = true; name = "AutoAfr" }.start()
     }
 
     fun destroy() {
+        destroyed = true
         displayManager.unregisterDisplayListener(displayListener)
         stopAfr(silent = true)
     }
@@ -115,6 +141,7 @@ class AfrController(
      * Triggers 1-Click Auto Frame Rate detection and switches HDMI refresh rate.
      */
     fun triggerOneClickAfr() {
+        automaticSuspended = false
         Thread {
             // 1. First perform a deep probe (catches Tunneled Widevine L1 23.976fps in Disney+/Prime/Netflix!)
             val (probedFps, probedSource) = ServerClient.probeActiveVideoFpsWithSource()
@@ -284,6 +311,11 @@ class AfrController(
             target = 50.0f
         }
 
+        if (prefs.convert30To60Hz && (abs(target - 30f) < 0.05f || abs(target - 29.97f) < 0.05f)) {
+            val doubled = target * 2f
+            if (getSupportedModesSameResolution().any { abs(it.refreshRate - doubled) < 0.05f }) target = doubled
+        }
+
         if (prefs.doubleRefreshRate24To48 && (abs(target - 24.0f) < 0.2f || abs(target - 23.976f) < 0.2f)) {
             val has48 = getSupportedModesSameResolution().any { abs(it.refreshRate - 48.0f) < 0.5f }
             if (has48) {
@@ -345,6 +377,7 @@ class AfrController(
     }
 
     fun applyModeId(modeId: Int, pausePlaybackHandshake: Boolean = prefs.pauseOnSwitch) {
+        automaticSuspended = true
         val currentMode = getCurrentDisplayMode()
         if (currentMode != null && currentMode.modeId == modeId) {
             onBannerMessage(
@@ -407,7 +440,6 @@ class AfrController(
         // Dual-punch: Enforce system preferred mode globally via DisplayManager HAL
         // This guarantees mode switching even when DAZN, Netflix, or Disney+ has a private secure window!
         displayCommands.execute {
-            ServerClient.clearSystemDisplayMode()
             ServerClient.setSystemDisplayMode(
                 targetMode.modeId,
                 targetMode.physicalWidth,
@@ -418,6 +450,7 @@ class AfrController(
     }
 
     fun stopAfr(silent: Boolean = false) {
+        automaticSuspended = false
         waitingForDisplayChangePlay = false
         val wasActive = isAfrActive
         isAfrActive = false
