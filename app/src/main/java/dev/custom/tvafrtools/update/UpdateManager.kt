@@ -48,6 +48,10 @@ object UpdateManager {
         val app = context.applicationContext
         val settings = app.getSharedPreferences("update_checks", Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
+        val savedVersion = settings.getString("available_version", "").orEmpty()
+        if (savedVersion.isNotBlank() && !isNewerVersion(savedVersion.removePrefix("v").removePrefix("V"), BuildConfig.VERSION_NAME)) {
+            settings.edit().remove("available_version").apply()
+        }
         val last = settings.getLong("last_attempt", 0L)
         if (now >= last && now - last < 6 * 60 * 60 * 1000L) {
             val cached = settings.getString("available_version", "").orEmpty()

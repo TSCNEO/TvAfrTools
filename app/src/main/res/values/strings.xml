@@ -210,7 +210,7 @@ Once accepted, click Retry.</string>
     <string name="overlay_perm_required">⚠ &quot;Display over other apps&quot; permission required to switch Hz</string>
 
     <!-- Update Manager -->
-    <string name="update_available_title">🚀 Update Available: v%s</string>
+    <string name="update_available_title">🚀 Update Available: %s</string>
     <string name="update_available_msg">A new version of TvAfrTools is ready to install.
 
 Changes:
