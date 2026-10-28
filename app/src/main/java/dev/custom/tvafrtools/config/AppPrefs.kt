@@ -111,6 +111,10 @@ class AppPrefs(private val context: Context) {
         get() = prefs.getBoolean("start_on_boot", true)
         set(value) = prefs.edit().putBoolean("start_on_boot", value).apply()
 
+    var matchNativeResolution: Boolean
+        get() = prefs.getBoolean("match_native_resolution", false)
+        set(value) = prefs.edit().putBoolean("match_native_resolution", value).apply()
+
     var afrEnabled: Boolean
         get() = prefs.getBoolean("afr_enabled", true)
         set(value) = prefs.edit().putBoolean("afr_enabled", value).apply()

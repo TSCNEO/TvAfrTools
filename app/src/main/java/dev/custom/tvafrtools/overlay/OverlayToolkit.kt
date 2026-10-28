@@ -306,7 +306,7 @@ class OverlayToolkit(
         closeAfrPanel()
         closeRecentsPanel()
         val currentMode = afrController.getCurrentDisplayMode()
-        val modes = afrController.getSupportedModesSameResolution()
+        val modes = afrController.getManualDisplayModes()
         val liveFps = afrController.readCurrentVideoFps()
 
         val root = object : FrameLayout(context) {
@@ -381,6 +381,15 @@ class OverlayToolkit(
             afrController.triggerOneClickAfr()
         }
         card.addView(autoBtn)
+        val panelPrefs = dev.custom.tvafrtools.config.AppPrefs(context)
+        card.addView(createPanelButton(
+            (if (panelPrefs.matchNativeResolution) "☑ " else "☐ ") + context.getString(R.string.afr_native_title),
+            isHighlighted = panelPrefs.matchNativeResolution
+        ) {
+            panelPrefs.matchNativeResolution = !panelPrefs.matchNativeResolution
+            closeAfrPanel()
+            openAfrPanel()
+        })
 
         // Opción Revertir / Restaurar Frecuencia nativa 60Hz inmediatamente debajo de Auto
         val revertBtn = createPanelButton(context.getString(R.string.overlay_revert_60hz_btn), isHighlighted = false) {
@@ -399,6 +408,7 @@ class OverlayToolkit(
                 else if (abs(m.refreshRate - 24.0f) < 0.05f) append("  ⭐ Cine 24.000p Exacto")
                 else if (abs(m.refreshRate - 50.0f) < 0.05f) append("  ⭐ TV/Deportes PAL (25/50p)")
                 else if (abs(m.refreshRate - 59.94f) < 0.05f) append("  (NTSC 59.94p)")
+                if (afrController.isNativeVideoMode(m)) append("   " + context.getString(R.string.afr_native_marker))
                 if (isMatch) append("   🎯 VÍDEO DETECTADO")
                 if (isCurrent) append("   [ACTIVO]")
             }

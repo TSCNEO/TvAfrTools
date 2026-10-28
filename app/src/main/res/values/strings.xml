@@ -274,4 +274,7 @@ Repository: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="hud_video_fps">Video: %1$.3f fps [%2$s]</string>
     <string name="hud_no_stream">Video: No active stream</string>
     <string name="hud_signal">Signal: %1$s</string>
+    <string name="afr_native_title">Match native video resolution</string>
+    <string name="afr_native_desc">Lets the TV upscale. Uses a supported video resolution and refresh rate; keeps the current resolution if unavailable.</string>
+    <string name="afr_native_marker">[VIDEO RESOLUTION]</string>
 </resources>

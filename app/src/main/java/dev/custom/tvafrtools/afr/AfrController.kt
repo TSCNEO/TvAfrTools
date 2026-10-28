@@ -55,6 +55,25 @@ class AfrController(
     private val displayCommands = java.util.concurrent.Executors.newSingleThreadExecutor()
     @Volatile var automaticAppEligible = false
     @Volatile var foregroundPackage = ""
+    @Volatile private var nativeVideoSize: Pair<Int, Int>? = null
+    @Volatile private var nativeVideoPackage = ""
+
+    fun isNativeVideoMode(mode: Display.Mode): Boolean {
+        val size = nativeVideoSize ?: return false
+        return nativeVideoPackage == foregroundPackage && mode.physicalWidth == size.first && mode.physicalHeight == size.second
+    }
+
+    fun getManualDisplayModes(): List<Display.Mode> =
+        displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.supportedModes?.sortedWith(
+            compareByDescending<Display.Mode> { it.physicalWidth * it.physicalHeight }.thenBy { it.refreshRate }
+        ).orEmpty()
+
+    private fun refreshNativeVideoSize() {
+        val pkg = foregroundPackage
+        val values = ServerClient.getVideoBufferSize().split('x').mapNotNull { it.toIntOrNull() }
+        nativeVideoSize = if (pkg == foregroundPackage && values.size == 2 && values.all { it > 0 }) values[0] to values[1] else null
+        nativeVideoPackage = pkg
+    }
     @Volatile private var destroyed = false
     @Volatile private var automaticSuspended = false
     private var afrOverlayView: View? = null
@@ -106,6 +125,7 @@ class AfrController(
             var lastAutomaticChange = 0L
             while (!destroyed) {
                 try {
+                    refreshNativeVideoSize()
                     if (prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                         val appPackage = foregroundPackage
                         if (sampledPackage != appPackage) {
@@ -126,7 +146,8 @@ class AfrController(
                             mainHandler.post {
                             if (!destroyed && foregroundPackage == appPackage && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                                 val mode = getCurrentDisplayMode()
-                                if (mode != null && abs(mode.refreshRate - target) > 0.5f)
+                                if (mode != null && (abs(mode.refreshRate - target) > 0.5f ||
+                                    (prefs.matchNativeResolution && nativeVideoSize != null && !isNativeVideoMode(mode))))
                                     applyRefreshRate(target)
                             }
                             }
@@ -164,6 +185,7 @@ class AfrController(
     fun triggerOneClickAfr() {
         automaticSuspended = false
         Thread {
+            refreshNativeVideoSize()
             // 1. First perform a deep probe (catches Tunneled Widevine L1 23.976fps in Disney+/Prime/Netflix!)
             val (probedFps, probedSource) = ServerClient.probeActiveVideoFpsWithSource()
             if (probedFps > 1.0f && probedSource.startsWith("TUNNEL_")) {
@@ -360,7 +382,10 @@ class AfrController(
      */
     fun applyRefreshRate(targetHz: Float, pausePlaybackHandshake: Boolean = prefs.pauseOnSwitch) {
         val currentMode = getCurrentDisplayMode() ?: return
-        val modes = getSupportedModesSameResolution()
+        val sameResolution = getSupportedModesSameResolution()
+        val nativeModes = if (prefs.matchNativeResolution) getManualDisplayModes().filter { isNativeVideoMode(it) } else emptyList()
+        val matchingNative = nativeModes.filter { abs(it.refreshRate - targetHz) < 0.5f }
+        val modes = matchingNative.ifEmpty { sameResolution }
         if (modes.isEmpty()) return
 
         var chosen = modes.minByOrNull { abs(it.refreshRate - targetHz) } ?: return
@@ -421,7 +446,7 @@ class AfrController(
     }
 
     private fun applyModeIdInternal(modeId: Int) {
-        val target = getSupportedModesSameResolution().find { it.modeId == modeId }
+        val target = getManualDisplayModes().find { it.modeId == modeId }
         if (target != null) {
             applyDisplayModeDirect(target)
         } else {

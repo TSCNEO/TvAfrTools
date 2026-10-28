@@ -477,16 +477,18 @@ object PrivilegedServer {
      */
     private var cachedVideoSize = "UNKNOWN"
     private var videoSizeReadAt = 0L
+    private var videoSizePackage = ""
 
     @Synchronized
     private fun readVideoBufferSize(): String {
         val now = SystemClock.elapsedRealtime()
-        if (now - videoSizeReadAt < 5000L) return cachedVideoSize
+        val activities = runShellCommand("dumpsys activity activities")
+        val pkg = Regex("""(?:topResumedActivity|mResumedActivity)=.*?\s([A-Za-z0-9_.]+)/""")
+            .find(activities)?.groupValues?.get(1) ?: return "UNKNOWN"
+        if (pkg == videoSizePackage && now - videoSizeReadAt < 5000L) return cachedVideoSize
+        videoSizePackage = pkg
         videoSizeReadAt = now
         cachedVideoSize = "UNKNOWN"
-        val focus = runShellCommand("dumpsys window windows")
-        val pkg = Regex("""mCurrentFocus=.*?\s([A-Za-z0-9_.]+)/""")
-            .find(focus)?.groupValues?.get(1) ?: return cachedVideoSize
         val dump = runShellCommand("dumpsys SurfaceFlinger")
         var largest = 0L
         for (block in dump.split("+ Layer")) {
@@ -498,7 +500,9 @@ object PrivilegedServer {
             val area = width.toLong() * height
             if (width >= 64 && height >= 64 && area > largest) {
                 largest = area
-                cachedVideoSize = "${width}x${height}"
+                // Amlogic allocates 1080-line video in a 1088-line aligned buffer.
+                val visibleHeight = if (width == 1920 && height == 1088) 1080 else height
+                cachedVideoSize = "${width}x${visibleHeight}"
             }
         }
         return cachedVideoSize
