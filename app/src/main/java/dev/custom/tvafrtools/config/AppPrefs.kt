@@ -115,6 +115,14 @@ class AppPrefs(private val context: Context) {
         get() = prefs.getBoolean("fractional_frame_rate", true)
         set(value) = prefs.edit().putBoolean("fractional_frame_rate", value).apply()
 
+    var resumeDelayMs: Int
+        get() = prefs.getInt("afr_resume_delay_ms", 3000).coerceIn(1000, 10000)
+        set(value) = prefs.edit().putInt("afr_resume_delay_ms", value.coerceIn(1000, 10000)).apply()
+
+    var automaticAfrApps: Set<String>
+        get() = prefs.getStringSet("afr_selected_apps", emptySet())?.toSet() ?: emptySet()
+        set(value) = prefs.edit().putStringSet("afr_selected_apps", value.toSet()).apply()
+
     var pauseOnSwitch: Boolean
         get() = prefs.getBoolean("pause_on_switch", true)
         set(value) = prefs.edit().putBoolean("pause_on_switch", value).apply()

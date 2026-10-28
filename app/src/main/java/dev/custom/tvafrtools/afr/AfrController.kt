@@ -54,6 +54,7 @@ class AfrController(
 
     private val displayCommands = java.util.concurrent.Executors.newSingleThreadExecutor()
     @Volatile var automaticAppEligible = false
+    @Volatile var foregroundPackage = ""
     @Volatile private var destroyed = false
     @Volatile private var automaticSuspended = false
     private var afrOverlayView: View? = null
@@ -61,6 +62,12 @@ class AfrController(
     private var isAfrActive: Boolean = false
     private var activeTargetModeId: Int = -1
     private var waitingForDisplayChangePlay: Boolean = false
+    private val resumePlayback = Runnable {
+        if (!destroyed && waitingForDisplayChangePlay) {
+            waitingForDisplayChangePlay = false
+            dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
+        }
+    }
 
     // 5-sample circular buffer for FPS stabilization
     private val fpsSamples = FloatArray(5)
@@ -83,11 +90,9 @@ class AfrController(
                     )
                 )
             }
-            if (waitingForDisplayChangePlay) {
-                waitingForDisplayChangePlay = false
-                mainHandler.postDelayed({
-                    dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
-                }, 950L)
+            if (waitingForDisplayChangePlay && mode?.modeId == activeTargetModeId) {
+                mainHandler.removeCallbacks(resumePlayback)
+                mainHandler.postDelayed(resumePlayback, prefs.resumeDelayMs.toLong())
             }
         }
     }
@@ -96,16 +101,23 @@ class AfrController(
         displayManager.registerDisplayListener(displayListener, mainHandler)
         Thread {
             var candidate = 0f
+            var sampledPackage = ""
             var stable = 0
             while (!destroyed) {
                 try {
-                    if (prefs.afrEnabled && automaticAppEligible && !automaticSuspended) {
+                    if (prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
+                        val appPackage = foregroundPackage
+                        if (sampledPackage != appPackage) {
+                            sampledPackage = appPackage
+                            stable = 0
+                            candidate = 0f
+                        }
                         val fps = ServerClient.getLiveVideoFps()
                         val target = if (fps > 1f) normalizeTargetRefreshRate(fps) else 0f
                         stable = if (target > 1f && abs(target - candidate) < 0.1f) stable + 1 else 0
                         candidate = target
                         if (stable == 3) mainHandler.post {
-                            if (!destroyed && prefs.afrEnabled && automaticAppEligible && !automaticSuspended) {
+                            if (!destroyed && foregroundPackage == appPackage && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                                 val mode = getCurrentDisplayMode()
                                 if (mode != null && abs(mode.refreshRate - target) > 0.5f)
                                     applyRefreshRate(target)
@@ -120,6 +132,7 @@ class AfrController(
 
     fun destroy() {
         destroyed = true
+        mainHandler.removeCallbacksAndMessages(null)
         displayManager.unregisterDisplayListener(displayListener)
         stopAfr(silent = true)
     }
@@ -451,6 +464,7 @@ class AfrController(
 
     fun stopAfr(silent: Boolean = false) {
         automaticSuspended = false
+        mainHandler.removeCallbacks(resumePlayback)
         waitingForDisplayChangePlay = false
         val wasActive = isAfrActive
         isAfrActive = false
