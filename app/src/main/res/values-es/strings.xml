@@ -210,7 +210,7 @@ Una vez aceptado, pulsa Reintentar.</string>
     <string name="overlay_perm_required">⚠ Permiso &quot;Mostrar sobre otras apps&quot; requerido para cambiar Hz</string>
 
     <!-- Update Manager -->
-    <string name="update_available_title">🚀 Actualización disponible: v%s</string>
+    <string name="update_available_title">🚀 Actualización disponible: %s</string>
     <string name="update_available_msg">Hay una nueva versión de TvAfrTools lista para instalar.
 
 Novedades:
