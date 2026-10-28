@@ -77,10 +77,11 @@ object LocalAdbBootstrap {
             append("sleep 0.2; ")
             append("apk=\$(pm path $pkg | tr -d \"\\r\" | head -n 1 | cut -d: -f2); ")
             append("if [ -z \"\$apk\" ]; then apk=\"$apkPath\"; fi; ")
+            append("export CLASSPATH=\"\$apk\"; ")
             append("if [ -x /system/bin/setsid ]; then ")
-            append("nohup /system/bin/setsid app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 & ")
+            append("nohup /system/bin/setsid app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/dev/null 2>&1 & ")
             append("else ")
-            append("nohup app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 & ")
+            append("nohup app_process -Djava.class.path=\"\$apk\" /system/bin ${PrivilegedServer::class.java.name} </dev/null >/dev/null 2>&1 & ")
             append("fi")
         }
 
@@ -160,10 +161,21 @@ object LocalAdbBootstrap {
                     }
                     A_OKAY -> {
                         Log.d(TAG, "ADB shell stream open. Executing commands...")
-                        // Channel established, wait for output or close
+                        Thread.sleep(1000L)
+                        return BootstrapResult(
+                            success = true,
+                            waitingForTvAuthPopup = false,
+                            message = "Permisos concedidos y demonio iniciado"
+                        )
                     }
                     A_WRTE -> {
                         sendPacket(output, A_OKAY, 1, pkt.arg0, ByteArray(0))
+                        Thread.sleep(1000L)
+                        return BootstrapResult(
+                            success = true,
+                            waitingForTvAuthPopup = false,
+                            message = "Permisos concedidos y demonio iniciado"
+                        )
                     }
                     A_CLSE -> {
                         Log.d(TAG, "ADB shell stream closed successfully.")

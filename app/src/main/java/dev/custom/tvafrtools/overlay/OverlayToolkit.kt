@@ -294,7 +294,7 @@ class OverlayToolkit(
         panelContainer = null
     }
 
-    private fun openAfrPanel() {
+    fun openAfrPanel() {
         closeAfrPanel()
         closeRecentsPanel()
         val currentMode = afrController.getCurrentDisplayMode()
@@ -333,17 +333,31 @@ class OverlayToolkit(
         }
         card.addView(headerTitle)
 
+        val curStr = if (currentMode != null) {
+            String.format(Locale.US, "%dx%d @ %.3f Hz", currentMode.physicalWidth, currentMode.physicalHeight, currentMode.refreshRate)
+        } else "Desconocido"
+
         val subtitle = TextView(context).apply {
-            val curStr = if (currentMode != null) {
-                String.format(Locale.US, "%dx%d @ %.3f Hz", currentMode.physicalWidth, currentMode.physicalHeight, currentMode.refreshRate)
-            } else "Desconocido"
-            val fpsStr = if (liveFps > 1f) String.format(Locale.US, "%.3f fps", liveFps) else "N/D"
-            text = "Actual: $curStr   |   Vídeo detectado: $fpsStr"
+            val fpsStr = if (liveFps > 1f) String.format(Locale.US, "%.3f fps", liveFps) else "No detectado (Elige según contenido)"
+            text = "Actual: $curStr   |   Vídeo: $fpsStr"
             setTextColor(Color.parseColor("#94A3B8"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(0, dp(4), 0, dp(12))
         }
         card.addView(subtitle)
+
+        if (liveFps <= 1.0f) {
+            Thread {
+                val (probed, _) = dev.custom.tvafrtools.server.ServerClient.probeActiveVideoFpsWithSource()
+                if (probed > 1.0f) {
+                    mainHandler.post {
+                        if (isPanelVisible) {
+                            subtitle.text = "Actual: $curStr   |   🎯 Vídeo detectado: ${String.format(Locale.US, "%.3f fps", probed)}"
+                        }
+                    }
+                }
+            }.start()
+        }
 
         val autoBtn = createPanelButton(context.getString(R.string.overlay_auto_afr_btn), isHighlighted = true) {
             closeAfrPanel()
@@ -360,15 +374,18 @@ class OverlayToolkit(
 
         modes.forEach { m ->
             val isCurrent = currentMode?.modeId == m.modeId
+            val isMatch = liveFps > 1.0f && (abs(m.refreshRate - liveFps) < 0.05f || (liveFps in 23.9f..24.1f && abs(m.refreshRate - 23.976f) < 0.05f))
+
             val label = buildString {
                 append(String.format(Locale.US, "%dx%d  —  %.3f Hz", m.physicalWidth, m.physicalHeight, m.refreshRate))
-                if (abs(m.refreshRate - 23.976f) < 0.05f) append("  (Cine 23.976p - Disney+/Prime/Netflix)")
-                else if (abs(m.refreshRate - 24.0f) < 0.05f) append("  (Cine 24.000p Exacto)")
-                else if (abs(m.refreshRate - 50.0f) < 0.05f) append("  (TV/Deportes PAL 25/50p)")
+                if (abs(m.refreshRate - 23.976f) < 0.05f) append("  ⭐ Cine/Series (Disney+/Prime/Netflix)")
+                else if (abs(m.refreshRate - 24.0f) < 0.05f) append("  ⭐ Cine 24.000p Exacto")
+                else if (abs(m.refreshRate - 50.0f) < 0.05f) append("  ⭐ TV/Deportes PAL (25/50p)")
                 else if (abs(m.refreshRate - 59.94f) < 0.05f) append("  (NTSC 59.94p)")
+                if (isMatch) append("   🎯 VÍDEO DETECTADO")
                 if (isCurrent) append("   [ACTIVO]")
             }
-            val btn = createPanelButton(label, isHighlighted = isCurrent) {
+            val btn = createPanelButton(label, isHighlighted = isCurrent || isMatch) {
                 closeAfrPanel()
                 afrController.applyModeId(m.modeId)
             }

@@ -137,9 +137,12 @@ class TvAfrAccessibilityService : AccessibilityService() {
         instance = this
         prefs = AppPrefs(this)
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        afrController = AfrController(this, prefs) { msg ->
-            overlayToolkit.showBanner(msg)
-        }
+        afrController = AfrController(
+            context = this,
+            prefs = prefs,
+            onBannerMessage = { msg -> overlayToolkit.showBanner(msg) },
+            onRequestManualSelector = { overlayToolkit.openAfrPanel() }
+        )
         overlayToolkit = OverlayToolkit(this, afrController)
         webRemoteServer = WebRemoteServer(
             context = this,

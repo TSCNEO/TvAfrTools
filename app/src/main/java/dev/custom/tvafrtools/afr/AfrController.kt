@@ -44,7 +44,8 @@ import kotlin.math.abs
 class AfrController(
     private val context: Context,
     private val prefs: AppPrefs,
-    private val onBannerMessage: (String) -> Unit
+    private val onBannerMessage: (String) -> Unit,
+    private val onRequestManualSelector: (() -> Unit)? = null
 ) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
@@ -154,10 +155,12 @@ class AfrController(
                 if (detected <= 1.0f) {
                     val serverUp = ServerClient.isServerRunning()
                     if (!serverUp) {
+                        dev.custom.tvafrtools.adb.LocalAdbBootstrap.ensureServerRunningAsync(context)
                         onBannerMessage(context.getString(R.string.daemon_disconnected_manual))
                     } else {
                         onBannerMessage(context.getString(R.string.no_active_stream_manual))
                     }
+                    onRequestManualSelector?.invoke()
                 } else {
                     val targetHz = normalizeTargetRefreshRate(detected)
                     onBannerMessage(
