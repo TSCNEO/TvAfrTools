@@ -1,6 +1,6 @@
 # 📺 TvAfrTools
 
-[![Latest Release](https://img.shields.io/github/v/release/TSCNEO/TvAfrTools?color=38BDF8&label=Release&logo=github)](https://github.com/TSCNEO/TvAfrTools/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/TSCNEO/TvAfrTools?color=38BDF8&label=Release&display_name=tag&logo=github)](https://github.com/TSCNEO/TvAfrTools/releases/latest)
 [![Platform](https://img.shields.io/badge/Platform-Android%20TV%20%7C%20Google%20TV-22C55E?logo=android)](https://github.com/TSCNEO/TvAfrTools)
 [![Android Version](https://img.shields.io/badge/Android%20TV-9.0%20to%2014-F59E0B)](https://github.com/TSCNEO/TvAfrTools)
 [![License](https://img.shields.io/badge/License-GPLv3%20%2F%20Open%20Source-blue)](LICENSE)
@@ -105,3 +105,7 @@ Found a bug or have a feature idea? We would love your feedback!
 
 ## 📜 License
 TvAfrTools is open-source software licensed under the GPLv3 / Apache 2.0. Feel free to inspect, modify, and contribute.
+
+## Roadmap
+
+[Roadmap](ROADMAP.md)

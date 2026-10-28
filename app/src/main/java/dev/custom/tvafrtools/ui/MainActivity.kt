@@ -490,7 +490,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildAfrAppsSection(): View {
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         col.addView(TextView(this).apply {
-            text = "Selecciona las apps donde actuará el AFR automático. Las demás conservan su propio ajuste."
+            text = getString(R.string.afr_apps_help)
             setTextColor(Color.WHITE)
             setPadding(0, 0, 0, dpToPx(20))
         })
@@ -517,37 +517,37 @@ class MainActivity : AppCompatActivity() {
         scroll.addView(col)
 
         col.addView(makeInteractiveToggleCard(
-            title = "Ajuste automático de Hz al reproducir vídeo",
-            desc = "Detecta películas y series en apps como Disney+, Netflix o Prime y cambia los Hz de la tele para que se vea suave",
+            title = getString(R.string.afr_auto_title),
+            desc = getString(R.string.afr_auto_desc),
             initial = prefs.afrEnabled
         ) { prefs.afrEnabled = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Modo cine exacto (23,976 Hz)",
-            desc = "Elimina los micropalpitares en películas grabadas a 24 fotogramas",
+            title = getString(R.string.afr_exact_title),
+            desc = getString(R.string.afr_exact_desc),
             initial = prefs.fractionalFrameRate
         ) { prefs.fractionalFrameRate = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Pausa breve al cambiar de Hz",
-            desc = "Pausa el vídeo un segundo mientras la tele cambia de señal para no perder imagen ni sonido",
+            title = getString(R.string.afr_pause_title),
+            desc = getString(R.string.afr_pause_desc),
             initial = prefs.pauseOnSwitch
         ) { prefs.pauseOnSwitch = it })
 
         val delayLabel = TextView(this).apply {
             setTextColor(Color.WHITE)
-            text = "Espera antes de reanudar: ${prefs.resumeDelayMs / 1000.0} s"
+            text = getString(R.string.afr_resume_delay, prefs.resumeDelayMs / 1000.0)
         }
         col.addView(delayLabel)
         col.addView(android.widget.SeekBar(this).apply {
             max = 18
             progress = (prefs.resumeDelayMs - 1000) / 500
-            contentDescription = "Espera antes de reanudar el vídeo"
+            contentDescription = getString(R.string.afr_resume_accessibility)
             setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: android.widget.SeekBar?, value: Int, fromUser: Boolean) {
                     if (fromUser) {
                         prefs.resumeDelayMs = 1000 + value * 500
-                        delayLabel.text = "Espera antes de reanudar: ${prefs.resumeDelayMs / 1000.0} s"
+                        delayLabel.text = getString(R.string.afr_resume_delay, prefs.resumeDelayMs / 1000.0)
                     }
                 }
                 override fun onStartTrackingTouch(bar: android.widget.SeekBar?) {}
@@ -556,27 +556,27 @@ class MainActivity : AppCompatActivity() {
         })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Series y deportes europeos a 50 Hz",
-            desc = "Adapta contenidos a 25 fps para que se vean fluidos a 50 Hz",
+            title = getString(R.string.afr_25_title),
+            desc = getString(R.string.afr_25_desc),
             initial = prefs.convert25To50Hz
         ) { prefs.convert25To50Hz = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Duplicar 30 fps a 60 Hz",
-            desc = "Usa 60 Hz para 30 fps y 59,94 Hz para 29,97 fps, si están disponibles",
+            title = getString(R.string.afr_30_title),
+            desc = getString(R.string.afr_30_desc),
             initial = prefs.convert30To60Hz
         ) { prefs.convert30To60Hz = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Restaurar el modo anterior al salir",
+            title = getString(R.string.afr_restore_title),
 
-            desc = "Recupera la resolución y frecuencia previas al AFR",
+            desc = getString(R.string.afr_restore_desc),
             initial = prefs.autoStopAfrOnExit
         ) { prefs.autoStopAfrOnExit = it })
 
         col.addView(makeInteractiveToggleCard(
-            title = "Control suave del volumen",
-            desc = "Evita saltos bruscos de volumen al dejar pulsado el botón en mandos Bluetooth",
+            title = getString(R.string.volume_smooth_title),
+            desc = getString(R.string.volume_smooth_desc),
             initial = prefs.volumeButtonsFix
         ) { prefs.volumeButtonsFix = it })
 
@@ -788,8 +788,8 @@ class MainActivity : AppCompatActivity() {
         scroll.addView(col)
 
         col.addView(makeInteractiveToggleCard(
-            title = "Recuperar servicios al encender",
-            desc = "Intenta activar el demonio AFR y la accesibilidad al arrancar, sin abrir la pantalla de la app. Android puede restaurar por su cuenta la accesibilidad ya habilitada.",
+            title = getString(R.string.boot_recovery_title),
+            desc = getString(R.string.boot_recovery_desc),
             initial = prefs.startOnBoot
         ) { prefs.startOnBoot = it })
 
