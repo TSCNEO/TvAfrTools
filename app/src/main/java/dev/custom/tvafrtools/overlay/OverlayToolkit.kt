@@ -197,13 +197,16 @@ class OverlayToolkit(
                         )
                     }
                     if (sysInfo.hdmiRealHardware.isNotBlank() && sysInfo.hdmiRealHardware != "N/D") {
-                        append("Señal: ${sysInfo.hdmiRealHardware}\n")
+                        append(context.getString(R.string.hud_signal, sysInfo.hdmiRealHardware)).append('\n')
                     }
                     if (videoFps > 1.0f) {
-                        append(String.format(Locale.US, "Vídeo: %.3f fps [%s]\n", videoFps, fpsSrc))
+                        append(context.getString(R.string.hud_video_fps, videoFps, fpsSrc)).append('\n')
                     } else {
-                        append("Vídeo: Sin stream activo\n")
+                        append(context.getString(R.string.hud_no_stream)).append('\n')
                     }
+                    val size = dev.custom.tvafrtools.server.ServerClient.getVideoBufferSize()
+                    append(context.getString(R.string.hud_video_size,
+                        if (size == "UNKNOWN") context.getString(R.string.hud_unknown) else size)).append('\n')
                     append("SoC:   $tempStr  |  RAM: $usedMb / $totalMb MB\n")
                     append("Red:   ↓ $speedStr")
                 }

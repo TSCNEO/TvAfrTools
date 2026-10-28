@@ -475,6 +475,35 @@ object PrivilegedServer {
      * - Amlogic / MediaTek / Realtek / Nvidia Shield sysfs & system properties
      * - MediaMetrics codec frameRate
      */
+    private var cachedVideoSize = "UNKNOWN"
+    private var videoSizeReadAt = 0L
+
+    @Synchronized
+    private fun readVideoBufferSize(): String {
+        val now = SystemClock.elapsedRealtime()
+        if (now - videoSizeReadAt < 5000L) return cachedVideoSize
+        videoSizeReadAt = now
+        cachedVideoSize = "UNKNOWN"
+        val focus = runShellCommand("dumpsys window windows")
+        val pkg = Regex("""mCurrentFocus=.*?\s([A-Za-z0-9_.]+)/""")
+            .find(focus)?.groupValues?.get(1) ?: return cachedVideoSize
+        val dump = runShellCommand("dumpsys SurfaceFlinger")
+        var largest = 0L
+        for (block in dump.split("+ Layer")) {
+            val header = block.lineSequence().firstOrNull().orEmpty()
+            if (!header.contains("SurfaceView") || !header.contains(pkg)) continue
+            val match = Regex("""activeBuffer=\[\s*(\d+)\s*x\s*(\d+)""").find(block) ?: continue
+            val width = match.groupValues[1].toIntOrNull() ?: continue
+            val height = match.groupValues[2].toIntOrNull() ?: continue
+            val area = width.toLong() * height
+            if (width >= 64 && height >= 64 && area > largest) {
+                largest = area
+                cachedVideoSize = "${width}x${height}"
+            }
+        }
+        return cachedVideoSize
+    }
+
     private fun readSurfaceVideoFps(): Float {
         val layers = runShellCommand("dumpsys SurfaceFlinger --list").lineSequence()
             .filter { it.contains("SurfaceView") && it.contains("(BLAST)") }.toList()
@@ -1055,6 +1084,7 @@ object PrivilegedServer {
                     val hdmi = readRealHardwareHdmiMode()
                     writer.println("OK FPS=${String.format(Locale.US, "%.3f", fps)} SRC=$currentFpsSource TEMP=${String.format(Locale.US, "%.1f", tempC)} HDMI=$hdmi")
                 }
+                "GET_VIDEO_SIZE" -> writer.println("OK ${readVideoBufferSize()}")
                 "GET_HDMI_REAL" -> {
                     val hdmi = readRealHardwareHdmiMode()
                     writer.println("OK $hdmi")

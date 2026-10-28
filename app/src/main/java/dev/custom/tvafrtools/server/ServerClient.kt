@@ -81,6 +81,11 @@ object ServerClient {
         return SysInfo(0f, "OFFLINE", -1f, "")
     }
 
+    fun getVideoBufferSize(): String {
+        val response = sendCommand("GET_VIDEO_SIZE", 3500)
+        return if (response.startsWith("OK ")) response.substring(3).trim() else "UNKNOWN"
+    }
+
     fun getRealHardwareHdmi(): String {
         val resp = sendCommand("GET_HDMI_REAL", 1000)
         if (resp.startsWith("OK ")) {

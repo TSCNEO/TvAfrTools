@@ -1,6 +1,6 @@
 # 📺 TvAfrTools
 
-[![Última Versión](https://img.shields.io/github/v/release/TSCNEO/TvAfrTools?color=38BDF8&label=Versión&logo=github)](https://github.com/TSCNEO/TvAfrTools/releases/latest)
+[![Última Versión](https://img.shields.io/github/v/release/TSCNEO/TvAfrTools?color=38BDF8&label=Versión&display_name=tag&logo=github)](https://github.com/TSCNEO/TvAfrTools/releases/latest)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Android%20TV%20%7C%20Google%20TV-22C55E?logo=android)](https://github.com/TSCNEO/TvAfrTools)
 [![Versión Android](https://img.shields.io/badge/Android%20TV-9.0%20a%2014-F59E0B)](https://github.com/TSCNEO/TvAfrTools)
 [![Licencia](https://img.shields.io/badge/Licencia-Código%20Abierto-blue)](LICENSE)
@@ -100,3 +100,7 @@
 - 🐛 **Reportar un Error**: [Abrir un Issue en GitHub](https://github.com/TSCNEO/TvAfrTools/issues/new?template=bug_report.md)
 - 💡 **Sugerir Funcionalidades**: [Proponer una Mejora](https://github.com/TSCNEO/TvAfrTools/issues/new?template=feature_request.md)
 - ⭐ Si te resulta útil el proyecto, ¡dale una estrella en GitHub!
+
+## Hoja de ruta
+
+[Hoja de ruta](ROADMAP.md)
