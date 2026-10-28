@@ -534,6 +534,12 @@ class MainActivity : AppCompatActivity() {
             initial = prefs.pauseOnSwitch
         ) { prefs.pauseOnSwitch = it })
 
+        col.addView(makeInteractiveToggleCard(
+            title = getString(R.string.afr_native_title),
+            desc = getString(R.string.afr_native_desc),
+            initial = prefs.matchNativeResolution
+        ) { prefs.matchNativeResolution = it })
+
         val delayLabel = TextView(this).apply {
             setTextColor(Color.WHITE)
             text = getString(R.string.afr_resume_delay, prefs.resumeDelayMs / 1000.0)
