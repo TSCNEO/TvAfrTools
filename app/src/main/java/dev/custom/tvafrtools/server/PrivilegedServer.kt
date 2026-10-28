@@ -1,5 +1,4 @@
 package dev.custom.tvafrtools.server
-import java.net.InetSocketAddress
 
 import android.os.Binder
 import android.os.Build
@@ -17,6 +16,7 @@ import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.lang.reflect.Method
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.util.Locale
 import java.util.concurrent.Executors
@@ -34,23 +34,24 @@ import kotlin.math.abs
  *      - Parses `VideoSyncFRAC: [detectPattern] 3:2 pattern detected` -> 23.976 fps
  *      - Parses `VideoRenderQualityTracker: Rendered frame is earlier than the next expected frame (tsUs, ...)` delta
  *    - Layer B (Android 12–14 / SDK 31+): `IWindowManager.registerTaskFpsCallback`
- *      via `/system/framework/framework.jar`'s `android.window.ITaskFpsCallback$Stub`
+ *      via `/system/framework/framework.jar`s `android.window.ITaskFpsCallback$Stub`
  *    - Layer C (Android 9–14 Universal MediaMetrics / SurfaceFlinger latency):
- *      - `dumpsys media.metrics` (`frameRate=` / `video-frame-rate`)
+ *      - `dumpsys media.metrics` (`frameRate=` / `frame-rate=` / `operating-rate=`)
  *    - Layer D (Amlogic / MediaTek / Xiaomi sysfs & system properties):
- *      - `sys.nes.info.frame_rate`, `/sys/class/vdec/vdec_status`, `/sys/class/video/frame_rate`
- * 2. Universal Real Screen Off (Android 9–14):
+ *      - `/sys/class/video/frame_rate`, `/sys/class/vdec/vdec_status`, `sys.nes.info.frame_rate`
+ * 2. Real Hardware HDMI Link Mode Detection (Amlogic / DRM sysfs):
+ *    - `/sys/class/amhdmitx/amhdmitx0/disp_mode`, `/sys/class/display/mode`, `/sys/class/amhdmitx/amhdmitx0/config`
+ * 3. Universal Real Screen Off (Android 9–14):
  *    - SDK < 29: `SurfaceControl.getBuiltInDisplay(0)`
  *    - SDK 29–33: `SurfaceControl.getInternalDisplayToken()` / `getPhysicalDisplayIds()`
  *    - SDK 34+ (Android 14): `DisplayControl` via `ClassLoaderFactory` (`/system/framework/services.jar`)
  *    - Honor / Huawei Android 14 quirk fallback
- * 3. Universal Seamless / Non-Seamless AFR Enforcement:
+ * 4. Universal Seamless / Non-Seamless AFR Enforcement:
  *    - Configures `settings put secure match_content_frame_rate 2` (ALWAYS)
- *    - Calls `IDisplayManager.setShouldAlwaysRespectAppRequestedMode(true)` when available
  *    - Persists `service.adb.tcp.port 5555` so local ADB remains available across reboots
- * 4. Universal Thermal & System Info (`IThermalService` + `/sys/class/thermal`)
- * 5. Force-Stop Package (`IActivityManager.forceStopPackage`) & Clean Background RAM
- * 6. HDR / Dolby Vision Conversion Mode & Audio Output Format Cycling
+ * 5. Universal Thermal & System Info (`IThermalService` + `/sys/class/thermal`)
+ * 6. Force-Stop Package (`IActivityManager.forceStopPackage`) & Clean Background RAM
+ * 7. HDR / Dolby Vision Conversion Mode & Audio Output Format Cycling
  */
 object PrivilegedServer {
     const val PORT = 15099
@@ -85,7 +86,7 @@ object PrivilegedServer {
             val sm = Class.forName("android.os.ServiceManager")
             val getService = sm.getMethod("getService", String::class.java)
             getService.invoke(null, name) as? IBinder
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
             null
         }
     }
@@ -93,34 +94,58 @@ object PrivilegedServer {
     @JvmStatic
     fun main(args: Array<String>) {
         println("TvAfrTools PrivilegedServer starting on 127.0.0.1:$PORT (UID=${android.os.Process.myUid()}, SDK=${Build.VERSION.SDK_INT})...")
+
         try {
-            Looper.prepareMainLooper()
-        } catch (ignored: Throwable) {
+            if (Looper.myLooper() == null) {
+                Looper.prepareMainLooper()
+            }
+        } catch (_: Throwable) {
+            try {
+                if (Looper.myLooper() == null) {
+                    Looper.prepare()
+                }
+            } catch (_: Throwable) {}
         }
 
-        initDisplayClasses()
-        ensureUniversalSystemSettings()
-        startTaskFpsMonitorThread()
-        startTunneledVideoLogWatcherThread()
-
+        // Start ServerSocket listener FIRST with reuseAddress = true
         val executor = Executors.newCachedThreadPool()
-        Thread {
-            try {
-                val server = ServerSocket()
-                server.reuseAddress = true
-                server.bind(InetSocketAddress("127.0.0.1", PORT), 50)
-                println("TvAfrTools PrivilegedServer listening on 127.0.0.1:$PORT")
+        try {
+            val server = ServerSocket()
+            server.reuseAddress = true
+            server.bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT), 50)
+            println("TvAfrTools PrivilegedServer listening on 127.0.0.1:$PORT")
+            Thread({
                 while (true) {
-                    val client = server.accept()
-                    executor.execute { handleClient(client) }
+                    try {
+                        val client = server.accept()
+                        executor.execute { handleClient(client) }
+                    } catch (e: Throwable) {
+                        // Keep accepting connections even if one throws
+                    }
                 }
-            } catch (e: Throwable) {
-                e.printStackTrace()
-                System.exit(1)
-            }
-        }.start()
+            }, "ServerListener").apply { isDaemon = true }.start()
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            System.exit(1)
+        }
 
-        Looper.loop()
+        // Background monitors protected with individual try/catch
+        try { initDisplayClasses() } catch (t: Throwable) { t.printStackTrace() }
+        try { ensureUniversalSystemSettings() } catch (t: Throwable) { t.printStackTrace() }
+        try { startTaskFpsMonitorThread() } catch (t: Throwable) { t.printStackTrace() }
+        try { startTunneledVideoLogWatcherThread() } catch (t: Throwable) { t.printStackTrace() }
+
+        try {
+            Looper.loop()
+        } catch (t: Throwable) {
+            t.printStackTrace()
+        }
+        // Fallback keepalive loop
+        while (true) {
+            try {
+                Thread.sleep(60000L)
+            } catch (_: Throwable) {}
+        }
     }
 
     /**
@@ -130,11 +155,9 @@ object PrivilegedServer {
     private fun ensureUniversalSystemSettings() {
         Thread {
             try {
-                // Ensure non-seamless refresh rate switching (ALWAYS = 2) is enabled on Android 12-14
                 runShellCommand("settings put secure match_content_frame_rate 2")
-                // Keep TCP ADB port 5555 open across reboots on Xiaomi / Google TV boxes
                 runShellCommand("setprop persist.adb.tcp.port 5555")
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
         }.start()
     }
@@ -142,31 +165,25 @@ object PrivilegedServer {
     /**
      * Watches live logcat specifically for Tunneled Video Playback (Widevine L1 4K HDR in Disney+,
      * Prime Video, Netflix, Apple TV+) where frames bypass SurfaceFlinger and go straight to HWCVIDEO.
-     *
-     * Detects:
-     * 1. `VideoRenderQualityTracker` microsecond presentation timestamps (Universal ExoPlayer/Media3 tunnel):
-     *    e.g., `(1000152416666, ...)` -> delta 41666 us = 23.976 / 24.000 fps; 40000 us = 25.0 fps; 33333 us = 29.97 fps
-     * 2. `VideoSyncFRAC: ... [detectPattern]3:2 pattern detected` (Amlogic / Xiaomi / Homatics hardware tunnel):
-     *    3:2 pulldown on 60Hz means the underlying video stream is 23.976 / 24 fps!
-     * 3. `VDA : ... ServiceDeviceTask INs=A/B, OUTs=C/D` (Codec2 hardware decoder output counter):
-     *    Measures exact decoded frames per second over a 1-second sliding window.
      */
     private fun startTunneledVideoLogWatcherThread() {
         Thread({
             while (true) {
                 var proc: Process? = null
                 try {
-                    // Clear old logcat lines only in our stream by reading from recent tail
+                    // Use -t 20 (line count) instead of -T to prevent date parsing failures on older Android TV ROMs
                     proc = ProcessBuilder(
                         "logcat",
                         "-v", "epoch",
-                        "-T", "20",
+                        "-t", "20",
                         "-s",
                         "VDA",
                         "VideoRenderQualityTracker",
                         "VideoSyncFRAC",
                         "Mediahal_VideoTunnelRenderer",
-                        "C2VdecComponent"
+                        "C2VdecComponent",
+                        "CCodec",
+                        "MediaCodecVideoRenderer"
                     ).redirectErrorStream(true).start()
 
                     val reader = BufferedReader(InputStreamReader(proc.inputStream))
@@ -201,7 +218,6 @@ object PrivilegedServer {
                             if (ptsUs > 0L) {
                                 if (lastPtsUs > 0L) {
                                     val deltaUs = ptsUs - lastPtsUs
-                                    // Valid single-frame delta range: 15,000 us (66fps) to 45,000 us (22fps)
                                     if (deltaUs in 15000L..45000L) {
                                         if (ptsDeltasUs.size >= 6) ptsDeltasUs.removeFirst()
                                         ptsDeltasUs.addLast(deltaUs)
@@ -253,11 +269,11 @@ object PrivilegedServer {
                             }
                         }
                     }
-                } catch (ignored: Throwable) {
+                } catch (_: Throwable) {
                 } finally {
                     try {
                         proc?.destroy()
-                    } catch (ignored: Throwable) {
+                    } catch (_: Throwable) {
                     }
                 }
                 Thread.sleep(2000L)
@@ -279,43 +295,45 @@ object PrivilegedServer {
     private fun startTaskFpsMonitorThread() {
         Thread({
             val wmBinder = getSystemServiceBinder("window")
-            val wmStubClass = Class.forName("android.view.IWindowManager\$Stub")
-            val asInterface = wmStubClass.getMethod("asInterface", IBinder::class.java)
-            val wm = asInterface.invoke(null, wmBinder)
-            val wmClass = wm.javaClass
+            val wmStubClass = try {
+                Class.forName("android.view.IWindowManager\$Stub")
+            } catch (_: Throwable) {
+                null
+            }
+            val asInterface = wmStubClass?.getMethod("asInterface", IBinder::class.java)
+            val wm = try { asInterface?.invoke(null, wmBinder) } catch (_: Throwable) { null }
+            val wmClass = wm?.javaClass
 
             val registerMethod: Method? = try {
                 val callbackIntf = Class.forName("android.window.ITaskFpsCallback")
-                wmClass.getMethod("registerTaskFpsCallback", Int::class.javaPrimitiveType, callbackIntf)
-            } catch (ignored: Throwable) {
+                wmClass?.getMethod("registerTaskFpsCallback", Int::class.javaPrimitiveType, callbackIntf)
+            } catch (_: Throwable) {
                 null
             }
             val unregisterMethod: Method? = try {
                 val callbackIntf = Class.forName("android.window.ITaskFpsCallback")
-                wmClass.getMethod("unregisterTaskFpsCallback", callbackIntf)
-            } catch (ignored: Throwable) {
+                wmClass?.getMethod("unregisterTaskFpsCallback", callbackIntf)
+            } catch (_: Throwable) {
                 null
             }
 
             while (true) {
                 try {
                     val nowMs = SystemClock.elapsedRealtime()
-                    val tunnelRecent = (nowMs - lastTunneledFpsTimestampMs) < 6000L && lastTunneledFps > 0f
+                    val tunnelRecent = (nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 0f
 
                     val topTaskId = getForegroundTaskId()
-                    if (topTaskId > 0 && topTaskId != currentTaskId && registerMethod != null) {
+                    if (topTaskId > 0 && topTaskId != currentTaskId && registerMethod != null && wm != null) {
                         registeredCallback?.let { oldCb ->
                             try {
                                 unregisterMethod?.invoke(wm, oldCb)
-                            } catch (ignored: Throwable) {
+                            } catch (_: Throwable) {
                             }
                         }
                         val newCb = createTaskFpsCallbackStub { fps ->
                             if (fps > 1.0f) {
                                 val ageMs = SystemClock.elapsedRealtime() - lastTunneledFpsTimestampMs
-                                // If Tunneled Video (HWCVIDEO Widevine L1) is active, SurfaceFlinger only sees the 60fps UI/subtitle layer!
-                                // Do NOT let a ~60fps UI layer overwrite a recently detected 23.976/25/29.97fps Tunneled Video stream!
-                                if (ageMs < 6000L && lastTunneledFps in 23.0f..51.0f && fps >= 55.0f) {
+                                if (ageMs < 8000L && lastTunneledFps in 23.0f..51.0f && fps >= 55.0f) {
                                     currentFps = lastTunneledFps
                                 } else {
                                     currentFps = fps
@@ -333,16 +351,14 @@ object PrivilegedServer {
                     if (tunnelRecent) {
                         currentFps = lastTunneledFps
                     } else {
-                        // Also check universal fallbacks (SysProp / MediaMetrics / HWCVIDEO)
                         val fallbackFps = readUniversalFallbackFps()
                         if (fallbackFps > 1.0f) {
-                            // If SurfaceFlinger reports ~60fps (UI) while fallback detects movie rate, prefer movie rate
                             if (currentFps <= 1.0f || (currentFps >= 55.0f && fallbackFps < 55.0f)) {
                                 currentFps = fallbackFps
                             }
                         }
                     }
-                } catch (ignored: Throwable) {
+                } catch (_: Throwable) {
                 }
                 Thread.sleep(750)
             }
@@ -360,7 +376,7 @@ object PrivilegedServer {
                 override fun asBinder(): IBinder = this
 
                 override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
-                    if (code == FIRST_CALL_TRANSACTION) { // onFpsReported(float fps)
+                    if (code == FIRST_CALL_TRANSACTION) {
                         data.enforceInterface("android.window.ITaskFpsCallback")
                         val fps = data.readFloat()
                         onFps(fps)
@@ -393,9 +409,45 @@ object PrivilegedServer {
                 val taskIdField = taskInfo.javaClass.getField("taskId")
                 return taskIdField.getInt(taskInfo)
             }
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
         }
         return -1
+    }
+
+    /**
+     * Reads the REAL hardware physical HDMI output negotiated by the transmitter
+     * with the TV sink (Amlogic, DRM/KMS).
+     * e.g. "2160p23hz (YUV422 10bit HDR10)" or "1080p50hz".
+     */
+    fun readRealHardwareHdmiMode(): String {
+        val paths = arrayOf(
+            "/sys/class/amhdmitx/amhdmitx0/disp_mode",
+            "/sys/class/display/mode",
+            "/sys/class/drm/card0-HDMI-A-1/mode"
+        )
+        for (p in paths) {
+            try {
+                val f = File(p)
+                if (f.exists() && f.canRead()) {
+                    val mode = f.readText().trim()
+                    if (mode.isNotEmpty() && mode != "null") {
+                        val cfgFile = File("/sys/class/amhdmitx/amhdmitx0/config")
+                        if (cfgFile.exists() && cfgFile.canRead()) {
+                            val cfg = cfgFile.readText()
+                            val colorM = Regex("""color_format:\s*(\w+)""").find(cfg)?.groupValues?.getOrNull(1)
+                            val depthM = Regex("""color_depth:\s*(\w+)""").find(cfg)?.groupValues?.getOrNull(1)
+                            val eotfM = Regex("""eotf:\s*(\w+)""").find(cfg)?.groupValues?.getOrNull(1)
+                            val extra = listOfNotNull(colorM, depthM, eotfM).joinToString(" ")
+                            if (extra.isNotEmpty()) {
+                                return "$mode ($extra)"
+                            }
+                        }
+                        return mode
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
+        return "N/D"
     }
 
     /**
@@ -407,7 +459,7 @@ object PrivilegedServer {
     private fun readUniversalFallbackFps(): Float {
         // 1. Check recent Tunneled Video detection first
         val ageMs = SystemClock.elapsedRealtime() - lastTunneledFpsTimestampMs
-        if (ageMs < 6000L && lastTunneledFps > 1.0f) {
+        if (ageMs < 8000L && lastTunneledFps > 1.0f) {
             return lastTunneledFps
         }
 
@@ -436,31 +488,42 @@ object PrivilegedServer {
                     }
                 }
             }
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
         }
 
-        // 3. Check readable sysfs nodes (only if File.canRead() to avoid SELinux audit spam!)
+        // 3. Check readable sysfs nodes (parses direct numbers and key-value formats)
         val sysPaths = arrayOf(
-            "/sys/class/vdec/vdec_status",
             "/sys/class/video/frame_rate",
+            "/sys/class/vdec/vdec_status",
             "/proc/amstream/vdec_status"
         )
         for (path in sysPaths) {
             try {
                 val f = File(path)
                 if (f.exists() && f.canRead()) {
-                    val text = f.readText()
-                    val m1 = Regex("""frame_rate\s*[:=]\s*(\d+(?:\.\d+)?)""", RegexOption.IGNORE_CASE).find(text)
-                        ?: Regex("""fps\s*[:=]\s*(\d+(?:\.\d+)?)""", RegexOption.IGNORE_CASE).find(text)
+                    val text = f.readText().trim()
+                    // Check direct float/integer (e.g. 23976, 24000, 24, 96000)
+                    val rawNum = text.toFloatOrNull()
+                    if (rawNum != null && rawNum > 1.0f) {
+                        val v = when {
+                            rawNum > 10000f -> rawNum / 1000f
+                            rawNum == 96000f -> 24.0f
+                            else -> rawNum
+                        }
+                        currentFpsSource = "SYSFS:$path"
+                        return v
+                    }
+                    val m1 = Regex("""(?:frame_rate|fps)\s*[:=]\s*(\d+(?:\.\d+)?)""", RegexOption.IGNORE_CASE).find(text)
                     if (m1 != null) {
-                        val v = m1.groupValues[1].toFloatOrNull() ?: 0f
-                        if (v > 1.0f) {
+                        val raw = m1.groupValues[1].toFloatOrNull() ?: 0f
+                        if (raw > 1.0f) {
+                            val v = if (raw > 10000f) raw / 1000f else raw
                             currentFpsSource = "SYSFS:$path"
                             return v
                         }
                     }
                 }
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
         }
 
@@ -470,7 +533,6 @@ object PrivilegedServer {
     /**
      * On-demand deep probe for 1-Click AFR when immediate `currentFps` looks like UI (60fps)
      * or 0fps during Tunneled Widevine L1 playback (Disney+, Prime Video, Netflix, etc.).
-     * Samples Codec2 VDA / VideoSyncFRAC / SurfaceFlinger HWCVIDEO over ~1.1s if needed.
      */
     private fun probeActiveVideoFpsNow(): Pair<Float, String> {
         val nowMs = SystemClock.elapsedRealtime()
@@ -537,13 +599,13 @@ object PrivilegedServer {
                 currentFpsSource = "TUNNEL_3_2_PROBE"
                 return 23.976f to currentFpsSource
             }
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
         }
 
         // Check Android 9-14 dumpsys media.metrics for codec frameRate
         try {
             val mmOut = runShellCommand("dumpsys media.metrics")
-            val regexCodecFps = Regex("""frameRate=(\d+(?:\.\d+)?)""")
+            val regexCodecFps = Regex("""(?:frameRate|frame-rate|operating-rate)\s*=\s*(\d+(?:\.\d+)?)""")
             val matches = regexCodecFps.findAll(mmOut).toList()
             if (matches.isNotEmpty()) {
                 val fps = matches.last().groupValues[1].toFloatOrNull() ?: 0f
@@ -551,7 +613,13 @@ object PrivilegedServer {
                     return fps to "MEDIA_METRICS"
                 }
             }
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
+        }
+
+        // Check universal fallback sysfs/sysprops
+        val fallback = readUniversalFallbackFps()
+        if (fallback > 1.0f) {
+            return fallback to currentFpsSource
         }
 
         return currentFps to currentFpsSource
@@ -617,7 +685,7 @@ object PrivilegedServer {
                         setPowerMethod.invoke(null, token, powerMode)
                         return true
                     }
-                } catch (ignored: Throwable) {
+                } catch (_: Throwable) {
                 }
             }
 
@@ -656,7 +724,7 @@ object PrivilegedServer {
                     }
                     if (ok) return true
                 }
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
 
             // 4. Android 10–12 fallback: SurfaceControl.getInternalDisplayToken()
@@ -667,7 +735,7 @@ object PrivilegedServer {
                     setPowerMethod.invoke(null, token, powerMode)
                     return true
                 }
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
 
             // 5. Android 9 (SDK 28) fallback: SurfaceControl.getBuiltInDisplay(0)
@@ -678,7 +746,7 @@ object PrivilegedServer {
                     setPowerMethod.invoke(null, token, powerMode)
                     return true
                 }
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -696,25 +764,21 @@ object PrivilegedServer {
                 runShellCommand("cmd display clear-user-preferred-display-mode 0")
                 true
             } else {
-                // Ensure non-seamless refresh rate switching is enabled on Android 12-14
                 runShellCommand("settings put secure match_content_frame_rate 2")
-                // Format refresh rate to 6 decimal places (e.g. 23.976025, 50.000000, 59.940060)
                 val hzStr = String.format(Locale.US, "%.6f", refreshRate)
                 val cmd = "cmd display set-user-preferred-display-mode $width $height $hzStr 0"
                 runShellCommand(cmd)
                 true
             }
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
             false
         }
     }
 
     /**
      * Universal SoC temperature reader across Amlogic, MediaTek, Qualcomm, Nvidia Tegra, Realtek.
-     * Uses Android 10+ `IThermalService` Binder interface first, then falls back to `/sys/class/thermal`.
      */
     private fun readUniversalSocTempCelsius(): Float {
-        // 1. Try Android 10+ IThermalService Binder
         if (Build.VERSION.SDK_INT >= 29) {
             try {
                 val binder = getSystemServiceBinder("thermalservice")
@@ -735,11 +799,10 @@ object PrivilegedServer {
                         }
                     }
                 }
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
         }
 
-        // 2. Fallback to readable thermal_zone sysfs
         val paths = arrayOf(
             "/sys/class/thermal/thermal_zone0/temp",
             "/sys/class/thermal/thermal_zone1/temp",
@@ -753,7 +816,7 @@ object PrivilegedServer {
                     val c = if (raw > 1000f) raw / 1000f else raw
                     if (c in 20.0f..115.0f) return c
                 }
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
         }
         return -1f
@@ -761,127 +824,53 @@ object PrivilegedServer {
 
     private fun forceStopPackage(pkg: String): Boolean {
         if (pkg.isBlank()) return false
-        var ok = false
-        try {
+        return try {
             val amBinder = getSystemServiceBinder("activity")
-            if (amBinder != null) {
-                val amStub = Class.forName("android.app.IActivityManager\$Stub")
-                val asIntf = amStub.getMethod("asInterface", IBinder::class.java)
-                val am = asIntf.invoke(null, amBinder)
-                val forceStop = am.javaClass.getMethod("forceStopPackage", String::class.java, Int::class.javaPrimitiveType)
-                forceStop.invoke(am, pkg, 0)
-                ok = true
-            }
-        } catch (_: Throwable) {}
-
-        if (!ok) {
-            try {
-                runShellCommand("am force-stop $pkg")
-                ok = true
-            } catch (_: Throwable) {}
+            val amStub = Class.forName("android.app.IActivityManager\$Stub")
+            val asIntf = amStub.getMethod("asInterface", IBinder::class.java)
+            val am = asIntf.invoke(null, amBinder)
+            val forceStop = am.javaClass.getMethod("forceStopPackage", String::class.java, Int::class.javaPrimitiveType)
+            forceStop.invoke(am, pkg, 0)
+            true
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            false
         }
-        return ok
-    }
-
-    private fun getRunningPackages(): Set<String> {
-        val running = linkedSetOf<String>()
-        try {
-            val output = runShellCommand("ps -A")
-            for (line in output.lines()) {
-                val parts = line.trim().split(Regex("\\s+"))
-                if (parts.size >= 9 && parts[0].startsWith("u0_a")) {
-                    val proc = parts[8].split(":")[0]
-                    if (isValidRecentPkg(proc)) {
-                        running.add(proc)
-                    }
-                }
-            }
-        } catch (_: Throwable) {}
-        return running
-    }
-
-    /**
-     * Lists recent/running user packages and optionally kills background packages to free RAM
-     * (crucial on 2GB RAM devices like Xiaomi Mi Box S / Mi TV Stick / Chromecast).
-     */
-    private fun isValidRecentPkg(pkg: String): Boolean {
-        if (pkg.isBlank() || pkg == "dev.custom.tvafrtools") return false
-        val lower = pkg.lowercase(Locale.ROOT)
-        if (lower.contains("launcher") ||
-            lower.contains("tvrecommendations") ||
-            lower.contains("katniss") ||
-            lower.contains("nes.recents") ||
-            lower.startsWith("com.android.systemui") ||
-            lower == "android" ||
-            lower.contains("permissioncontroller")
-        ) return false
-        return true
     }
 
     private fun getRecentPackages(): List<String> {
-        val result = linkedSetOf<String>()
+        val result = mutableListOf<String>()
         try {
             val atmClass = Class.forName("android.app.ActivityTaskManager")
             val getService = atmClass.getMethod("getService")
             val atm = getService.invoke(null)
-            val getRecentTasks = atm.javaClass.getMethod(
-                "getRecentTasks",
-                Int::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType
-            )
-            val slice = getRecentTasks.invoke(atm, 30, 1, 0)
-            val getList = slice?.javaClass?.getMethod("getList")
-            val list = getList?.invoke(slice) as? List<*>
-            if (!list.isNullOrEmpty()) {
-                for (item in list) {
-                    if (item == null) continue
-                    val realActivity = try {
-                        val f = item.javaClass.getField("realActivity")
-                        f.get(item) as? android.content.ComponentName
-                    } catch (ignored: Throwable) { null }
-
-                    val origActivity = try {
-                        val f = item.javaClass.getField("origActivity")
-                        f.get(item) as? android.content.ComponentName
-                    } catch (ignored: Throwable) { null }
-
-                    val baseIntentComp = try {
-                        val f = item.javaClass.getField("baseIntent")
-                        (f.get(item) as? android.content.Intent)?.component
-                    } catch (ignored: Throwable) { null }
-
-                    val comp = realActivity ?: origActivity ?: baseIntentComp
-                    val pkg = comp?.packageName
-                    if (!pkg.isNullOrBlank() && isValidRecentPkg(pkg)) {
+            val getTasks = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType)
+            val tasks = getTasks.invoke(atm, 15) as? List<*>
+            if (!tasks.isNullOrEmpty()) {
+                for (task in tasks) {
+                    if (task == null) continue
+                    val baseActivityField = task.javaClass.getField("baseActivity")
+                    val comp = baseActivityField.get(task) as? android.content.ComponentName ?: continue
+                    val pkg = comp.packageName
+                    if (pkg != "dev.custom.tvafrtools" &&
+                        !pkg.contains("launcher") &&
+                        !pkg.contains("tvrecommendations") &&
+                        !pkg.startsWith("com.android.systemui") &&
+                        !result.contains(pkg)
+                    ) {
                         result.add(pkg)
                     }
                 }
             }
-        } catch (ignored: Throwable) {}
-
-        // Fallback: dumpsys activity recents extraction (100% reliable across Android 9-14)
-        if (result.isEmpty()) {
-            try {
-                val output = runShellCommand("dumpsys activity recents")
-                val cmpRegex = Regex("""cmp=([a-zA-Z0-9._]+)/""")
-                for (match in cmpRegex.findAll(output)) {
-                    val pkg = match.groupValues[1]
-                    if (isValidRecentPkg(pkg)) {
-                        result.add(pkg)
-                    }
-                }
-            } catch (ignored: Throwable) {}
+        } catch (_: Throwable) {
         }
-        return result.toList()
+        return result
     }
 
     private fun cleanBackgroundApps(excludePkg: String): Int {
-        val candidates = linkedSetOf<String>()
-        candidates.addAll(getRunningPackages())
-        candidates.addAll(getRecentPackages())
+        val recents = getRecentPackages()
         var killed = 0
-        for (pkg in candidates) {
+        for (pkg in recents) {
             if (pkg != excludePkg && pkg != "dev.custom.tvafrtools") {
                 if (forceStopPackage(pkg)) {
                     killed++
@@ -893,10 +882,8 @@ object PrivilegedServer {
 
     private fun cycleHdrConversionMode(): String {
         return try {
-            // Android 13-14 cmd display hdr-conversion
             val cur = runShellCommand("settings get global hdr_conversion_mode").trim()
             if (cur == "1" || cur.isEmpty()) {
-                // Force SDR or system default toggle
                 runShellCommand("cmd display set-hdr-conversion-mode 2 0")
                 runShellCommand("settings put global hdr_conversion_mode 2")
                 "PASSTHROUGH_DINAMICO"
@@ -905,7 +892,7 @@ object PrivilegedServer {
                 runShellCommand("settings put global hdr_conversion_mode 1")
                 "SISTEMA_AUTO"
             }
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
             "NO_SOPORTADO"
         }
     }
@@ -913,7 +900,6 @@ object PrivilegedServer {
     private fun cycleAudioPassthroughMode(): String {
         return try {
             val cur = runShellCommand("settings get global encoded_surround_output").trim()
-            // 0 = AUTO, 1 = NEVER (PCM), 2 = ALWAYS
             val next = when (cur) {
                 "0" -> "2"
                 "2" -> "1"
@@ -925,7 +911,7 @@ object PrivilegedServer {
                 "2" -> "FORZAR SURROUND"
                 else -> "ESTÉREO PCM (Claridad Diálogos)"
             }
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
             "AUTO"
         }
     }
@@ -938,7 +924,7 @@ object PrivilegedServer {
 
             val imGlobalClass = try {
                 Class.forName("android.hardware.input.InputManagerGlobal")
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
                 Class.forName("android.hardware.input.InputManager")
             }
             val getInstance = imGlobalClass.getMethod("getInstance")
@@ -958,14 +944,13 @@ object PrivilegedServer {
             val proc = ProcessBuilder("sh", "-c", cmd).redirectErrorStream(true).start()
             proc.waitFor(1500, TimeUnit.MILLISECONDS)
             proc.inputStream.bufferedReader().readText()
-        } catch (ignored: Throwable) {
+        } catch (_: Throwable) {
             ""
         }
     }
 
     private fun handleClient(socket: java.net.Socket) {
-        try {
-            socket.use { s ->
+        socket.use { s ->
             s.soTimeout = 3500
             val reader = BufferedReader(InputStreamReader(s.getInputStream()))
             val writer = PrintWriter(s.getOutputStream(), true)
@@ -977,7 +962,7 @@ object PrivilegedServer {
                 }
                 "GET_FPS" -> {
                     val nowMs = SystemClock.elapsedRealtime()
-                    val fps = if ((nowMs - lastTunneledFpsTimestampMs) < 6000L && lastTunneledFps > 1.0f) {
+                    val fps = if ((nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 1.0f) {
                         lastTunneledFps
                     } else if (currentFps > 1.0f) {
                         currentFps
@@ -993,12 +978,20 @@ object PrivilegedServer {
                 "GET_SYSINFO" -> {
                     val tempC = readUniversalSocTempCelsius()
                     val nowMs = SystemClock.elapsedRealtime()
-                    val fps = if ((nowMs - lastTunneledFpsTimestampMs) < 6000L && lastTunneledFps > 1.0f) {
+                    val fps = if ((nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 1.0f) {
                         lastTunneledFps
-                    } else {
+                    } else if (currentFps > 1.0f) {
                         currentFps
+                    } else {
+                        val fb = readUniversalFallbackFps()
+                        if (fb > 1.0f) fb else 0f
                     }
-                    writer.println("OK FPS=${String.format(Locale.US, "%.3f", fps)} SRC=$currentFpsSource TEMP=${String.format(Locale.US, "%.1f", tempC)}")
+                    val hdmi = readRealHardwareHdmiMode()
+                    writer.println("OK FPS=${String.format(Locale.US, "%.3f", fps)} SRC=$currentFpsSource TEMP=${String.format(Locale.US, "%.1f", tempC)} HDMI=$hdmi")
+                }
+                "GET_HDMI_REAL" -> {
+                    val hdmi = readRealHardwareHdmiMode()
+                    writer.println("OK $hdmi")
                 }
                 "SCREEN_OFF" -> {
                     val ok = setScreenPowerMode(0)
@@ -1042,19 +1035,6 @@ object PrivilegedServer {
                     runShellCommand("cmd dreams start-dreaming")
                     writer.println("OK DREAM")
                 }
-                "INSTALL_APK" -> {
-                    val apkPath = parts.getOrNull(1).orEmpty()
-                    if (apkPath.isNotBlank()) {
-                        val out = runShellCommand("pm install -r -d $apkPath")
-                        if (out.contains("Success", ignoreCase = true)) {
-                            writer.println("OK INSTALL_SUCCESS")
-                        } else {
-                            writer.println("ERR $out")
-                        }
-                    } else {
-                        writer.println("ERR MISSING_PATH")
-                    }
-                }
                 "INJECT_KEY" -> {
                     val keyCode = parts.getOrNull(1)?.toIntOrNull() ?: 0
                     val ok = if (keyCode > 0) injectKeyEvent(keyCode) else false
@@ -1065,7 +1045,5 @@ object PrivilegedServer {
                 }
             }
         }
-    } catch (ignored: Throwable) {
     }
-}
 }

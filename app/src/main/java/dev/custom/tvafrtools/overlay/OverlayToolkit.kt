@@ -196,6 +196,9 @@ class OverlayToolkit(
                             )
                         )
                     }
+                    if (sysInfo.hdmiRealHardware.isNotBlank() && sysInfo.hdmiRealHardware != "N/D") {
+                        append("Señal: ${sysInfo.hdmiRealHardware}\n")
+                    }
                     if (videoFps > 1.0f) {
                         append(String.format(Locale.US, "Vídeo: %.3f fps [%s]\n", videoFps, fpsSrc))
                     } else {
@@ -338,7 +341,7 @@ class OverlayToolkit(
         } else "Desconocido"
 
         val subtitle = TextView(context).apply {
-            val fpsStr = if (liveFps > 1f) String.format(Locale.US, "%.3f fps", liveFps) else "No detectado (Elige según contenido)"
+            val fpsStr = if (liveFps > 1f) String.format(Locale.US, "%.3f fps", liveFps) else "Buscando stream..."
             text = "Actual: $curStr   |   Vídeo: $fpsStr"
             setTextColor(Color.parseColor("#94A3B8"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
@@ -346,18 +349,27 @@ class OverlayToolkit(
         }
         card.addView(subtitle)
 
-        if (liveFps <= 1.0f) {
-            Thread {
-                val (probed, _) = dev.custom.tvafrtools.server.ServerClient.probeActiveVideoFpsWithSource()
-                if (probed > 1.0f) {
-                    mainHandler.post {
-                        if (isPanelVisible) {
-                            subtitle.text = "Actual: $curStr   |   🎯 Vídeo detectado: ${String.format(Locale.US, "%.3f fps", probed)}"
-                        }
+        Thread {
+            val (probed, src) = dev.custom.tvafrtools.server.ServerClient.probeActiveVideoFpsWithSource()
+            val realHdmi = dev.custom.tvafrtools.server.ServerClient.getRealHardwareHdmi()
+            mainHandler.post {
+                if (isPanelVisible) {
+                    val fpsPart = if (probed > 1.0f) {
+                        "🎯 Vídeo: %.3f fps [%s]".format(Locale.US, probed, src)
+                    } else if (liveFps > 1.0f) {
+                        "🎯 Vídeo: %.3f fps".format(Locale.US, liveFps)
+                    } else {
+                        "Vídeo: Sin stream activo"
                     }
+                    val hdmiPart = if (realHdmi.isNotBlank() && realHdmi != "N/D") {
+                        "Señal: $realHdmi"
+                    } else {
+                        "HDMI: $curStr"
+                    }
+                    subtitle.text = "$hdmiPart   |   $fpsPart"
                 }
-            }.start()
-        }
+            }
+        }.start()
 
         val autoBtn = createPanelButton(context.getString(R.string.overlay_auto_afr_btn), isHighlighted = true) {
             closeAfrPanel()

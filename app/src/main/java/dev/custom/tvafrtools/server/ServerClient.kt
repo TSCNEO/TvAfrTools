@@ -17,7 +17,8 @@ object ServerClient {
     data class SysInfo(
         val fps: Float,
         val fpsSource: String,
-        val socTempCelsius: Float
+        val socTempCelsius: Float,
+        val hdmiRealHardware: String = ""
     )
 
     fun sendCommand(cmd: String, timeoutMs: Int = 1800): String {
@@ -67,15 +68,25 @@ object ServerClient {
             var fps = 0f
             var src = "IDLE"
             var temp = -1f
+            var hdmi = ""
             val parts = resp.substring(3).trim().split(" ")
             for (p in parts) {
                 if (p.startsWith("FPS=")) fps = p.substring(4).toFloatOrNull() ?: 0f
                 else if (p.startsWith("SRC=")) src = p.substring(4)
                 else if (p.startsWith("TEMP=")) temp = p.substring(5).toFloatOrNull() ?: -1f
+                else if (p.startsWith("HDMI=")) hdmi = p.substring(5)
             }
-            return SysInfo(fps, src, temp)
+            return SysInfo(fps, src, temp, hdmi)
         }
-        return SysInfo(0f, "OFFLINE", -1f)
+        return SysInfo(0f, "OFFLINE", -1f, "")
+    }
+
+    fun getRealHardwareHdmi(): String {
+        val resp = sendCommand("GET_HDMI_REAL", 1000)
+        if (resp.startsWith("OK ")) {
+            return resp.substring(3).trim()
+        }
+        return ""
     }
 
     fun setRealScreenOff(targetOff: Boolean): Boolean {
