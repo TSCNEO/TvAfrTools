@@ -92,9 +92,13 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.IO) {
                     LocalAdbBootstrap.autoStartPrivilegedDaemon(this@MainActivity)
                 }
-                for (i in 1..4) {
-                    delay(500L)
+                for (i in 1..3) {
+                    delay(1000L)
                     if (withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }) break
+                    val result = withContext(Dispatchers.IO) {
+                        LocalAdbBootstrap.autoStartPrivilegedDaemon(applicationContext)
+                    }
+                    if (result.waitingForTvAuthPopup) break
                 }
             }
             updateLiveStatusBadge()

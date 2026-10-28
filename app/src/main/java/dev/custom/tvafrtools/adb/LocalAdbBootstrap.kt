@@ -57,7 +57,11 @@ object LocalAdbBootstrap {
         val message: String
     )
 
-    fun autoStartPrivilegedDaemon(context: Context, port: Int = 5555): BootstrapResult {
+    @Synchronized
+    fun autoStartPrivilegedDaemon(context: Context, port: Int = 5555, forceRestart: Boolean = false): BootstrapResult {
+        if (!forceRestart && dev.custom.tvafrtools.server.ServerClient.isServerRunning()) {
+            return BootstrapResult(true, false, "Demonio conectado")
+        }
         val apkPath = context.applicationInfo.sourceDir
         val pkg = context.packageName
         val accService = "$pkg/dev.custom.tvafrtools.service.TvAfrAccessibilityService"
