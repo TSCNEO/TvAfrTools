@@ -465,12 +465,37 @@ object PrivilegedServer {
      * - Amlogic / MediaTek / Realtek / Nvidia Shield sysfs & system properties
      * - MediaMetrics codec frameRate
      */
+    private fun readSurfaceVideoFps(): Float {
+        val layers = runShellCommand("dumpsys SurfaceFlinger --list").lineSequence()
+            .filter { it.contains("SurfaceView") && it.contains("(BLAST)") }.toList()
+        for (layer in layers) {
+            val quoted = "'" + layer.replace("'", "'\"'\"'") + "'"
+            val timestamps = runShellCommand("dumpsys SurfaceFlinger --latency $quoted")
+                .lineSequence().drop(1).mapNotNull {
+                    it.trim().split(Regex("\\s+")).getOrNull(1)?.toLongOrNull()
+                }.filter { it > 0 && it < Long.MAX_VALUE }.toList()
+            if (timestamps.size < 10) continue
+            if (kotlin.math.abs(System.nanoTime() - timestamps.last()) > 2_000_000_000L) continue
+            val duration = timestamps.last() - timestamps.first()
+            if (duration <= 0) continue
+            val fps = (timestamps.size - 1) * 1_000_000_000f / duration
+            if (fps in 10f..120f) {
+                currentFpsSource = "SURFACE_VIDEO"
+                return fps
+            }
+        }
+        return 0f
+    }
+
     private fun readUniversalFallbackFps(): Float {
         // 1. Check recent Tunneled Video detection first
         val ageMs = SystemClock.elapsedRealtime() - lastTunneledFpsTimestampMs
         if (ageMs < 8000L && lastTunneledFps > 1.0f) {
             return lastTunneledFps
         }
+
+        val surfaceFps = readSurfaceVideoFps()
+        if (surfaceFps > 1f) return surfaceFps
 
         // 2. Check system properties (used by Xiaomi / Amlogic / Realtek / HiSilicon)
         try {
@@ -767,14 +792,28 @@ object PrivilegedServer {
      * Universal system-level display mode setter for devices/apps where Window preferredDisplayModeId
      * is ignored or overridden by the streaming app.
      */
+    private var savedRefreshRange: Pair<String, String>? = null
+
     private fun setSystemPreferredDisplayMode(modeId: Int, width: Int, height: Int, refreshRate: Float): Boolean {
         return try {
             if (modeId <= 0 || width <= 0 || height <= 0 || refreshRate <= 1.0f) {
+                savedRefreshRange?.let { (min, peak) ->
+                    for ((key, value) in listOf("min_refresh_rate" to min, "peak_refresh_rate" to peak)) {
+                        if (value == "null" || value.isBlank()) runShellCommand("settings delete system $key")
+                        else runShellCommand("settings put system $key $value")
+                    }
+                }
+                savedRefreshRange = null
                 runShellCommand("cmd display clear-user-preferred-display-mode 0")
                 true
             } else {
                 runShellCommand("settings put secure match_content_frame_rate 2")
                 val hzStr = String.format(Locale.US, "%.6f", refreshRate)
+                if (savedRefreshRange == null) savedRefreshRange =
+                    runShellCommand("settings get system min_refresh_rate").trim() to
+                    runShellCommand("settings get system peak_refresh_rate").trim()
+                runShellCommand("settings put system min_refresh_rate $hzStr")
+                runShellCommand("settings put system peak_refresh_rate $hzStr")
                 val cmd = "cmd display set-user-preferred-display-mode $width $height $hzStr 0"
                 runShellCommand(cmd)
                 true
