@@ -52,6 +52,7 @@ class AfrController(
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    private val displayCommands = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var afrOverlayView: View? = null
     private var afrOverlayParams: WindowManager.LayoutParams? = null
     private var isAfrActive: Boolean = false
@@ -383,6 +384,12 @@ class AfrController(
     }
 
     private fun applyDisplayModeDirect(targetMode: Display.Mode) {
+        // Withdraw the previous window vote before submitting a different mode.
+        afrOverlayView?.let { oldView ->
+            try { windowManager.removeViewImmediate(oldView) } catch (_: Exception) {}
+        }
+        afrOverlayView = null
+        afrOverlayParams = null
         ensureAfrOverlayCreated()
         val view = afrOverlayView
         val params = afrOverlayParams
@@ -399,14 +406,15 @@ class AfrController(
 
         // Dual-punch: Enforce system preferred mode globally via DisplayManager HAL
         // This guarantees mode switching even when DAZN, Netflix, or Disney+ has a private secure window!
-        Thread {
+        displayCommands.execute {
+            ServerClient.clearSystemDisplayMode()
             ServerClient.setSystemDisplayMode(
                 targetMode.modeId,
                 targetMode.physicalWidth,
                 targetMode.physicalHeight,
                 targetMode.refreshRate
             )
-        }.start()
+        }
     }
 
     fun stopAfr(silent: Boolean = false) {
@@ -423,9 +431,9 @@ class AfrController(
         afrOverlayView = null
         afrOverlayParams = null
 
-        Thread {
+        displayCommands.execute {
             ServerClient.clearSystemDisplayMode()
-        }.start()
+        }
 
         if (wasActive && !silent) {
             onBannerMessage(context.getString(R.string.afr_stopped_default))
