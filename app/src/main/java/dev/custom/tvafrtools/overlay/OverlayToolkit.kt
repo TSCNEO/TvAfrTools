@@ -200,13 +200,15 @@ class OverlayToolkit(
                         append(context.getString(R.string.hud_signal, sysInfo.hdmiRealHardware)).append('\n')
                     }
                     if (videoFps > 1.0f) {
-                        append(context.getString(R.string.hud_video_fps, videoFps, fpsSrc)).append('\n')
+                        val size = dev.custom.tvafrtools.server.ServerClient.getVideoBufferSize()
+                        val dimensions = size.split('x').mapNotNull { it.toIntOrNull() }
+                        if (dimensions.size == 2 && dimensions.all { it > 0 }) {
+                            append("${minOf(dimensions[0], dimensions[1])}p | ")
+                        }
+                        append(String.format(Locale.getDefault(), "%.3f fps", videoFps)).append('\n')
                     } else {
                         append(context.getString(R.string.hud_no_stream)).append('\n')
                     }
-                    val size = dev.custom.tvafrtools.server.ServerClient.getVideoBufferSize()
-                    append(context.getString(R.string.hud_video_size,
-                        if (size == "UNKNOWN") context.getString(R.string.hud_unknown) else size)).append('\n')
                     append("SoC:   $tempStr  |  RAM: $usedMb / $totalMb MB\n")
                     append("Red:   ↓ $speedStr")
                 }
