@@ -11,8 +11,8 @@ android {
         applicationId = "dev.custom.tvafrtools"
         minSdk = 28
         targetSdk = 34
-        versionCode = 18
-        versionName = "1.2.12"
+        versionCode = 19
+        versionName = "1.2.13"
     }
 
     lint {
