@@ -84,8 +84,13 @@
 ## 🚀 Instalación y Puesta en Marcha
 
 1. **Descarga el APK**:
-   - Descarga la última versión de [TvAfrTools.apk](https://github.com/TSCNEO/TvAfrTools/releases/latest/download/TvAfrTools.apk). Este enlace permanente siempre descarga la última versión estable.
-   - O introduce el enlace directo en la app **Downloader** de tu televisor.
+   - Enlace directo permanente (sin versión en el nombre, siempre sirve la última versión estable):
+
+     ```
+     https://github.com/TSCNEO/TvAfrTools/releases/latest/download/TvAfrTools.apk
+     ```
+   - **Desde la app Downloader del televisor**: pega esa misma URL, o un código numérico corto generado a partir de ella en [AFTVnews](https://go.aftvnews.com). Un solo código te sirve para todas las versiones futuras.
+   - No uses nunca un enlace con la versión en el nombre (por ejemplo `TvAfrTools-v1.2.33.apk`): deja de funcionar en cuanto se publica la siguiente versión.
 2. **Instala y Concede Permisos**:
    - Abre TvAfrTools en la tele.
    - Pulsa en **"⚡ Activar automáticamente en 1 clic"**.
