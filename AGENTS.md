@@ -179,3 +179,9 @@ Para futuras versiones:
     2. *Ocultación de Accesibilidad*: Fire OS no permite activar servicios de accesibilidad de terceros desde sus menús.
     3. *Pila de Pantalla Cerrada*: Utiliza controladores propietarios en chips MediaTek que rechazan el cambio forzado de frecuencia de refresco (`Display.Mode` / AFR) desde procesos en segundo plano.
   - En toda la documentación y comunicaciones públicas se aclara que la app es exclusivamente para Android TV / Google TV.
+
+### Publicación de APK
+- Publicar mediante el workflow `Release APK` al subir la etiqueta `v*`.
+- Mantener un único APK por release: `TvAfrTools-<etiqueta>.apk`.
+- No adjuntar `app-release.apk` manualmente. Si Actions falla, corregir o relanzar el workflow.
+- Verificar que la release contiene el APK versionado antes de anunciar que está disponible.
