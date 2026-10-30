@@ -35,13 +35,41 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
+      - name: Decode signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Missing secret KEYSTORE_BASE64. Add the base64 of your release.jks to the repository secrets."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/signing/release.jks"
+          test -s "$RUNNER_TEMP/signing/release.jks" || { echo "::error::Decoded keystore is empty."; exit 1; }
+
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/signing/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for v in KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            eval "val=\$$v"
+            if [ -z "$val" ]; then echo "::error::Missing secret $v"; exit 1; fi
+          done
+          ./gradlew assembleRelease
 
       - name: Prepare APK Artifact
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk dist/TvAfrTools.apk
+          # A release APK must carry a signature block; refuse to publish an unsigned one.
+          if ! unzip -l dist/TvAfrTools.apk | grep -qE 'META-INF/[^/]+\.(RSA|DSA|EC)'; then
+            echo "::error::APK is not signed — refusing to publish."
+            exit 1
+          fi
+          echo "APK signed OK: $(stat -c%s dist/TvAfrTools.apk) bytes"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

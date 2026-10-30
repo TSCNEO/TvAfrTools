@@ -3,7 +3,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/TSCNEO/TvAfrTools?color=38BDF8&label=Release&display_name=tag&logo=github)](https://github.com/TSCNEO/TvAfrTools/releases/latest)
 [![Platform](https://img.shields.io/badge/Platform-Android%20TV%20%7C%20Google%20TV-22C55E?logo=android)](https://github.com/TSCNEO/TvAfrTools)
 [![Android Version](https://img.shields.io/badge/Android%20TV-9.0%20to%2014-F59E0B)](https://github.com/TSCNEO/TvAfrTools)
-[![License](https://img.shields.io/badge/License-GPLv3%20%2F%20Open%20Source-blue)](LICENSE)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue)](LICENSE)
 [![GitHub Issues](https://img.shields.io/github/issues/TSCNEO/TvAfrTools)](https://github.com/TSCNEO/TvAfrTools/issues)
 
 **TvAfrTools** is a lightweight, open-source native utility suite for **Android TV and Google TV** (Android 9.0 to Android 14). It unlocks essential cinema and productivity capabilities that are usually missing, broken, or locked behind paid apps on Android TV streaming boxes and smart TVs.
@@ -109,7 +109,9 @@ Found a bug or have a feature idea? We would love your feedback!
 ---
 
 ## 📜 License
-TvAfrTools is open-source software licensed under the GPLv3 / Apache 2.0. Feel free to inspect, modify, and contribute.
+TvAfrTools is free software distributed under the **GNU General Public License v3.0** (GPL-3.0). You may use, study, modify and redistribute it freely. If you distribute a modified version, you must release its source code under the same license. The full text is in [LICENSE](LICENSE).
+
+Copyright (C) 2026 The TvAfrTools contributors.
 
 ## Roadmap
 

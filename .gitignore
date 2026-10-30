@@ -9,5 +9,12 @@
 /captures
 .externalNativeBuild
 .cxx
+/local.properties
+
+# Signing material — never commit
+keystore/
+*.jks
+*.keystore
+keystore.properties
 
 *.apk

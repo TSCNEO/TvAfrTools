@@ -10,21 +10,22 @@
 
 ---
 
-## 2. Entorno y Dispositivos de Prueba
-- **Dispositivo Principal**: Homatics Box R 4K Plus (`SEI804HM`, Android 14 / SDK 34, Amlogic S905X4-K, `armeabi-v7a`).
-  - IP ADB: `192.0.2.10:5555`
-  - Mando: Bluetooth B21 Keyboard + Homatics Remote.
+## 2. Entorno de Referencia (Plantilla)
+Sustituye estos valores por los de tu propio equipo. No documentes aquí direcciones de tu red local ni identificadores de tus dispositivos.
+- **Box de referencia 1**: Google TV / Android TV 14 (SDK 34), Amlogic S905X4, `armeabi-v7a`.
+  - IP ADB: `<BOX1_IP>:5555`
+  - Mando: Bluetooth + mando del fabricante.
   - Launcher: **Projectivy Launcher** (`io.freemytv`).
-- **Dispositivo Secundario del Usuario**: Xiaomi Mi TV Box (`MiTV-AFMU0`, Android 14 / SDK 34, `armeabi-v7a`).
-  - IP ADB: `192.0.2.11:5555`
-  - Estado: Instalado y con permisos activos (`TvAfrTools-v1.1-android14.apk`).
-- **Televisor Conectado**: Samsung 4K (`QBQ90S`) con Anynet+ (HDMI-CEC).
+- **Box de referencia 2**: Android TV 14 (SDK 34), `armeabi-v7a`.
+  - IP ADB: `<BOX2_IP>:5555`
+  - Estado: APK instalado y con permisos ADB activos.
+- **Televisor**: panel 4K con Anynet+ (HDMI-CEC).
   - *Nota Importante CEC*: `hdmi_control_controlled_by_tv` debe mantenerse en `0` o filtrado con el debounce de accesibilidad para evitar dobles clics de mando enviados simultáneamente por BT y CEC.
 
 ---
 
 ## 3. Estructura de Directorios y Archivos Clave
-- **Raíz del Repositorio**: `/Users/user/proyectos/tvQuickActions/TvAfrTools/`
+- **Raíz del Repositorio**: raíz del clon local (ejecuta los comandos desde cualquier ruta; no asumas una ruta absoluta fija).
 - **Componentes de la App**:
   - `dev.custom.tvafrtools.ui.MainActivity.kt`: Interfaz Master-Detail en 2 paneles (AFR, Mapeo de Mando, Acciones Rápidas, Mando Web, Estado & Demonio).
   - `dev.custom.tvafrtools.afr.AfrController.kt`: Conmutación de resolución y modos de refresco (`Display.Mode`), algoritmos de redondeo fraccional (23.976p) y fallback dual-punch (`AfrOverlay` 1x1 + `cmd display set-user-preferred-display-mode`).
@@ -185,3 +186,12 @@ Para futuras versiones:
 - Mantener un único APK por release: `TvAfrTools.apk`.
 - No adjuntar `app-release.apk` manualmente. Si Actions falla, corregir o relanzar el workflow.
 - Verificar que la release contiene el APK con nombre fijo antes de anunciar que está disponible.
+- El workflow rechaza publicar un APK sin bloque de firma en `META-INF/`: si falta, el job falla a propósito.
+
+### Firma y secretos
+- El keystore de release **nunca** se commitea. `.gitignore` bloquea `keystore/`, `*.jks`, `*.keystore` y `keystore.properties`.
+- Resolución de credenciales, en este orden: variables de entorno `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`; y si no existen, `keystore.properties` en la raíz del clon (ignorado por git). Plantilla: `keystore.properties.example`.
+- Sin credenciales, `assembleRelease` produce un APK **sin firmar** en lugar de firmarlo con una clave por defecto. Es intencionado: falla visible, no silencioso.
+- En GitHub Actions las credenciales viven en *Repository secrets*: `KEYSTORE_BASE64` (el `.jks` en base64), `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. El workflow decodifica el keystore a `$RUNNER_TEMP/signing/` y desaparece con el runner.
+- Generar el base64 sin saltos de línea: `base64 -w0 release.jks` (Linux) o `base64 -i release.jks | tr -d '\n'` (macOS).
+- Prohibido escribir contraseñas, rutas absolutas de usuario, IPs de red local o identificadores de dispositivos en cualquier fichero del repo.
