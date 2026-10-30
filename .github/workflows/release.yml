@@ -41,13 +41,13 @@ jobs:
       - name: Prepare APK Artifact
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/TvAfrTools-${{ github.ref_name }}.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/TvAfrTools.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: TvAfrTools ${{ github.ref_name }}
-          files: dist/TvAfrTools-${{ github.ref_name }}.apk
+          files: dist/TvAfrTools.apk
           generate_release_notes: true
 
       - name: Remove legacy duplicate APK
@@ -58,6 +58,9 @@ jobs:
         run: |
           # Publish must succeed before removing the legacy attachment.
           gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' > /tmp/release-assets.txt
-          if grep -Fxq "app-release.apk" /tmp/release-assets.txt; then
-            gh release delete-asset "$RELEASE_TAG" app-release.apk --yes
-          fi
+          grep -Fxq "TvAfrTools.apk" /tmp/release-assets.txt
+          for legacy in "app-release.apk" "TvAfrTools-${RELEASE_TAG}.apk"; do
+            if grep -Fxq "$legacy" /tmp/release-assets.txt; then
+              gh release delete-asset "$RELEASE_TAG" "$legacy" --yes
+            fi
+          done
