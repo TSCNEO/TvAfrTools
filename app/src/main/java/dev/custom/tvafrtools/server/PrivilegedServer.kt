@@ -181,7 +181,7 @@ object PrivilegedServer {
                         "VideoSyncFRAC",
                         "Mediahal_VideoTunnelRenderer",
                         "C2VdecComponent",
-                        "CCodec",
+                        "CCodec", "CCodecConfig", "ACodec",
                         "MediaCodecVideoRenderer"
                     ).redirectErrorStream(true).start()
 
@@ -203,6 +203,7 @@ object PrivilegedServer {
                         val epoch = l.trim().substringBefore(' ').toDoubleOrNull() ?: continue
                         if (kotlin.math.abs(System.currentTimeMillis() - (epoch * 1000).toLong()) > 2000) continue
 
+                        captureVideoSize(l, nowMs)
                         // 1. Check Amlogic / Xiaomi / Homatics VideoSyncFRAC 3:2 pulldown detector
                         if (l.contains("3:2 pattern detected")) {
                             lastTunneledFps = 23.976f
@@ -475,9 +476,34 @@ object PrivilegedServer {
      * - Amlogic / MediaTek / Realtek / Nvidia Shield sysfs & system properties
      * - MediaMetrics codec frameRate
      */
-    private var cachedVideoSize = "UNKNOWN"
+    private data class VideoSizeEvidence(val pkg: String, val pid: Int, val size: String, val time: Long)
+    @Volatile private var sizeEvidence: VideoSizeEvidence? = null
+    @Volatile private var sizePackage = ""
+    @Volatile private var sizePid = -1
     private var videoSizeReadAt = 0L
-    private var videoSizePackage = ""
+    private var cachedVideoSize = "UNKNOWN"
+
+    private fun captureVideoSize(line: String, now: Long) {
+        val pid = line.trim().split(Regex("\\s+"), limit = 4).getOrNull(1)?.toIntOrNull() ?: return
+        // Vendor service logs cannot be attributed to an app merely because it is foreground.
+        if (pid != sizePid || sizePackage.isBlank()) return
+        val crop = Regex("""crop(?:_rect)?[ :=]*(?:\(0,\s*0\)\s*)(\d+)x(\d+)""").find(line)
+        val rect = Regex("""crop\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)""").find(line)
+        val pair = Regex("""(?:visible width|width\s*[=:])\s*(\d+).*?(?:height\s*[=:]?)\s*(\d+)""").find(line)
+        val dimensions = when {
+            crop != null -> crop.groupValues[1].toInt() to crop.groupValues[2].toInt()
+            rect != null -> (rect.groupValues[3].toInt() - rect.groupValues[1].toInt() + 1) to
+                (rect.groupValues[4].toInt() - rect.groupValues[2].toInt() + 1)
+            pair != null && !line.contains("max", true) && !line.contains("coded_size") ->
+                pair.groupValues[1].toInt() to pair.groupValues[2].toInt()
+            else -> null
+        }
+        if (dimensions != null && dimensions.first in 64..8192 && dimensions.second in 64..8192)
+            sizeEvidence = VideoSizeEvidence(sizePackage, pid, "${dimensions.first}x${dimensions.second}", now)
+        if (line.contains("release", true) || line.contains("configure", true)) {
+            if (dimensions == null) sizeEvidence = null
+        }
+    }
 
     @Synchronized
     private fun readVideoBufferSize(): String {
@@ -485,26 +511,37 @@ object PrivilegedServer {
         val activities = runShellCommand("dumpsys activity activities")
         val pkg = Regex("""(?:topResumedActivity|mResumedActivity)=.*?\s([A-Za-z0-9_.]+)/""")
             .find(activities)?.groupValues?.get(1) ?: return "UNKNOWN"
-        if (pkg == videoSizePackage && now - videoSizeReadAt < 5000L) return cachedVideoSize
-        videoSizePackage = pkg
+        val pid = runShellCommand("pidof $pkg").trim().split(' ').firstOrNull()?.toIntOrNull() ?: -1
+        if (pkg != sizePackage || pid != sizePid) {
+            sizeEvidence = null
+            videoSizeReadAt = 0L
+            sizePackage = pkg
+            sizePid = pid
+        }
+        sizeEvidence?.let {
+            if (it.pkg == pkg && it.pid == pid && now - it.time < 10000L) return it.size
+        }
+        if (now - videoSizeReadAt < 5000L) return cachedVideoSize
         videoSizeReadAt = now
         cachedVideoSize = "UNKNOWN"
-        val dump = runShellCommand("dumpsys SurfaceFlinger")
-        var largest = 0L
-        for (block in dump.split("+ Layer")) {
-            val header = block.lineSequence().firstOrNull().orEmpty()
-            if (!header.contains("SurfaceView") || !header.contains(pkg)) continue
-            val match = Regex("""activeBuffer=\[\s*(\d+)\s*x\s*(\d+)""").find(block) ?: continue
-            val width = match.groupValues[1].toIntOrNull() ?: continue
-            val height = match.groupValues[2].toIntOrNull() ?: continue
-            val area = width.toLong() * height
-            if (width >= 64 && height >= 64 && area > largest) {
-                largest = area
-                // Amlogic allocates 1080-line video in a 1088-line aligned buffer.
-                val visibleHeight = if (width == 1920 && height == 1088) 1080 else height
-                cachedVideoSize = "${width}x${visibleHeight}"
-            }
+        val blocks = runShellCommand("dumpsys SurfaceFlinger").split("+ Layer").filter {
+            val header = it.lineSequence().firstOrNull().orEmpty()
+            header.contains("SurfaceView") && header.contains(pkg)
         }
+        // A sideband video may have a separate UI/subtitle buffer: never treat that as video.
+        if (blocks.any { Regex("""(?i)(?:composition[^\n]*SIDEBAND|sideband(?:Stream| stream)?\s*[=:]\s*(?!0x0\b|null)[0-9a-fx]+)""").containsMatchIn(it) }) return "UNKNOWN"
+        val candidates = blocks.mapNotNull { block ->
+            val buffer = Regex("""activeBuffer=\[\s*(\d+)\s*x\s*(\d+)""").find(block) ?: return@mapNotNull null
+            val width = buffer.groupValues[1].toInt()
+            val height = buffer.groupValues[2].toInt()
+            if (width < 64 || height < 64) return@mapNotNull null
+            val crop = Regex("""(?:geomContentCrop|crop)=\[\s*(\d+)[, ]+\s*(\d+)[, ]+\s*(\d+)[, ]+\s*(\d+)\s*\]""").find(block) ?: return@mapNotNull null
+            val w = crop.groupValues[3].toInt() - crop.groupValues[1].toInt()
+            val h = crop.groupValues[4].toInt() - crop.groupValues[2].toInt()
+            if (w in 64..width && h in 64..height) w to h else null
+        }.distinct()
+        // Ambiguous/missing crop is unknown, not an assumed standard resolution.
+        if (candidates.size == 1) cachedVideoSize = "${candidates[0].first}x${candidates[0].second}"
         return cachedVideoSize
     }
 
