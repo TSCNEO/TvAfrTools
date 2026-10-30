@@ -203,7 +203,7 @@ object PrivilegedServer {
                         val epoch = l.trim().substringBefore(' ').toDoubleOrNull() ?: continue
                         if (kotlin.math.abs(System.currentTimeMillis() - (epoch * 1000).toLong()) > 2000) continue
 
-                        captureVideoSize(l, nowMs)
+                        captureVideoSize(l)
                         // 1. Check Amlogic / Xiaomi / Homatics VideoSyncFRAC 3:2 pulldown detector
                         if (l.contains("3:2 pattern detected")) {
                             lastTunneledFps = 23.976f
@@ -476,17 +476,28 @@ object PrivilegedServer {
      * - Amlogic / MediaTek / Realtek / Nvidia Shield sysfs & system properties
      * - MediaMetrics codec frameRate
      */
-    private data class VideoSizeEvidence(val pkg: String, val pid: Int, val size: String, val time: Long)
+    private data class VideoSizeEvidence(val pkg: String, val pid: Int, val size: String, val tid: Int)
     @Volatile private var sizeEvidence: VideoSizeEvidence? = null
     @Volatile private var sizePackage = ""
     @Volatile private var sizePid = -1
     private var videoSizeReadAt = 0L
     private var cachedVideoSize = "UNKNOWN"
+    private var videoSurfaceIdentity = ""
 
-    private fun captureVideoSize(line: String, now: Long) {
+    private fun captureVideoSize(line: String) {
         val pid = line.trim().split(Regex("\\s+"), limit = 4).getOrNull(1)?.toIntOrNull() ?: return
         // Vendor service logs cannot be attributed to an app merely because it is foreground.
         if (pid != sizePid || sizePackage.isBlank()) return
+        val fields = line.trim().split(Regex("\\s+"), limit = 6)
+        val tid = fields.getOrNull(2)?.toIntOrNull() ?: return
+        val tag = fields.getOrNull(4).orEmpty().removeSuffix(":")
+        if (tag !in setOf("CCodec", "CCodecConfig", "ACodec", "MediaCodecVideoRenderer")) return
+        val previous = sizeEvidence
+        val lifecycle = Regex("""(?i)(?:\ballocate\(|\bconfigure\(|\brelease\(|\bshutdown\(|state.*(?:RELEASED|UNINITIALIZED))""")
+        if (previous?.tid == tid && lifecycle.containsMatchIn(line)) {
+            sizeEvidence = null
+            cachedVideoSize = "UNKNOWN"
+        }
         val crop = Regex("""crop(?:_rect)?[ :=]*(?:\(0,\s*0\)\s*)(\d+)x(\d+)""").find(line)
         val rect = Regex("""crop\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)""").find(line)
         val pair = Regex("""(?:visible width|width\s*[=:])\s*(\d+).*?(?:height\s*[=:]?)\s*(\d+)""").find(line)
@@ -499,10 +510,8 @@ object PrivilegedServer {
             else -> null
         }
         if (dimensions != null && dimensions.first in 64..8192 && dimensions.second in 64..8192)
-            sizeEvidence = VideoSizeEvidence(sizePackage, pid, "${dimensions.first}x${dimensions.second}", now)
-        if (line.contains("release", true) || line.contains("configure", true)) {
-            if (dimensions == null) sizeEvidence = null
-        }
+            sizeEvidence = VideoSizeEvidence(sizePackage, pid, "${dimensions.first}x${dimensions.second}", tid)
+
     }
 
     @Synchronized
@@ -518,16 +527,21 @@ object PrivilegedServer {
             sizePackage = pkg
             sizePid = pid
         }
-        sizeEvidence?.let {
-            if (it.pkg == pkg && it.pid == pid && now - it.time < 10000L) return it.size
+        if (now - videoSizeReadAt < 1000L) {
+            sizeEvidence?.let { if (it.pkg == pkg && it.pid == pid) return it.size }
+            return cachedVideoSize
         }
-        if (now - videoSizeReadAt < 5000L) return cachedVideoSize
         videoSizeReadAt = now
         cachedVideoSize = "UNKNOWN"
         val blocks = runShellCommand("dumpsys SurfaceFlinger").split("+ Layer").filter {
             val header = it.lineSequence().firstOrNull().orEmpty()
             header.contains("SurfaceView") && header.contains(pkg)
         }
+        val identity = blocks.map { it.lineSequence().firstOrNull().orEmpty() }.sorted().joinToString("|")
+        if (videoSurfaceIdentity.isNotEmpty() && identity != videoSurfaceIdentity) sizeEvidence = null
+        videoSurfaceIdentity = identity
+        if (blocks.isEmpty()) sizeEvidence = null
+        sizeEvidence?.let { if (it.pkg == pkg && it.pid == pid) return it.size }
         // A sideband video may have a separate UI/subtitle buffer: never treat that as video.
         if (blocks.any { Regex("""(?i)(?:composition[^\n]*SIDEBAND|sideband(?:Stream| stream)?\s*[=:]\s*(?!0x0\b|null)[0-9a-fx]+)""").containsMatchIn(it) }) return "UNKNOWN"
         val candidates = blocks.mapNotNull { block ->
