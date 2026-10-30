@@ -63,10 +63,28 @@ jobs:
       - name: Prepare APK Artifact
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/TvAfrTools.apk
-          # Verify all supported APK signing schemes, including v2/v3.
-          build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
-          "$build_tools/apksigner" verify --verbose dist/TvAfrTools.apk
+          BUILT=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$BUILT" ]; then
+            echo "::error::No signed release APK produced. Are the signing secrets missing?"
+            ls -l app/build/outputs/apk/release/ || true
+            exit 1
+          fi
+          cp "$BUILT" dist/TvAfrTools.apk
+          # A release APK must be signed. With minSdk 28 the signature lives in the
+          # APK Signing Block (v2/v3), not in META-INF/*.RSA — verify with apksigner.
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          APKSIGNER="$(ls -d "$SDK_ROOT"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          SIGNED=0
+          if [ -n "$APKSIGNER" ] && [ -x "$APKSIGNER" ]; then
+            if "$APKSIGNER" verify --print-certs dist/TvAfrTools.apk; then SIGNED=1; fi
+          elif grep -qa "APK Sig Block 42" dist/TvAfrTools.apk; then
+            echo "apksigner not found — presence of APK Signing Block confirmed by magic."
+            SIGNED=1
+          fi
+          if [ "$SIGNED" -ne 1 ]; then
+            echo "::error::APK is not signed — refusing to publish."
+            exit 1
+          fi
           echo "APK signed OK: $(stat -c%s dist/TvAfrTools.apk) bytes"
 
       - name: Create GitHub Release

@@ -11,13 +11,23 @@ plugins {
 // silently signed with a hardcoded key.
 // ---------------------------------------------------------------------------
 val keystorePropsFile = rootProject.file("keystore.properties")
-val keystoreProps = java.util.Properties().apply {
-    if (keystorePropsFile.isFile) keystorePropsFile.inputStream().use { load(it) }
-}
+val keystoreProps: Map<String, String> =
+    if (keystorePropsFile.isFile) {
+        keystorePropsFile.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") }
+            .mapNotNull { line ->
+                val sep = line.indexOf('=')
+                if (sep <= 0) null else line.substring(0, sep).trim() to line.substring(sep + 1).trim()
+            }
+            .toMap()
+    } else {
+        emptyMap()
+    }
 
 fun credential(envName: String, propName: String): String? =
     System.getenv(envName)?.trim()?.takeIf { it.isNotEmpty() }
-        ?: keystoreProps.getProperty(propName)?.trim()?.takeIf { it.isNotEmpty() }
+        ?: keystoreProps[propName]?.trim()?.takeIf { it.isNotEmpty() }
 
 val ksPath = credential("KEYSTORE_FILE", "storeFile")
 val ksPass = credential("KEYSTORE_PASSWORD", "storePassword")
