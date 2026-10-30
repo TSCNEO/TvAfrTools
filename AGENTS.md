@@ -182,6 +182,6 @@ Para futuras versiones:
 
 ### Publicación de APK
 - Publicar mediante el workflow `Release APK` al subir la etiqueta `v*`.
-- Mantener un único APK por release: `TvAfrTools-<etiqueta>.apk`.
+- Mantener un único APK por release: `TvAfrTools.apk`.
 - No adjuntar `app-release.apk` manualmente. Si Actions falla, corregir o relanzar el workflow.
-- Verificar que la release contiene el APK versionado antes de anunciar que está disponible.
+- Verificar que la release contiene el APK con nombre fijo antes de anunciar que está disponible.

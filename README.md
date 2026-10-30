@@ -84,7 +84,7 @@
 ## 🚀 Quick Start / Installation
 
 1. **Download the APK**:
-   - Download the latest `TvAfrTools-vX.X.X.apk` from [GitHub Releases](https://github.com/TSCNEO/TvAfrTools/releases/latest).
+   - Download the latest [TvAfrTools.apk](https://github.com/TSCNEO/TvAfrTools/releases/latest/download/TvAfrTools.apk). This permanent link always downloads the latest stable release.
    - Alternatively, enter the short link into the **Downloader** app on your TV.
 2. **Install & Grant Permissions**:
    - Open TvAfrTools on your TV.
