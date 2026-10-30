@@ -146,9 +146,9 @@ class AfrController(
                             mainHandler.post {
                             if (!destroyed && foregroundPackage == appPackage && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                                 val mode = getCurrentDisplayMode()
-                                if (mode != null && (abs(mode.refreshRate - target) > 0.5f ||
-                                    (prefs.matchNativeResolution && nativeVideoSize != null && !isNativeVideoMode(mode))))
-                                    applyRefreshRate(target)
+                                val desired = resolveRefreshMode(target)
+                                if (mode != null && desired != null && mode.modeId != desired.modeId && !waitingForDisplayChangePlay)
+                                    applyRefreshRate(target, automatic = true)
                             }
                             }
                         }
@@ -380,15 +380,14 @@ class AfrController(
      * Finds the best matching Display.Mode for the current resolution and desired refresh rate,
      * and applies it via the persistent 0x0 AfrOverlay window.
      */
-    fun applyRefreshRate(targetHz: Float, pausePlaybackHandshake: Boolean = prefs.pauseOnSwitch) {
-        val currentMode = getCurrentDisplayMode() ?: return
+    private fun resolveRefreshMode(targetHz: Float): Display.Mode? {
         val sameResolution = getSupportedModesSameResolution()
         val nativeModes = if (prefs.matchNativeResolution) getManualDisplayModes().filter { isNativeVideoMode(it) } else emptyList()
         val matchingNative = nativeModes.filter { abs(it.refreshRate - targetHz) < 0.5f }
         val modes = matchingNative.ifEmpty { sameResolution }
-        if (modes.isEmpty()) return
+        if (modes.isEmpty()) return null
 
-        var chosen = modes.minByOrNull { abs(it.refreshRate - targetHz) } ?: return
+        var chosen = modes.minByOrNull { abs(it.refreshRate - targetHz) } ?: return null
         if (abs(chosen.refreshRate - targetHz) > 0.5f) {
             if (abs(targetHz - 25.0f) < 0.3f) {
                 val mode50 = modes.minByOrNull { abs(it.refreshRate - 50.0f) }
@@ -398,7 +397,15 @@ class AfrController(
             }
         }
 
+        return chosen
+    }
+
+    fun applyRefreshRate(targetHz: Float, pausePlaybackHandshake: Boolean = prefs.pauseOnSwitch, automatic: Boolean = false) {
+        val currentMode = getCurrentDisplayMode() ?: return
+        val chosen = resolveRefreshMode(targetHz) ?: return
+
         if (chosen.modeId == currentMode.modeId && abs(currentMode.refreshRate - chosen.refreshRate) < 0.02f) {
+            if (automatic) return
             onBannerMessage(
                 context.getString(
                     R.string.display_already_at_mode,

@@ -181,7 +181,7 @@ object PrivilegedServer {
                         "VideoSyncFRAC",
                         "Mediahal_VideoTunnelRenderer",
                         "C2VdecComponent",
-                        "CCodec", "CCodecConfig", "ACodec",
+                        "CCodec", "CCodecConfig", "CCodecBuffers", "ACodec",
                         "MediaCodecVideoRenderer"
                     ).redirectErrorStream(true).start()
 
@@ -484,6 +484,9 @@ object PrivilegedServer {
     private var cachedVideoSize = "UNKNOWN"
     private var videoSurfaceIdentity = ""
 
+    private data class SizeBatch(val epoch: String, val values: MutableMap<String, Int> = mutableMapOf())
+    private val sizeBatches = mutableMapOf<String, SizeBatch>()
+
     private fun captureVideoSize(line: String) {
         val pid = line.trim().split(Regex("\\s+"), limit = 4).getOrNull(1)?.toIntOrNull() ?: return
         // Vendor service logs cannot be attributed to an app merely because it is foreground.
@@ -491,7 +494,7 @@ object PrivilegedServer {
         val fields = line.trim().split(Regex("\\s+"), limit = 6)
         val tid = fields.getOrNull(2)?.toIntOrNull() ?: return
         val tag = fields.getOrNull(4).orEmpty().removeSuffix(":")
-        if (tag !in setOf("CCodec", "CCodecConfig", "ACodec", "MediaCodecVideoRenderer")) return
+        if (tag !in setOf("CCodec", "CCodecConfig", "CCodecBuffers", "ACodec", "MediaCodecVideoRenderer")) return
         val previous = sizeEvidence
         val lifecycle = Regex("""(?i)(?:\ballocate\(|\bconfigure\(|\brelease\(|\bshutdown\(|state.*(?:RELEASED|UNINITIALIZED))""")
         if (previous?.tid == tid && lifecycle.containsMatchIn(line)) {
@@ -501,13 +504,31 @@ object PrivilegedServer {
         val crop = Regex("""crop(?:_rect)?[ :=]*(?:\(0,\s*0\)\s*)(\d+)x(\d+)""").find(line)
         val rect = Regex("""crop\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)""").find(line)
         val pair = Regex("""(?:visible width|width\s*[=:])\s*(\d+).*?(?:height\s*[=:]?)\s*(\d+)""").find(line)
+        val batchKey = "$pid:$tid:$tag"
+        val epoch = fields[0]
+        val batch = sizeBatches.getOrPut(batchKey) { SizeBatch(epoch) }.let {
+            if (it.epoch != epoch) SizeBatch(epoch).also { fresh -> sizeBatches[batchKey] = fresh } else it
+        }
+        // Only combine fields from one log message timestamp, process, thread and tag.
+        val field = Regex("""(?:raw\.(crop|size)\.(width|height)|int32_t (width|height))\s*=\s*(\d+)""").find(line)
+        if (field != null) {
+            val family = field.groupValues[1].ifBlank { "output" }
+            val axis = field.groupValues[2].ifBlank { field.groupValues[3] }
+            batch.values["$family.$axis"] = field.groupValues[4].toInt()
+        }
+        val batched = listOf("crop", "size", "output").firstNotNullOfOrNull { family ->
+            val w = batch.values["$family.width"]
+            val h = batch.values["$family.height"]
+            if (w != null && h != null) w to h else null
+        }
+        if (sizeBatches.size > 32) sizeBatches.keys.firstOrNull { it != batchKey }?.let { sizeBatches.remove(it) }
         val dimensions = when {
             crop != null -> crop.groupValues[1].toInt() to crop.groupValues[2].toInt()
             rect != null -> (rect.groupValues[3].toInt() - rect.groupValues[1].toInt() + 1) to
                 (rect.groupValues[4].toInt() - rect.groupValues[2].toInt() + 1)
             pair != null && !line.contains("max", true) && !line.contains("coded_size") ->
                 pair.groupValues[1].toInt() to pair.groupValues[2].toInt()
-            else -> null
+            else -> batched
         }
         if (dimensions != null && dimensions.first in 64..8192 && dimensions.second in 64..8192)
             sizeEvidence = VideoSizeEvidence(sizePackage, pid, "${dimensions.first}x${dimensions.second}", tid)
