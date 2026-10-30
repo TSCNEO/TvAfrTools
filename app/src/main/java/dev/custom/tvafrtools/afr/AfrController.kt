@@ -121,11 +121,10 @@ class AfrController(
         Thread {
             var candidate = 0f
             var sampledPackage = ""
-            var stable = 0
+            var fpsStableSince = 0L
             var lastAutomaticChange = 0L
             var observedSize: Pair<Int, Int>? = null
             var resolutionChangedAt = 0L
-            var observationStartedAt = 0L
             while (!destroyed) {
                 try {
                     refreshNativeVideoSize()
@@ -133,11 +132,10 @@ class AfrController(
                         val appPackage = foregroundPackage
                         if (sampledPackage != appPackage) {
                             sampledPackage = appPackage
-                            stable = 0
+                            fpsStableSince = SystemClock.elapsedRealtime()
                             candidate = 0f
                             observedSize = null
-                            observationStartedAt = SystemClock.elapsedRealtime()
-                            resolutionChangedAt = observationStartedAt
+                            resolutionChangedAt = fpsStableSince
                         }
                         val now = SystemClock.elapsedRealtime()
                         val currentSize = nativeVideoSize
@@ -150,19 +148,15 @@ class AfrController(
                         // They must never drive automatic mode changes.
                         val fps = if (info.fpsSource == "SURFACE_VIDEO" || info.fpsSource == "SURFACE_FLINGER") 0f else info.fps
                         val target = if (fps > 1f) normalizeTargetRefreshRate(fps) else 0f
-                        stable = if (target > 1f && abs(target - candidate) < 0.1f) stable + 1 else 0
+                        if (target <= 1f || abs(target - candidate) >= 0.1f) fpsStableSince = now
                         candidate = target
-                        if (target <= 1f) {
-                            observationStartedAt = now
-                            resolutionChangedAt = now
-                        }
-                        // ABR has no universal "finished" event. Require an initial settling
-                        // window and a quiet interval after every observed resolution change.
-                        val resolutionStable = !prefs.matchNativeResolution ||
-                            (now - observationStartedAt >= 30000L && now - resolutionChangedAt >= 15000L)
-                        if (stable >= 4 && resolutionStable && now - lastAutomaticChange > 15000L) {
+                        // No fixed startup delay: restart the five-second quiet window
+                        // when either the target refresh rate or detected dimensions change.
+                        val resolutionStable = !prefs.matchNativeResolution || now - resolutionChangedAt >= 5000L
+                        if (target > 1f && now - fpsStableSince >= 5000L && resolutionStable &&
+                            (lastAutomaticChange == 0L || now - lastAutomaticChange > 15000L)) {
                             lastAutomaticChange = SystemClock.elapsedRealtime()
-                            stable = 0
+                            fpsStableSince = now
                             mainHandler.post {
                             if (!destroyed && foregroundPackage == appPackage &&
                                 (!prefs.matchNativeResolution || nativeVideoSize == currentSize) && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
@@ -174,7 +168,7 @@ class AfrController(
                             }
                         }
                     } else {
-                        stable = 0
+                        fpsStableSince = 0L
                         candidate = 0f
                         sampledPackage = ""
                         observedSize = null
