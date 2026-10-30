@@ -89,7 +89,7 @@
      ```
      https://github.com/TSCNEO/TvAfrTools/releases/latest/download/TvAfrTools.apk
      ```
-   - **From the Downloader app on your TV**: paste that same URL, or a short numeric code generated from it on [AFTVnews](https://go.aftvnews.com). A single code keeps working for every future release.
+   - **From the Downloader app on your TV**: type code **7763887** (short link: [aftv.news/7763887](https://aftv.news/7763887)). It always resolves to the latest release, so the same code works for every future version.
    - Never use a link with the version baked into the filename (for example `TvAfrTools-v1.2.33.apk`): it stops working as soon as the next version is published.
 2. **Install & Grant Permissions**:
    - Open TvAfrTools on your TV.
