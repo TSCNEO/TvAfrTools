@@ -89,7 +89,7 @@
      ```
      https://github.com/TSCNEO/TvAfrTools/releases/latest/download/TvAfrTools.apk
      ```
-   - **Desde la app Downloader del televisor**: pega esa misma URL, o un código numérico corto generado a partir de ella en [AFTVnews](https://go.aftvnews.com). Un solo código te sirve para todas las versiones futuras.
+   - **Desde la app Downloader del televisor**: introduce el código **7763887** (enlace corto: [aftv.news/7763887](https://aftv.news/7763887)). Ese código apunta siempre a la última versión, así que te sirve para todas las futuras.
    - No uses nunca un enlace con la versión en el nombre (por ejemplo `TvAfrTools-v1.2.33.apk`): deja de funcionar en cuanto se publica la siguiente versión.
 2. **Instala y Concede Permisos**:
    - Abre TvAfrTools en la tele.
