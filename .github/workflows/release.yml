@@ -64,11 +64,9 @@ jobs:
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk dist/TvAfrTools.apk
-          # A release APK must carry a signature block; refuse to publish an unsigned one.
-          if ! unzip -l dist/TvAfrTools.apk | grep -qE 'META-INF/[^/]+\.(RSA|DSA|EC)'; then
-            echo "::error::APK is not signed — refusing to publish."
-            exit 1
-          fi
+          # Verify all supported APK signing schemes, including v2/v3.
+          build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+          "$build_tools/apksigner" verify --verbose dist/TvAfrTools.apk
           echo "APK signed OK: $(stat -c%s dist/TvAfrTools.apk) bytes"
 
       - name: Create GitHub Release
