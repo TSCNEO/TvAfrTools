@@ -123,6 +123,9 @@ class AfrController(
             var sampledPackage = ""
             var stable = 0
             var lastAutomaticChange = 0L
+            var observedSize: Pair<Int, Int>? = null
+            var resolutionChangedAt = 0L
+            var observationStartedAt = 0L
             while (!destroyed) {
                 try {
                     refreshNativeVideoSize()
@@ -132,6 +135,15 @@ class AfrController(
                             sampledPackage = appPackage
                             stable = 0
                             candidate = 0f
+                            observedSize = null
+                            observationStartedAt = SystemClock.elapsedRealtime()
+                            resolutionChangedAt = observationStartedAt
+                        }
+                        val now = SystemClock.elapsedRealtime()
+                        val currentSize = nativeVideoSize
+                        if (currentSize != observedSize) {
+                            observedSize = currentSize
+                            resolutionChangedAt = now
                         }
                         val info = ServerClient.getSysInfo()
                         // Presentation timestamps are constrained by the current HDMI mode.
@@ -140,11 +152,20 @@ class AfrController(
                         val target = if (fps > 1f) normalizeTargetRefreshRate(fps) else 0f
                         stable = if (target > 1f && abs(target - candidate) < 0.1f) stable + 1 else 0
                         candidate = target
-                        if (stable >= 4 && SystemClock.elapsedRealtime() - lastAutomaticChange > 15000L) {
+                        if (target <= 1f) {
+                            observationStartedAt = now
+                            resolutionChangedAt = now
+                        }
+                        // ABR has no universal "finished" event. Require an initial settling
+                        // window and a quiet interval after every observed resolution change.
+                        val resolutionStable = !prefs.matchNativeResolution ||
+                            (now - observationStartedAt >= 30000L && now - resolutionChangedAt >= 15000L)
+                        if (stable >= 4 && resolutionStable && now - lastAutomaticChange > 15000L) {
                             lastAutomaticChange = SystemClock.elapsedRealtime()
                             stable = 0
                             mainHandler.post {
-                            if (!destroyed && foregroundPackage == appPackage && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
+                            if (!destroyed && foregroundPackage == appPackage &&
+                                (!prefs.matchNativeResolution || nativeVideoSize == currentSize) && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                                 val mode = getCurrentDisplayMode()
                                 val desired = resolveRefreshMode(target)
                                 if (mode != null && desired != null && mode.modeId != desired.modeId && !waitingForDisplayChangePlay)
@@ -152,7 +173,12 @@ class AfrController(
                             }
                             }
                         }
-                    } else { stable = 0; candidate = 0f }
+                    } else {
+                        stable = 0
+                        candidate = 0f
+                        sampledPackage = ""
+                        observedSize = null
+                    }
                     Thread.sleep(1000)
                 } catch (_: Exception) { Thread.sleep(1000) }
             }
