@@ -483,6 +483,41 @@ object PrivilegedServer {
     private var videoSizeReadAt = 0L
     private var cachedVideoSize = "UNKNOWN"
     private var videoSurfaceIdentity = ""
+    private data class VendorSizeLink(val pkg: String, val appPid: Int, val serverPid: Int,
+        val thread: Int, val stream: String)
+    @Volatile private var vendorSizeLink: VendorSizeLink? = null
+    private var clientSizeAt = 0L
+
+    private fun captureLinkedVendorSize(line: String, pid: Int): Boolean {
+        val fields = line.trim().split(Regex("\\s+"), limit = 6)
+        if (fields.getOrNull(4)?.removeSuffix(":") != "C2VdecComponent") return false
+        val tid = fields.getOrNull(2)?.toIntOrNull() ?: return true
+        val stream = Regex("""\[([^]]+##\d+)\]""").find(line)?.groupValues?.get(1) ?: return true
+        val crop = Regex("""crop_rect=\(\d+,\s*\d+\)\s*(\d+)x(\d+)""").find(line)
+        val link = vendorSizeLink
+        val evidence = sizeEvidence
+        if (link == null && crop != null && evidence != null &&
+            evidence.pkg == sizePackage && evidence.pid == sizePid &&
+            SystemClock.elapsedRealtime() - clientSizeAt in 0L..2000L &&
+            "${crop.groupValues[1]}x${crop.groupValues[2]}" == evidence.size) {
+            // Bind only at the initial matching output format, not on a later arbitrary HAL line.
+            vendorSizeLink = VendorSizeLink(sizePackage, sizePid, pid, tid, stream)
+        }
+        val bound = vendorSizeLink ?: return true
+        if (bound.pkg != sizePackage || bound.appPid != sizePid ||
+            bound.serverPid != pid || bound.thread != tid || bound.stream != stream) return true
+        if (line.contains("[stop]") || line.contains("[release]") || line.contains("destroy", true)) {
+            vendorSizeLink = null
+            sizeEvidence = null
+            cachedVideoSize = "UNKNOWN"
+        } else if (crop != null && evidence != null) {
+            val w = crop.groupValues[1].toInt()
+            val h = crop.groupValues[2].toInt()
+            if (w in 64..8192 && h in 64..8192)
+                sizeEvidence = evidence.copy(size = "${w}x${h}")
+        }
+        return true
+    }
 
     private data class SizeBatch(val epoch: String, val values: MutableMap<String, Int> = mutableMapOf())
     private val sizeBatches = mutableMapOf<String, SizeBatch>()
@@ -490,15 +525,25 @@ object PrivilegedServer {
     private fun captureVideoSize(line: String) {
         val pid = line.trim().split(Regex("\\s+"), limit = 4).getOrNull(1)?.toIntOrNull() ?: return
         // Vendor service logs cannot be attributed to an app merely because it is foreground.
-        if (pid != sizePid || sizePackage.isBlank()) return
+        if (sizePackage.isBlank()) return
+        if (pid != sizePid) {
+            captureLinkedVendorSize(line, pid)
+            return
+        }
         val fields = line.trim().split(Regex("\\s+"), limit = 6)
         val tid = fields.getOrNull(2)?.toIntOrNull() ?: return
         val tag = fields.getOrNull(4).orEmpty().removeSuffix(":")
         if (tag !in setOf("CCodec", "CCodecConfig", "CCodecBuffers", "ACodec", "MediaCodecVideoRenderer")) return
         val previous = sizeEvidence
+        if (line.contains("allocate(") && Regex("""(?i)(?:avc|hevc|av1|vp9|mpeg|dolby|video)""").containsMatchIn(line)) {
+            vendorSizeLink = null
+            sizeEvidence = null
+            cachedVideoSize = "UNKNOWN"
+        }
         val lifecycle = Regex("""(?i)(?:\ballocate\(|\bconfigure\(|\brelease\(|\bshutdown\(|state.*(?:RELEASED|UNINITIALIZED))""")
         if (previous?.tid == tid && lifecycle.containsMatchIn(line)) {
             sizeEvidence = null
+            vendorSizeLink = null
             cachedVideoSize = "UNKNOWN"
         }
         val crop = Regex("""crop(?:_rect)?[ :=]*(?:\(0,\s*0\)\s*)(\d+)x(\d+)""").find(line)
@@ -530,8 +575,10 @@ object PrivilegedServer {
                 pair.groupValues[1].toInt() to pair.groupValues[2].toInt()
             else -> batched
         }
-        if (dimensions != null && dimensions.first in 64..8192 && dimensions.second in 64..8192)
+        if (dimensions != null && dimensions.first in 64..8192 && dimensions.second in 64..8192) {
             sizeEvidence = VideoSizeEvidence(sizePackage, pid, "${dimensions.first}x${dimensions.second}", tid)
+            clientSizeAt = SystemClock.elapsedRealtime()
+        }
 
     }
 
@@ -543,6 +590,7 @@ object PrivilegedServer {
             .find(activities)?.groupValues?.get(1) ?: return "UNKNOWN"
         val pid = runShellCommand("pidof $pkg").trim().split(' ').firstOrNull()?.toIntOrNull() ?: -1
         if (pkg != sizePackage || pid != sizePid) {
+            vendorSizeLink = null
             sizeEvidence = null
             videoSizeReadAt = 0L
             sizePackage = pkg
@@ -559,7 +607,10 @@ object PrivilegedServer {
             header.contains("SurfaceView") && header.contains(pkg)
         }
         val identity = blocks.map { it.lineSequence().firstOrNull().orEmpty() }.sorted().joinToString("|")
-        if (videoSurfaceIdentity.isNotEmpty() && identity != videoSurfaceIdentity) sizeEvidence = null
+        if (videoSurfaceIdentity.isNotEmpty() && identity != videoSurfaceIdentity) {
+            sizeEvidence = null
+            vendorSizeLink = null
+        }
         videoSurfaceIdentity = identity
         if (blocks.isEmpty()) sizeEvidence = null
         sizeEvidence?.let { if (it.pkg == pkg && it.pid == pid) return it.size }
