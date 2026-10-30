@@ -49,3 +49,15 @@ jobs:
           name: TvAfrTools ${{ github.ref_name }}
           files: dist/TvAfrTools-${{ github.ref_name }}.apk
           generate_release_notes: true
+
+      - name: Remove legacy duplicate APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Publish must succeed before removing the legacy attachment.
+          gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' > /tmp/release-assets.txt
+          if grep -Fxq "app-release.apk" /tmp/release-assets.txt; then
+            gh release delete-asset "$RELEASE_TAG" app-release.apk --yes
+          fi
