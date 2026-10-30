@@ -93,6 +93,9 @@ jobs:
           name: TvAfrTools ${{ github.ref_name }}
           files: dist/TvAfrTools.apk
           generate_release_notes: true
+          # A semver prerelease tag (v1.2.3-rc1) must never become "latest":
+          # the Downloader short link points at releases/latest/download/.
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
       - name: Remove legacy duplicate APK
         env:
