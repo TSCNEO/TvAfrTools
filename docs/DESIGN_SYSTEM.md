@@ -1,6 +1,6 @@
 # TvAfrTools — sistema de diseño v1
 
-**Estado: PROPUESTA, pendiente de aprobación.** No es normativa definitiva hasta la aprobación explícita. Una vez aprobada, este documento será la fuente de verdad visual; cualquier cambio de identidad requiere aprobación explícita y registro aquí. Si falta una regla, proponer su ampliación antes de implementarla. Las excepciones deben explicar su necesidad y recibir aprobación. Reutilizar tokens y componentes antes de crear otros. Este documento describe una dirección, no afirma que ya esté implementada.
+**Estado: APROBADO por el usuario el 1 de noviembre de 2026.** Este documento es la fuente de verdad visual; cualquier cambio de identidad requiere aprobación explícita y registro aquí. La escala y zonas seguras se ajustarán tras validación en TV real. Si falta una regla, proponer su ampliación antes de implementarla. Las excepciones deben explicar su necesidad y recibir aprobación. Reutilizar tokens y componentes antes de crear otros. Este documento describe una dirección, no afirma que ya esté implementada.
 
 ## Diagnóstico basado en el repositorio
 
@@ -38,7 +38,7 @@ Movimiento: foco 120ms, entrada/salida de diálogo 160ms, desplazamiento 200ms, 
 
 TV es la plataforma real principal. Referencia de composición 960×540dp, 16:9; proteger contenido con 48dp horizontales y 27dp verticales, más insets reales si son mayores. Fondo puede llegar al borde. Rail y contenido separados 32dp; contenido flexible y desplazable, sin recortar foco. Ajustar a dimensiones disponibles y probar overscan en hardware. Foco inicial en primer control disponible; flechas recorren vecinos previsibles, derecha entra en contenido, izquierda vuelve al rail; Select activa, Back cierra el nivel superior. Restaurar foco y posición al volver; modal captura foco. No depender de hover ni gestos.
 
-Android táctil es una variante futura, no una pantalla existente prometida: usar una sola columna por debajo de 600dp, navegación adaptable, márgenes 16dp, controles táctiles mínimos 48×48dp e insets del sistema. A partir de 600dp usar dos paneles si caben sin reducir texto. Mantener tokens compartidos; no trasladar mecánicamente el foco TV al tacto. Verificar lector de pantalla, nombres y roles, orden, contraste mínimo 4,5:1 para texto normal y 3:1 para componentes y foco, y texto ampliado en ambas variantes.
+No se diseñará una variante táctil de la aplicación nativa. Para el mando web existente, accesible desde el móvil: usar una sola columna por debajo de 600dp, navegación adaptable, márgenes 16dp, controles táctiles mínimos 48×48dp e insets del sistema. A partir de 600dp usar dos paneles si caben sin reducir texto. Mantener tokens compartidos; no trasladar mecánicamente el foco TV al tacto. Verificar lector de pantalla, nombres y roles, orden, contraste mínimo 4,5:1 para texto normal y 3:1 para componentes y foco, y texto ampliado en ambas variantes.
 
 ## Aplicación a pantallas reales
 
@@ -56,9 +56,9 @@ Android táctil es una variante futura, no una pantalla existente prometida: usa
 
 Antes de cerrar una implementación: contrastes medidos en combinaciones reales; capturas a 16:9 y con texto ampliado; recorrido completo D-pad, foco inicial, restauración y Back; estados de carga, vacío, error y deshabilitado; revisión de accesibilidad y traducciones; verificación táctil si procede. Registrar dispositivo y limitaciones.
 
-## Decisiones pendientes de aprobación
+## Decisiones aprobadas y validación pendiente
 
-1. Dirección «consola de cine» y conservación del ámbar como foco.
-2. Escala de texto y zona segura TV, sujetas a comprobación en televisor real.
-3. Sustitución progresiva de emojis por iconos de línea y conservación de los activos existentes.
-4. Alcance de la variante táctil futura y tratamiento de la interfaz web, que no se ha rediseñado en esta propuesta.
+1. Aprobadas la dirección «consola de cine» y el ámbar como foco.
+2. Escala de texto y zona segura TV pendientes de comprobación en televisor real.
+3. Aprobadas la sustitución de emojis por iconos de línea y la conservación de los activos existentes.
+4. Aprobada la aplicación a las seis secciones, diálogos, superposiciones y mando web. No habrá variante táctil nativa.
