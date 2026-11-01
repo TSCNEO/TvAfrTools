@@ -99,7 +99,7 @@ class OverlayToolkit(
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = dp(12).toFloat()
                         setColor(Color.parseColor("#E6141923"))
-                        setStroke(dp(1), Color.parseColor("#38BDF8"))
+                        setStroke(dp(1), Color.parseColor("#F59E0B"))
                     }
                 }
                 val params = WindowManager.LayoutParams(
@@ -245,8 +245,8 @@ class OverlayToolkit(
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = dp(10).toFloat()
-                        setColor(Color.parseColor("#D90F172A"))
-                        setStroke(dp(1), Color.parseColor("#22C55E"))
+                        setColor(Color.parseColor("#E6111216"))
+                        setStroke(dp(1), Color.parseColor("#454A57"))
                     }
                 }
                 val params = WindowManager.LayoutParams(
@@ -318,7 +318,7 @@ class OverlayToolkit(
                 return super.dispatchKeyEvent(event)
             }
         }.apply {
-            setBackgroundColor(Color.parseColor("#88000000"))
+            setBackgroundColor(Color.parseColor("#99000000"))
             isFocusable = true
         }
 
@@ -348,7 +348,7 @@ class OverlayToolkit(
         val subtitle = TextView(context).apply {
             val fpsStr = if (liveFps > 1f) String.format(Locale.US, "%.3f fps", liveFps) else "Buscando stream..."
             text = "Actual: $curStr   |   Vídeo: $fpsStr"
-            setTextColor(Color.parseColor("#94A3B8"))
+            setTextColor(Color.parseColor("#B8C0CE"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(0, dp(4), 0, dp(12))
         }
@@ -555,7 +555,7 @@ class OverlayToolkit(
                         return super.dispatchKeyEvent(event)
                     }
                 }.apply {
-                    setBackgroundColor(Color.parseColor("#88000000"))
+                    setBackgroundColor(Color.parseColor("#99000000"))
                     isFocusable = true
                 }
 
@@ -565,8 +565,8 @@ class OverlayToolkit(
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = dp(16).toFloat()
-                        setColor(Color.parseColor("#F2111827"))
-                        setStroke(dp(2), Color.parseColor("#22C55E"))
+                        setColor(Color.parseColor("#F2111216"))
+                        setStroke(dp(2), Color.parseColor("#454A57"))
                     }
                 }
 
@@ -580,7 +580,7 @@ class OverlayToolkit(
 
                 val subtitle = TextView(context).apply {
                     text = context.getString(R.string.overlay_free_mem, availMb, totalMb) + "  •  OK  |  " + context.getString(R.string.overlay_recents_hint)
-                    setTextColor(Color.parseColor("#94A3B8"))
+                    setTextColor(Color.parseColor("#B8C0CE"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                     setPadding(0, dp(4), 0, dp(12))
                 }
@@ -596,7 +596,7 @@ class OverlayToolkit(
                 if (recentApps.isEmpty()) {
                     val emptyTv = TextView(context).apply {
                         text = context.getString(R.string.overlay_no_recents)
-                        setTextColor(Color.parseColor("#CBD5E1"))
+                        setTextColor(Color.parseColor("#B8C0CE"))
                         setPadding(dp(8), dp(10), dp(8), dp(10))
                     }
                     card.addView(emptyTv)
@@ -719,7 +719,7 @@ class OverlayToolkit(
                         setStroke(dp(1), Color.parseColor("#D97706"))
                     } else {
                         setColor(Color.parseColor("#191B22"))
-                        setStroke(dp(1), Color.parseColor("#282B35"))
+                        setStroke(dp(1), Color.parseColor("#454A57"))
                     }
                 }
             }

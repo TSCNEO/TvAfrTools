@@ -178,34 +178,35 @@ class WebRemoteServer(
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>TvAfrTools Remote</title>
 <style>
-  body { background:#0b1120; color:#f8fafc; font-family:system-ui,-apple-system,sans-serif; margin:0; padding:16px; text-align:center; }
-  h1 { font-size:20px; margin:4px 0 12px; color:#38bdf8; }
-  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; max-width:440px; margin:0 auto 14px; }
-  .dpad { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:300px; margin:0 auto 16px; }
-  button { background:#1e293b; color:#fff; border:1px solid #334155; border-radius:12px; padding:14px 10px; font-size:14px; font-weight:600; cursor:pointer; }
-  button:active { background:#0284c7; }
-  .accent { background:#0369a1; border-color:#38bdf8; }
-  .box { max-width:440px; margin:0 auto 14px; display:flex; gap:8px; }
-  input { flex:1; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:10px; padding:12px; font-size:15px; }
+  * { box-sizing:border-box; }
+  body { background:#111216; color:#f8fafc; font-family:system-ui,sans-serif; margin:0; padding:16px; text-align:center; }
+  h1 { font-size:24px; margin:8px 0 24px; color:#f8fafc; }
+  .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-width:440px; margin:0 auto 24px; }
+  .dpad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:300px; margin:0 auto 24px; }
+  button { min-height:48px; background:#22252d; color:#f8fafc; border:1px solid #454a57; border-radius:8px; padding:12px; font-size:16px; cursor:pointer; }
+  button:focus-visible { outline:2px solid #f59e0b; outline-offset:2px; }
+  button:active, .dpad .accent { background:#f59e0b; color:#0f1014; }
+  .box { max-width:440px; margin:0 auto 24px; display:flex; gap:8px; }
+  input { min-width:0; flex:1; background:#191b22; color:#f8fafc; border:1px solid #454a57; border-radius:8px; padding:12px; font-size:16px; }
 </style>
 </head>
 <body>
-  <h1>⚡ TvAfrTools Mando Web</h1>
+  <h1>TvAfrTools · Mando web</h1>
   <div class="grid">
-    <button class="accent" onclick="act('one_click_afr')">🎬 1-Click AFR</button>
-    <button class="accent" onclick="act('afr_panel')">📺 Selector Hz</button>
-    <button onclick="act('hud_toggle')">📊 HUD Técnico</button>
-    <button onclick="act('recent_apps_switcher')">🗂 Multitarea / RAM</button>
-    <button onclick="act('real_screen_toggle')">🌑 Pantalla Off/On</button>
-    <button onclick="act('clean_background_ram')">🧹 Limpiar RAM</button>
-    <button onclick="act('hdr_mode_cycle')">🌈 Modo HDR/SDR</button>
-    <button onclick="act('audio_passthrough_cycle')">🔊 Audio Passthrough</button>
+    <button class="accent" onclick="act('one_click_afr')">1-Click AFR</button>
+    <button class="accent" onclick="act('afr_panel')">Selector Hz</button>
+    <button onclick="act('hud_toggle')">HUD Técnico</button>
+    <button onclick="act('recent_apps_switcher')">Multitarea / RAM</button>
+    <button onclick="act('real_screen_toggle')">Pantalla Off/On</button>
+    <button onclick="act('clean_background_ram')">Limpiar RAM</button>
+    <button onclick="act('hdr_mode_cycle')">Modo HDR/SDR</button>
+    <button onclick="act('audio_passthrough_cycle')">Audio Passthrough</button>
   </div>
   <div class="box">
-    <input id="txt" placeholder="Pegar texto / contraseña en la TV..."/>
+    <input id="txt" aria-label="Texto para enviar a la TV" placeholder="Pegar texto / contraseña en la TV..."/>
     <button class="accent" onclick="sendTxt()">Enviar</button>
   </div>
   <div class="dpad">
