@@ -18,13 +18,25 @@
 
 ---
 
+## What's new in 1.3.0
+
+- **Refreshed TV interface:** side navigation with icons, clearer focus, compact grids and an updated web remote.
+- **Clearer refresh-rate selector:** modes grouped by resolution, common rates first, with additional resolutions and options available on demand.
+- **Display and playback:** previous display settings are saved before AFR changes them, including across engine restarts and updates; a fallback prevents an indefinite wait to resume after an HDMI switch. Results can vary by device and video app.
+- **Display rescue:** clear stuck refresh-rate limits from Info or the selector's additional options, without forcing 50 or 60 Hz.
+- **Usability:** a smaller HUD, clearer switch notices, a resume delay linked to the pause setting, and clearer restore labels.
+
+Before updating from an older version, exit playback and return to the TV home screen so AFR can release the active display mode. Then use **Info → Check for updates**.
+
+---
+
 ## ✨ Key Features
 
 ### 🎬 1. Universal Auto Frame Rate (AFR) & Judder-Free Playback
 - **True Frame Rate Matching**: Automatically detects video fps (23.976p, 24.0p, 25p, 50p, 59.94p, 60p) and matches your TV's HDMI refresh rate for perfectly smooth, judder-free panning.
 - **Hardware Widevine L1 Tunnel Compatible**: Works even with hardware-protected DRM streams (Disney+, Netflix, Prime Video, DAZN, etc.) through a hybrid SurfaceFlinger & privileged daemon architecture.
-- **Auto-Restore on Home**: Instantly returns to 60Hz as soon as you exit playback back to your launcher (Android TV Home, Google TV, or Projectivy Launcher).
-- **Manual Quick Switcher**: Interactive on-screen D-Pad overlay to force any refresh rate or revert to 60Hz with a single click.
+- **Auto-Restore on Home**: Attempts to restore the previous display configuration when you switch apps or return to your launcher, without forcing 60 Hz.
+- **Manual Quick Switcher**: Interactive D-pad overlay to choose a supported mode or restore the system display mode.
 
 ### ⚡ 2. Autonomous Local ADB Bootstrap (Zero PC Required)
 - **1-Click Self-Authorization**: Features an embedded local ADB engine (`127.0.0.1:5555`).
@@ -54,7 +66,7 @@
   - Free & Total RAM
 
 ### 🌐 7. Mobile Web Remote
-- Built-in lightweight HTTP server (port `8080`).
+- Built-in lightweight HTTP server (port `8099`).
 - Open your TV's IP address on any phone, tablet, or PC to control the TV, navigate with a virtual D-Pad, or **paste passwords and long URLs** directly with your phone's keyboard.
 
 ### 🔄 8. In-App GitHub Auto-Updater
@@ -93,7 +105,7 @@
    - Never use a link with the version baked into the filename (for example `TvAfrTools-v1.2.33.apk`): it stops working as soon as the next version is published.
 2. **Install & Grant Permissions**:
    - Open TvAfrTools on your TV.
-   - When prompted, click **"⚡ Activar automáticamente en 1 clic"**.
+   - When prompted, click **"Auto-activate in 1 click"**.
    - If a dialog appears on screen asking *"Allow USB debugging?"*, check *"Always allow from this computer"* and press **OK**.
 3. **Enjoy judder-free movies & smooth multitasking!**
 

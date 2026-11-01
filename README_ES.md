@@ -18,12 +18,24 @@
 
 ---
 
+## Novedades en 1.3.0
+
+- **Interfaz renovada para TV:** navegación lateral con iconos, foco más visible, cuadrículas compactas y mando web actualizado.
+- **Selector de frecuencia más claro:** modos agrupados por resolución, frecuencias habituales primero y acceso a otras resoluciones y opciones adicionales.
+- **Pantalla y reproducción:** se guarda la configuración anterior antes de aplicar AFR, también ante reinicios del motor o actualizaciones; un respaldo evita esperar indefinidamente para reanudar tras el cambio HDMI. El resultado puede depender del dispositivo y de la aplicación de vídeo.
+- **Rescate de pantalla:** en Información y en las opciones del selector se pueden eliminar los límites de frecuencia que hayan quedado bloqueados, sin imponer 50 ni 60 Hz.
+- **Detalles de uso:** HUD más compacto, avisos de cambio más legibles, espera de reanudación vinculada a la pausa y textos de restauración más claros.
+
+Antes de actualizar desde una versión anterior, sal de la reproducción y vuelve al inicio de la TV para que AFR libere el modo de pantalla activo. Después usa **Información → Buscar actualizaciones**.
+
+---
+
 ## ✨ Funcionalidades Principales
 
 ### 🎬 1. Auto Frame Rate (AFR) Universal sin Tirones (*Judder-Free*)
 - **Sincronización exacta de Hz**: Detecta en tiempo real los fotogramas del vídeo (23.976p, 24.0p, 25p, 50p, 59.94p, 60p) y conmuta la frecuencia de refresco HDMI de tu TV para eliminar por completo los tirones (*judder*) al reproducir películas o series.
 - **Compatible con Túnel Protegido Widevine L1**: Funciona incluso con vídeo protegido por DRM en apps de streaming oficial (**Netflix, Disney+, Prime Video, DAZN, Tivimate, Kodi**, etc.) mediante arquitectura híbrida *SurfaceFlinger* + Demonio ADB local.
-- **Restauración automática a 60Hz**: Al salir de la película y volver al launcher (Android TV Home, Google TV o Projectivy Launcher), vuelve automáticamente a 60Hz.
+- **Restauración de pantalla**: Al cambiar de aplicación o volver al inicio, intenta recuperar la configuración anterior sin imponer 60 Hz.
 - **Selector Manual Rápido**: Panel flotante interactivo para forzar cualquier frecuencia con las flechas del mando a distancia.
 
 ### ⚡ 2. Activación Autónoma por ADB Local (Sin PC ni Móvil)
@@ -54,7 +66,7 @@
   - Memoria RAM libre y total.
 
 ### 🌐 7. Mando a Distancia Web desde el Móvil
-- Servidor web ultraligero integrado (puerto `8080`).
+- Servidor web ultraligero integrado (puerto `8099`).
 - Abre la IP de tu TV en el navegador de tu móvil o tablet para navegar o **pegar contraseñas largas y enlaces** cómodamente con el teclado del móvil.
 
 ### 🔄 8. Actualizador Automático desde GitHub
@@ -93,7 +105,7 @@
    - No uses nunca un enlace con la versión en el nombre (por ejemplo `TvAfrTools-v1.2.33.apk`): deja de funcionar en cuanto se publica la siguiente versión.
 2. **Instala y Concede Permisos**:
    - Abre TvAfrTools en la tele.
-   - Pulsa en **"⚡ Activar automáticamente en 1 clic"**.
+   - Pulsa en **"Activar automáticamente en 1 clic"**.
    - Si sale el mensaje en pantalla *"¿Permitir depuración USB?"*, marca *"Permitir siempre"* y pulsa **OK**.
 3. **¡Listo!** Ya puedes configurar el cambio de Hz, el mando y la multitarea.
 
