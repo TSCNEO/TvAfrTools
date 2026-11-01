@@ -753,7 +753,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
             setPadding(dpToPx(24), dpToPx(20), dpToPx(24), dpToPx(20))
-            isFocusable = true
+            isFocusable = false
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1150,6 +1150,11 @@ class MainActivity : AppCompatActivity() {
         }
         card.addView(chk)
 
+        card.setOnFocusChangeListener { _, focused ->
+            titleTv.setTextColor(Color.parseColor(if (focused) "#0F1014" else "#F8FAFC"))
+            descTv.setTextColor(Color.parseColor(if (focused) "#0F1014" else "#B8C0CE"))
+            chk.buttonTintList = ColorStateList.valueOf(Color.parseColor(if (focused) "#0F1014" else "#F59E0B"))
+        }
         card.accessibilityDelegate = object : View.AccessibilityDelegate() {
             override fun onInitializeAccessibilityNodeInfo(host: View, info: android.view.accessibility.AccessibilityNodeInfo) {
                 super.onInitializeAccessibilityNodeInfo(host, info)
@@ -1197,6 +1202,10 @@ class MainActivity : AppCompatActivity() {
         }
         card.addView(titleTv)
         card.addView(descTv)
+        card.setOnFocusChangeListener { _, focused ->
+            titleTv.setTextColor(Color.parseColor(if (focused) "#0F1014" else "#F8FAFC"))
+            descTv.setTextColor(Color.parseColor(if (focused) "#0F1014" else "#B8C0CE"))
+        }
         return card
     }
 
