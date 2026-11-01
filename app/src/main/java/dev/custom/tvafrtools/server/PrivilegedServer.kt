@@ -1,6 +1,7 @@
 package dev.custom.tvafrtools.server
 
 import dev.custom.tvafrtools.BuildConfig
+import dev.custom.tvafrtools.afr.FrameRates
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -32,7 +33,7 @@ import kotlin.math.abs
  * 1. Universal Multi-Layer Video FPS Detection (SurfaceFlinger + Tunneled Widevine L1 + MediaMetrics + Sysfs):
  *    - Layer A (Tunneled Hardware Video / Widevine L1 4K HDR in Disney+, Prime Video, Netflix):
  *      - Parses `VDA : ServiceDeviceTask ... OUTs=X/Y` frame counters over 1-second intervals
- *      - Parses `VideoSyncFRAC: [detectPattern] 3:2 pattern detected` -> 23.976 fps
+ *      - Parses `VideoSyncFRAC: [detectPattern] 3:2 pattern detected` -> estimated 24 fps family
  *      - Parses `VideoRenderQualityTracker: Rendered frame is earlier than the next expected frame (tsUs, ...)` delta
  *    - Layer B (Android 12–14 / SDK 31+): `IWindowManager.registerTaskFpsCallback`
  *      via `/system/framework/framework.jar`s `android.window.ITaskFpsCallback$Stub`
@@ -77,6 +78,9 @@ object PrivilegedServer {
 
     @Volatile
     private var lastTunneledFpsTimestampMs: Long = 0L
+
+    @Volatile
+    private var lastTunneledSource: String = "IDLE"
 
     // Cached reflection handles
     private var displayControlClass: Class<*>? = null
@@ -210,11 +214,13 @@ object PrivilegedServer {
                         captureVideoSize(l)
                         // 1. Check Amlogic / Xiaomi / Homatics VideoSyncFRAC 3:2 pulldown detector
                         if (l.contains("3:2 pattern detected")) {
-                            lastTunneledFps = 23.976f
+                            if (lastTunneledSource.startsWith("TUNNEL_PTS") && nowMs - lastTunneledFpsTimestampMs < 8000L) continue
+                            lastTunneledFps = 24f
                             lastTunneledFpsTimestampMs = nowMs
                             tunneledVideoActive = true
-                            currentFps = 23.976f
-                            currentFpsSource = "TUNNEL_3_2_PULLDOWN"
+                            currentFps = 24f
+                            currentFpsSource = "TUNNEL_3_2_PULLDOWN_ESTIMATED"
+                            lastTunneledSource = currentFpsSource
                             continue
                         }
 
@@ -238,6 +244,7 @@ object PrivilegedServer {
                                                 tunneledVideoActive = true
                                                 currentFps = snapped
                                                 currentFpsSource = "TUNNEL_PTS"
+                                                lastTunneledSource = currentFpsSource
                                             }
                                         }
                                     }
@@ -266,13 +273,14 @@ object PrivilegedServer {
                                         val dFrames = outCount - lastVdaOutCount
                                         if (dtMs in 4000L..10000L && dFrames in 40L..1200L) {
                                             val vdaFps = (dFrames * 1000f) / dtMs.toFloat()
-                                            val snapped = snapTunneledFps(vdaFps)
-                                            if (snapped > 0f) {
+                                            val snapped = FrameRates.estimateFamily(vdaFps)
+                                            if (snapped > 0f && !(lastTunneledSource.startsWith("TUNNEL_PTS") && nowMs - lastTunneledFpsTimestampMs < 8000L)) {
                                                 lastTunneledFps = snapped
                                                 lastTunneledFpsTimestampMs = nowMs
                                                 tunneledVideoActive = true
                                                 currentFps = snapped
-                                                currentFpsSource = "TUNNEL_VDA"
+                                                currentFpsSource = "TUNNEL_VDA_ESTIMATED"
+                                                lastTunneledSource = currentFpsSource
                                             }
                                         }
                                     }
@@ -296,16 +304,8 @@ object PrivilegedServer {
         }, "TunneledVideoWatcher").apply { isDaemon = true }.start()
     }
 
-    private fun snapTunneledFps(rawFps: Float): Float {
-        return when {
-            rawFps in 22.8f..24.35f -> 23.976f
-            rawFps in 24.45f..25.8f -> 25.0f
-            rawFps in 29.2f..30.6f -> 29.97f
-            rawFps in 49.0f..51.0f -> 50.0f
-            rawFps in 58.5f..61.0f -> 59.94f
-            else -> 0f
-        }
-    }
+    private fun snapTunneledFps(rawFps: Float): Float =
+        if (FrameRates.estimateFamily(rawFps) > 0f) FrameRates.snapMeasured(rawFps) else 0f
 
     private fun startTaskFpsMonitorThread() {
         Thread({
@@ -358,6 +358,7 @@ object PrivilegedServer {
                                 val ageMs = SystemClock.elapsedRealtime() - lastTunneledFpsTimestampMs
                                 if (ageMs < 8000L && lastTunneledFps in 23.0f..51.0f && fps >= 55.0f) {
                                     currentFps = lastTunneledFps
+                                    currentFpsSource = lastTunneledSource
                                 } else {
                                     currentFps = fps
                                     currentFpsSource = "SURFACE_FLINGER"
@@ -373,6 +374,7 @@ object PrivilegedServer {
                     if (topTaskId > 0) currentTaskId = topTaskId
                     if (tunnelRecent) {
                         currentFps = lastTunneledFps
+                        currentFpsSource = lastTunneledSource
                     } else {
                         val fallbackFps = readUniversalFallbackFps()
                         if (fallbackFps > 1.0f) {
@@ -661,6 +663,7 @@ object PrivilegedServer {
         // 1. Check recent Tunneled Video detection first
         val ageMs = SystemClock.elapsedRealtime() - lastTunneledFpsTimestampMs
         if (ageMs < 8000L && lastTunneledFps > 1.0f) {
+            currentFpsSource = lastTunneledSource
             return lastTunneledFps
         }
 
@@ -741,39 +744,14 @@ object PrivilegedServer {
     private fun probeActiveVideoFpsNow(): Pair<Float, String> {
         val nowMs = SystemClock.elapsedRealtime()
         if ((nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 1.0f) {
-            return lastTunneledFps to currentFpsSource
+            return lastTunneledFps to lastTunneledSource
         }
 
         // Check recent Codec2 VDA / VideoRenderQualityTracker / VideoSyncFRAC logs directly
         try {
             val logOut = runShellCommand("logcat -d -v epoch -t 80 -s VDA VideoRenderQualityTracker VideoSyncFRAC")
 
-            // 1. Check VDA OUTs delta using epoch timestamps (exact FPS for Disney+, Prime, DAZN, Netflix)
-            val regexVda = Regex("""^\s*(\d+\.\d+).*?ServiceDeviceTask.*?OUTs=(\d+)/\d+""", RegexOption.MULTILINE)
-            val vdaMatches = regexVda.findAll(logOut).toList()
-            if (vdaMatches.size >= 2) {
-                val m1 = vdaMatches[vdaMatches.size - 2]
-                val m2 = vdaMatches.last()
-                val t1 = m1.groupValues[1].toDoubleOrNull() ?: 0.0
-                val t2 = m2.groupValues[1].toDoubleOrNull() ?: 0.0
-                val out1 = m1.groupValues[2].toLongOrNull() ?: 0L
-                val out2 = m2.groupValues[2].toLongOrNull() ?: 0L
-                val dt = t2 - t1
-                val dOut = out2 - out1
-                if (dt in 0.5..3.5 && dOut > 5L) {
-                    val vdaFps = (dOut.toDouble() / dt).toFloat()
-                    val snapped = snapTunneledFps(vdaFps)
-                    if (snapped > 0f) {
-                        lastTunneledFps = snapped
-                        lastTunneledFpsTimestampMs = SystemClock.elapsedRealtime()
-                        currentFps = snapped
-                        currentFpsSource = "TUNNEL_VDA_PROBE"
-                        return snapped to currentFpsSource
-                    }
-                }
-            }
-
-            // 2. Check VideoRenderQualityTracker PTS delta
+            // Prefer media PTS over wall-clock counter estimates.
             val regexQt = Regex("""Rendered frame is earlier than the next expected frame \((\d+),\s*(\d+)\)""")
             val ptsList = regexQt.findAll(logOut).mapNotNull { it.groupValues[1].toLongOrNull() }.toList()
             if (ptsList.size >= 4) {
@@ -790,6 +768,33 @@ object PrivilegedServer {
                         lastTunneledFpsTimestampMs = SystemClock.elapsedRealtime()
                         currentFps = snapped
                         currentFpsSource = "TUNNEL_PTS_PROBE"
+                        lastTunneledSource = currentFpsSource
+                        return snapped to currentFpsSource
+                    }
+                }
+            }
+
+            // Fall back to VDA OUTs delta (estimated rate family).
+            val regexVda = Regex("""^\s*(\d+\.\d+).*?ServiceDeviceTask.*?OUTs=(\d+)/\d+""", RegexOption.MULTILINE)
+            val vdaMatches = regexVda.findAll(logOut).toList()
+            if (vdaMatches.size >= 2) {
+                val m1 = vdaMatches[vdaMatches.size - 2]
+                val m2 = vdaMatches.last()
+                val t1 = m1.groupValues[1].toDoubleOrNull() ?: 0.0
+                val t2 = m2.groupValues[1].toDoubleOrNull() ?: 0.0
+                val out1 = m1.groupValues[2].toLongOrNull() ?: 0L
+                val out2 = m2.groupValues[2].toLongOrNull() ?: 0L
+                val dt = t2 - t1
+                val dOut = out2 - out1
+                if (dt in 0.5..3.5 && dOut > 5L) {
+                    val vdaFps = (dOut.toDouble() / dt).toFloat()
+                    val snapped = FrameRates.estimateFamily(vdaFps)
+                    if (snapped > 0f) {
+                        lastTunneledFps = snapped
+                        lastTunneledFpsTimestampMs = SystemClock.elapsedRealtime()
+                        currentFps = snapped
+                        currentFpsSource = "TUNNEL_VDA_PROBE_ESTIMATED"
+                        lastTunneledSource = currentFpsSource
                         return snapped to currentFpsSource
                     }
                 }
@@ -797,11 +802,12 @@ object PrivilegedServer {
 
             // 3. Check 3:2 pulldown pattern
             if (logOut.contains("3:2 pattern detected")) {
-                lastTunneledFps = 23.976f
+                lastTunneledFps = 24f
                 lastTunneledFpsTimestampMs = SystemClock.elapsedRealtime()
-                currentFps = 23.976f
-                currentFpsSource = "TUNNEL_3_2_PROBE"
-                return 23.976f to currentFpsSource
+                currentFps = 24f
+                currentFpsSource = "TUNNEL_3_2_PROBE_ESTIMATED"
+                lastTunneledSource = currentFpsSource
+                return 24f to currentFpsSource
             }
         } catch (_: Throwable) {
         }

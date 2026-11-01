@@ -186,8 +186,8 @@ class AfrController(
                         // Presentation timestamps are constrained by the current HDMI mode.
                         // They must never drive automatic mode changes.
                         val fps = if (info.fpsSource == "SURFACE_VIDEO" || info.fpsSource == "SURFACE_FLINGER") 0f else info.fps
-                        val target = if (fps > 1f) normalizeTargetRefreshRate(fps) else 0f
-                        if (target <= 1f || abs(target - candidate) >= 0.1f) fpsStableSince = now
+                        val target = if (fps > 1f) normalizeTargetRefreshRate(fps, info.fpsSource.contains("ESTIMATED")) else 0f
+                        if (target <= 1f || abs(target - candidate) >= 0.005f) fpsStableSince = now
                         candidate = target
                         // No fixed startup delay: restart the five-second quiet window
                         // when either the target refresh rate or detected dimensions change.
@@ -248,7 +248,7 @@ class AfrController(
             // 1. First perform a deep probe (catches Tunneled Widevine L1 23.976fps in Disney+/Prime/Netflix!)
             val (probedFps, probedSource) = ServerClient.probeActiveVideoFpsWithSource()
             if (probedFps > 1.0f && probedSource.startsWith("TUNNEL_")) {
-                val targetHz = normalizeTargetRefreshRate(probedFps)
+                val targetHz = normalizeTargetRefreshRate(probedFps, probedSource.contains("ESTIMATED"))
                 mainHandler.post {
                     onBannerMessage(
                         String.format(
@@ -310,6 +310,7 @@ class AfrController(
 
     private fun formatSourceLabel(src: String): String {
         return when {
+            src.contains("ESTIMATED") -> "≈ Widevine L1 Tunnel"
             src.startsWith("TUNNEL_") -> "Widevine L1 Tunnel"
             src.startsWith("SURFACE_FLINGER") -> "SurfaceFlinger"
             src.startsWith("MEDIA_METRICS") -> "MediaCodec"
@@ -382,7 +383,7 @@ class AfrController(
             val candidate = fpsSamples[i]
             var count = 0
             for (j in 0 until sampleCount) {
-                if (abs(fpsSamples[j] - candidate) < 0.08f) count++
+                if (abs(fpsSamples[j] - candidate) < 0.005f) count++
             }
             if (count > bestCount) {
                 bestCount = count
@@ -392,22 +393,10 @@ class AfrController(
         return if (bestCount >= 2) bestVal else snapped
     }
 
-    private fun snapRawFpsToStandard(fps: Float): Float {
-        return when {
-            abs(fps - 23.976f) < 0.12f -> 23.976f
-            abs(fps - 24.0f) < 0.35f -> if (prefs.fractionalFrameRate) 23.976f else 24.0f
-            abs(fps - 25.0f) < 0.45f -> 25.0f
-            abs(fps - 29.97f) < 0.12f -> 29.97f
-            abs(fps - 30.0f) < 0.35f -> if (prefs.fractionalFrameRate) 29.97f else 30.0f
-            abs(fps - 50.0f) < 0.6f -> 50.0f
-            abs(fps - 59.94f) < 0.15f -> 59.94f
-            abs(fps - 60.0f) < 0.6f -> if (prefs.fractionalFrameRate) 59.94f else 60.0f
-            else -> fps
-        }
-    }
+    private fun snapRawFpsToStandard(fps: Float): Float = FrameRates.snapMeasured(fps)
 
-    fun normalizeTargetRefreshRate(videoFps: Float): Float {
-        var target = snapRawFpsToStandard(videoFps)
+    fun normalizeTargetRefreshRate(videoFps: Float, estimated: Boolean = false): Float {
+        var target = FrameRates.target(videoFps, estimated, prefs.fractionalFrameRate)
 
         if (abs(target - 25.0f) < 0.2f && prefs.convert25To50Hz) {
             target = 50.0f
@@ -415,23 +404,16 @@ class AfrController(
 
         if (prefs.convert30To60Hz && (abs(target - 30f) < 0.05f || abs(target - 29.97f) < 0.05f)) {
             val doubled = target * 2f
-            if (getSupportedModesSameResolution().any { abs(it.refreshRate - doubled) < 0.05f }) target = doubled
+            if (getSupportedModesSameResolution().any { abs(it.refreshRate - doubled) < 0.005f }) target = doubled
         }
 
         if (prefs.doubleRefreshRate24To48 && (abs(target - 24.0f) < 0.2f || abs(target - 23.976f) < 0.2f)) {
-            val has48 = getSupportedModesSameResolution().any { abs(it.refreshRate - 48.0f) < 0.5f }
+            val has48 = getSupportedModesSameResolution().any { abs(it.refreshRate - target * 2f) < 0.005f }
             if (has48) {
                 target *= 2f
             }
         }
 
-        if (prefs.fractionalFrameRate) {
-            when {
-                abs(target - 24.0f) < 0.05f -> target = 24f * 1000f / 1001f // 23.976025
-                abs(target - 30.0f) < 0.05f -> target = 30f * 1000f / 1001f // 29.97003
-                abs(target - 60.0f) < 0.05f -> target = 60f * 1000f / 1001f // 59.94006
-            }
-        }
         return target
     }
 

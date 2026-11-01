@@ -253,8 +253,8 @@ Changes:
     <string name="afr_apps_help">Choose which apps use automatic AFR. Other apps keep their own matching.</string>
     <string name="afr_auto_title">Automatically match refresh rate during playback</string>
     <string name="afr_auto_desc">Detects video frame rate in your selected apps and matches the display refresh rate.</string>
-    <string name="afr_exact_title">Fractional cinema mode (23.976 Hz)</string>
-    <string name="afr_exact_desc">Uses fractional cinema refresh rates.</string>
+    <string name="afr_exact_title">Prefer fractional rates for estimated fps</string>
+    <string name="afr_exact_desc">Used only when detection cannot distinguish 24/23.976, 30/29.97 or 60/59.94. Measured rates are preserved.</string>
     <string name="afr_pause_title">Pause playback during refresh rate changes</string>
     <string name="afr_pause_desc">Pauses playback while the display changes mode, then waits for the configured delay.</string>
     <string name="afr_resume_accessibility">Delay before resuming playback</string>

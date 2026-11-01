@@ -210,7 +210,7 @@ class OverlayToolkit(
                         if (dimensions.size == 2 && dimensions.all { it > 0 }) {
                             append("${minOf(dimensions[0], dimensions[1])}p | ")
                         }
-                        append(String.format(Locale.getDefault(), "%.3f fps", videoFps)).append('\n')
+                        append(String.format(Locale.getDefault(), if (sysInfo.fpsSource.contains("ESTIMATED")) "≈%.0f fps" else "%.3f fps", videoFps)).append('\n')
                     } else {
                         append(context.getString(R.string.hud_no_stream)).append('\n')
                     }

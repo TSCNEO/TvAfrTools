@@ -253,8 +253,8 @@ Novedades:
     <string name="afr_apps_help">Selecciona las apps donde actuará el AFR automático. Las demás conservan su propio ajuste.</string>
     <string name="afr_auto_title">Ajuste automático de Hz al reproducir vídeo</string>
     <string name="afr_auto_desc">Detecta películas y series en apps como Disney+, Netflix o Prime y cambia los Hz de la tele para que se vea suave</string>
-    <string name="afr_exact_title">Modo cine exacto (23,976 Hz)</string>
-    <string name="afr_exact_desc">Elimina los micropalpitares en películas grabadas a 24 fotogramas</string>
+    <string name="afr_exact_title">Preferir frecuencias fraccionales al estimar fps</string>
+    <string name="afr_exact_desc">Solo se aplica cuando la detección no distingue 24/23,976, 30/29,97 o 60/59,94. Se respetan las frecuencias medidas.</string>
     <string name="afr_pause_title">Pausa breve al cambiar de Hz</string>
     <string name="afr_pause_desc">Pausa el vídeo un segundo mientras la tele cambia de señal para no perder imagen ni sonido</string>
     <string name="afr_resume_accessibility">Espera antes de reanudar el vídeo</string>
