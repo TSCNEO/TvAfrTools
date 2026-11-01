@@ -101,6 +101,8 @@ Antes de actualizar desde una versión anterior, sal de la reproducción y vuelv
    - **Desde la app Downloader del televisor**: introduce el código **7763887** (enlace corto: [aftv.news/7763887](https://aftv.news/7763887)). Ese código apunta siempre a la última versión, así que te sirve para todas las futuras.
    - No uses nunca un enlace con la versión en el nombre (por ejemplo `TvAfrTools-v1.2.33.apk`): deja de funcionar en cuanto se publica la siguiente versión.
 2. **Instala y Concede Permisos**:
+   - Activa las **Opciones de desarrollador** del televisor (normalmente pulsando varias veces en **Compilación**, dentro de **Ajustes → Información**) y después activa **Depuración USB**. No necesitas conectar ningún cable USB.
+   - La app arranca el demonio privilegiado mediante ADB local en el puerto **5555**. Algunos dispositivos también requieren activar **Depuración por red / ADB por red**; la depuración USB por sí sola puede no abrir ese puerto. Los nombres de los ajustes dependen del fabricante.
    - Abre TvAfrTools en la tele.
    - Pulsa en **"Activar automáticamente en 1 clic"**.
    - Si sale el mensaje en pantalla *"¿Permitir depuración USB?"*, marca *"Permitir siempre"* y pulsa **OK**.

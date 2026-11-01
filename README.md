@@ -102,6 +102,8 @@ Before updating from an older version, exit playback and return to the TV home s
    - **From the Downloader app on your TV**: type code **7763887** (short link: [aftv.news/7763887](https://aftv.news/7763887)). It always resolves to the latest release, so the same code works for every future version.
    - Never use a link with the version baked into the filename (for example `TvAfrTools-v1.2.33.apk`): it stops working as soon as the next version is published.
 2. **Install & Grant Permissions**:
+   - Enable **Developer options** on your TV (usually by pressing **Build** several times under **Settings → About**), then enable **USB debugging**. No USB cable is needed.
+   - The app starts its privileged daemon through local ADB on port **5555**. Some devices also require **Network debugging / ADB debugging over the network** to be enabled; USB debugging alone may not expose this port. The option names depend on the manufacturer.
    - Open TvAfrTools on your TV.
    - When prompted, click **"Auto-activate in 1 click"**.
    - If a dialog appears on screen asking *"Allow USB debugging?"*, check *"Always allow from this computer"* and press **OK**.
