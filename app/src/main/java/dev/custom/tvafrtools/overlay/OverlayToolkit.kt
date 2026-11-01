@@ -239,12 +239,12 @@ class OverlayToolkit(
             } else {
                 val tv = TextView(context).apply {
                     setTextColor(Color.parseColor("#E2E8F0"))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                     typeface = Typeface.MONOSPACE
                     setPadding(dp(14), dp(10), dp(14), dp(10))
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
-                        cornerRadius = dp(10).toFloat()
+                        cornerRadius = dp(8).toFloat()
                         setColor(Color.parseColor("#E6111216"))
                         setStroke(dp(1), Color.parseColor("#454A57"))
                     }
@@ -349,7 +349,7 @@ class OverlayToolkit(
             val fpsStr = if (liveFps > 1f) String.format(Locale.US, "%.3f fps", liveFps) else "Buscando stream..."
             text = "Actual: $curStr   |   Vídeo: $fpsStr"
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(0, dp(4), 0, dp(12))
         }
         card.addView(subtitle)
@@ -581,7 +581,7 @@ class OverlayToolkit(
                 val subtitle = TextView(context).apply {
                     text = context.getString(R.string.overlay_free_mem, availMb, totalMb) + "  •  OK  |  " + context.getString(R.string.overlay_recents_hint)
                     setTextColor(Color.parseColor("#B8C0CE"))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                     setPadding(0, dp(4), 0, dp(12))
                 }
                 card.addView(subtitle)
@@ -688,7 +688,7 @@ class OverlayToolkit(
         return TextView(context).apply {
             this.text = text
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             setPadding(dp(16), dp(11), dp(16), dp(11))
             isFocusable = true
             isFocusableInTouchMode = true
@@ -710,7 +710,7 @@ class OverlayToolkit(
             fun updateBg(focused: Boolean) {
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(10).toFloat()
+                    cornerRadius = dp(8).toFloat()
                     if (focused) {
                         setColor(Color.parseColor("#F59E0B"))
                         setStroke(dp(2), Color.WHITE)

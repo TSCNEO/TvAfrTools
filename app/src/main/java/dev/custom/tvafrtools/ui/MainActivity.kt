@@ -151,14 +151,14 @@ class MainActivity : AppCompatActivity() {
         val title = TextView(this).apply {
             text = "⚠️ Permiso de Accesibilidad inactivo"
             setTextColor(Color.parseColor("#FCA5A5"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = Typeface.DEFAULT_BOLD
             setPadding(0, 0, 0, dpToPx(4))
         }
         val desc = TextView(this).apply {
             text = "Necesario para interceptar botones del mando, ajustar Hz automáticamente y mostrar el menú flotante."
-            setTextColor(Color.parseColor("#E2E8F0"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+            setTextColor(Color.parseColor("#F8FAFC"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(0, 0, 0, dpToPx(10))
         }
 
@@ -371,7 +371,7 @@ class MainActivity : AppCompatActivity() {
         val deviceModelText = TextView(this).apply {
             text = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}\nAndroid ${Build.VERSION.RELEASE}"
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.5f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(10, 0, 10, 6)
         }
         sidebar.addView(deviceModelText)
@@ -421,7 +421,7 @@ class MainActivity : AppCompatActivity() {
         liveStatusPill = TextView(this).apply {
             text = "Comprobando..."
             setTextColor(Color.parseColor("#F59E0B"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(dpToPx(14), dpToPx(7), dpToPx(14), dpToPx(7))
             background = GradientDrawable().apply {
                 setColor(Color.parseColor("#1C1E26"))
@@ -638,7 +638,7 @@ class MainActivity : AppCompatActivity() {
             val emptyCard = TextView(this).apply {
                 text = "Todavía no has configurado ningún botón.\nPulsa 'Añadir botón del mando' para empezar."
                 setTextColor(Color.parseColor("#B8C0CE"))
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                 setPadding(dpToPx(20), dpToPx(24), dpToPx(20), dpToPx(24))
                 background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
             }
@@ -654,7 +654,7 @@ class MainActivity : AppCompatActivity() {
                         shape = GradientDrawable.RECTANGLE
                         setColor(Color.parseColor("#191B22"))
                         cornerRadius = dpToPx(12).toFloat()
-                        setStroke(dpToPx(1), Color.parseColor("#282B35"))
+                        setStroke(dpToPx(1), Color.parseColor("#454A57"))
                     }
                     setPadding(dpToPx(20), dpToPx(14), dpToPx(20), dpToPx(14))
                     layoutParams = LinearLayout.LayoutParams(
@@ -676,7 +676,7 @@ class MainActivity : AppCompatActivity() {
                             append("\n   • ").append(getString(R.string.mapper_video_override)).append(": ").append(formatActionLabel(m.appOverrides.values.first(), m.overridePkg))
                         }
                     }
-                    setTextColor(Color.parseColor("#F1F5F9"))
+                    setTextColor(Color.parseColor("#F8FAFC"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                 }
@@ -919,17 +919,17 @@ class MainActivity : AppCompatActivity() {
             val dispStr = if (curMode != null) "${curMode.physicalWidth}x${curMode.physicalHeight} @ ${"%.3f".format(curMode.refreshRate)} Hz" else "N/A"
 
             statusRowsContainer.removeAllViews()
-            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_device), "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})", Color.parseColor("#F1F5F9")))
-            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_hdmi), dispStr, Color.parseColor("#38BDF8")))
-            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_acc), if (accActive) getString(R.string.status_active_linked) else getString(R.string.status_inactive), if (accActive) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
-            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_overlay), if (overlayGranted) getString(R.string.status_granted) else getString(R.string.status_pending), if (overlayGranted) Color.parseColor("#4ADE80") else Color.parseColor("#EF4444")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_device), "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})", Color.parseColor("#F8FAFC")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_hdmi), dispStr, Color.parseColor("#93C5FD")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_acc), if (accActive) getString(R.string.status_active_linked) else getString(R.string.status_inactive), if (accActive) Color.parseColor("#6EE7B7") else Color.parseColor("#FCA5A5")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_overlay), if (overlayGranted) getString(R.string.status_granted) else getString(R.string.status_pending), if (overlayGranted) Color.parseColor("#6EE7B7") else Color.parseColor("#FCA5A5")))
             val daemonText = when {
                 daemonSample.online -> "🟢 Listo (${"%.2f".format(daemonSample.fps)} FPS | ${"%.1f".format(daemonSample.cpuTempC)}°C)"
                 accActive -> getString(R.string.status_standard_mode)
                 else -> getString(R.string.status_inactive_activate_hint)
             }
-            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_daemon), daemonText, if (daemonSample.online || accActive) Color.parseColor("#4ADE80") else Color.parseColor("#F59E0B")))
-            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_web_remote), "http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}", Color.parseColor("#38BDF8")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_daemon), daemonText, if (daemonSample.online || accActive) Color.parseColor("#6EE7B7") else Color.parseColor("#F59E0B")))
+            statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_web_remote), "http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}", Color.parseColor("#93C5FD")))
         }
 
         col.addView(statusCard)
@@ -963,7 +963,7 @@ class MainActivity : AppCompatActivity() {
 
         val updateStatusText = TextView(this).apply {
             text = ""
-            setTextColor(Color.parseColor("#38BDF8"))
+            setTextColor(Color.parseColor("#93C5FD"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
             setPadding(0, dpToPx(10), 0, 0)
             visibility = View.GONE
@@ -977,7 +977,7 @@ class MainActivity : AppCompatActivity() {
             UpdateManager.checkForUpdate(this) { info, err ->
                 if (info != null) {
                     updateStatusText.text = getString(R.string.update_available_title, info.tagName)
-                    updateStatusText.setTextColor(Color.parseColor("#10B981"))
+                    updateStatusText.setTextColor(Color.parseColor("#6EE7B7"))
                     showUpdateAvailableDialog(info) { status ->
                         updateStatusText.text = status
                     }
@@ -1007,7 +1007,7 @@ class MainActivity : AppCompatActivity() {
         }
         val notesTv = TextView(this).apply {
             text = markdownToSpanned(info.releaseNotes)
-            setTextColor(Color.parseColor("#E2E8F0"))
+            setTextColor(Color.parseColor("#F8FAFC"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setLineSpacing(dpToPx(2).toFloat(), 1f)
         }
@@ -1036,7 +1036,7 @@ class MainActivity : AppCompatActivity() {
 
         val statusTv = TextView(this).apply {
             text = getString(R.string.update_downloading, 0)
-            setTextColor(Color.parseColor("#E2E8F0"))
+            setTextColor(Color.parseColor("#F8FAFC"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, 0, 0, dpToPx(14))
         }
@@ -1087,7 +1087,7 @@ class MainActivity : AppCompatActivity() {
                     progressBar.isIndeterminate = false
                     progressBar.progress = 100
                     statusTv.text = msg
-                    statusTv.setTextColor(Color.parseColor("#10B981"))
+                    statusTv.setTextColor(Color.parseColor("#6EE7B7"))
                     statusTv.postDelayed({
                         try {
                             if (dialog.isShowing && !isFinishing && !isDestroyed) {
@@ -1098,7 +1098,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     progressBar.visibility = View.GONE
                     statusTv.text = msg
-                    statusTv.setTextColor(Color.parseColor("#EF4444"))
+                    statusTv.setTextColor(Color.parseColor("#FCA5A5"))
                     dialog.setCancelable(true)
                     val btn = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
                     btn?.visibility = View.VISIBLE
@@ -1229,10 +1229,10 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val daemonOnline = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
             val (statusText, textColor) = when {
-                daemonOnline && a11yActive -> ("📺 $hzStr  •  🟢 Sistema listo" to Color.parseColor("#4ADE80"))
-                a11yActive -> ("📺 $hzStr  •  🟢 Botones activos" to Color.parseColor("#38BDF8"))
-                daemonOnline -> ("📺 $hzStr  •  🟡 Accesibilidad pendiente" to Color.parseColor("#F59E0B"))
-                else -> ("📺 $hzStr  •  ⚠️ Permisos pendientes" to Color.parseColor("#EF4444"))
+                daemonOnline && a11yActive -> ("$hzStr  •  Sistema listo" to Color.parseColor("#6EE7B7"))
+                a11yActive -> ("$hzStr  •  Botones activos" to Color.parseColor("#93C5FD"))
+                daemonOnline -> ("$hzStr  •  Accesibilidad pendiente" to Color.parseColor("#F59E0B"))
+                else -> ("$hzStr  •  Permisos pendientes" to Color.parseColor("#FCA5A5"))
             }
             liveStatusPill.text = statusText
             liveStatusPill.setTextColor(textColor)
@@ -1352,8 +1352,8 @@ class MainActivity : AppCompatActivity() {
             l = l.replace(Regex("""\*\*(.*?)\*\*"""), "<b>$1</b>")
             // Italic: *text* -> <i>text</i>
             l = l.replace(Regex("""\*(.*?)\*"""), "<i>$1</i>")
-            // Backticks: `code` -> <font color='#38BDF8'><code>$1</code></font>
-            l = l.replace(Regex("""`(.*?)`"""), "<font color='#38BDF8'><code>$1</code></font>")
+            // Backticks: `code` -> <font color='#93C5FD'><code>$1</code></font>
+            l = l.replace(Regex("""`(.*?)`"""), "<font color='#93C5FD'><code>$1</code></font>")
 
             sb.append(l)
         }
