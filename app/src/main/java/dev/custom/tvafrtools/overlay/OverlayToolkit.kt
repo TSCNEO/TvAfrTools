@@ -239,9 +239,9 @@ class OverlayToolkit(
             } else {
                 val tv = TextView(context).apply {
                     setTextColor(Color.parseColor("#F8FAFC"))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 8f)
                     typeface = Typeface.MONOSPACE
-                    setPadding(dp(14), dp(10), dp(14), dp(10))
+                    setPadding(dp(7), dp(5), dp(7), dp(5))
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = dp(8).toFloat()

@@ -175,7 +175,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString().orEmpty()
             if (pkg.isNotBlank() &&
-                pkg != "dev.custom.tvafrtools" &&
+                pkg != packageName &&
                 pkg != "com.android.systemui" &&
                 !pkg.startsWith("android")
             ) {

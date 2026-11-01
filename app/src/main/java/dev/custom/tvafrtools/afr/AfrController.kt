@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import android.view.Display
 import android.view.Gravity
 import android.view.KeyEvent
@@ -81,11 +82,27 @@ class AfrController(
     private var isAfrActive: Boolean = false
     private var activeTargetModeId: Int = -1
     private var waitingForDisplayChangePlay: Boolean = false
+    private var pausedForegroundPackage: String = ""
     private val resumePlayback = Runnable {
         if (!destroyed && waitingForDisplayChangePlay) {
             waitingForDisplayChangePlay = false
-            dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
+            if (pausedForegroundPackage.isEmpty() || foregroundPackage == pausedForegroundPackage) {
+                Log.i("AfrController", "Resuming playback after display switch")
+                dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
+            } else {
+                Log.i("AfrController", "Not resuming: foreground app changed")
+            }
         }
+    }
+
+    private fun beginPauseHandshake() {
+        mainHandler.removeCallbacks(resumePlayback)
+        pausedForegroundPackage = foregroundPackage
+        waitingForDisplayChangePlay = true
+        dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
+        // Some HDMI stacks omit a matching display callback. Never leave playback
+        // paused indefinitely; the configured delay still applies after this limit.
+        mainHandler.postDelayed(resumePlayback, 8000L + prefs.resumeDelayMs.toLong())
     }
 
     // 5-sample circular buffer for FPS stabilization
@@ -438,8 +455,7 @@ class AfrController(
         }
 
         if (pausePlaybackHandshake) {
-            waitingForDisplayChangePlay = true
-            dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
+            beginPauseHandshake()
             mainHandler.postDelayed({
                 applyDisplayModeDirect(chosen)
             }, 180L)
@@ -462,8 +478,7 @@ class AfrController(
             return
         }
         if (pausePlaybackHandshake) {
-            waitingForDisplayChangePlay = true
-            dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
+            beginPauseHandshake()
             mainHandler.postDelayed({
                 applyModeIdInternal(modeId)
             }, 180L)
