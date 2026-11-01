@@ -381,6 +381,13 @@ class OverlayToolkit(
             afrController.triggerOneClickAfr()
         }
         card.addView(autoBtn)
+        // Opción Revertir / Restaurar Frecuencia nativa 60Hz inmediatamente debajo de Auto
+        val revertBtn = createPanelButton(context.getString(R.string.overlay_revert_60hz_btn), isHighlighted = false) {
+            closeAfrPanel()
+            afrController.stopAfr()
+        }
+        card.addView(revertBtn)
+
         val panelPrefs = dev.custom.tvafrtools.config.AppPrefs(context)
         card.addView(createPanelButton(
             (if (panelPrefs.matchNativeResolution) "☑ " else "☐ ") + context.getString(R.string.afr_native_title),
@@ -390,13 +397,6 @@ class OverlayToolkit(
             closeAfrPanel()
             openAfrPanel()
         })
-
-        // Opción Revertir / Restaurar Frecuencia nativa 60Hz inmediatamente debajo de Auto
-        val revertBtn = createPanelButton(context.getString(R.string.overlay_revert_60hz_btn), isHighlighted = false) {
-            closeAfrPanel()
-            afrController.stopAfr()
-        }
-        card.addView(revertBtn)
 
         modes.forEach { m ->
             val isCurrent = currentMode?.modeId == m.modeId
