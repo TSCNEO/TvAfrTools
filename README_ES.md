@@ -6,7 +6,7 @@
 [![Licencia: GPL-3.0](https://img.shields.io/badge/Licencia-GPL--3.0-blue)](LICENSE)
 [![GitHub Issues](https://img.shields.io/github/issues/TSCNEO/TvAfrTools)](https://github.com/TSCNEO/TvAfrTools/issues)
 
-**TvAfrTools** es una suite de herramientas nativa, ligera y de código abierto para **Android TV y Google TV** (desde Android 9.0 hasta Android 14). Ofrece soluciones avanzadas de hardware y control que habitualmente faltan o son exclusivas de aplicaciones de pago en dispositivos Android TV y Smart TVs.
+**TvAfrTools** es una suite gratuita, nativa y de código abierto para **Android TV y Google TV** (Android 9–14). La empecé porque me cansé de no tener ajuste automático de frecuencia (AFR) en servicios como **Disney+ y DAZN**: cuando los fotogramas del vídeo y los Hz de la tele no coinciden, los paneos pueden verse a tirones. La app intenta detectar los fps del vídeo y ajustar la pantalla, incluso con ciertos vídeos protegidos por Widevine L1. El resultado depende del dispositivo y de cada aplicación.
 
 > 🇬🇧 **[Read this guide in English](README.md)**
 
@@ -79,11 +79,10 @@ Antes de actualizar desde una versión anterior, sal de la reproducción y vuelv
 
 - **Sistema Operativo**: Android TV / Google TV 9.0 (API 28) hasta Android 14 (API 34).
 - **Plataformas Soportadas**: **Exclusivamente Android TV y Google TV estándar / certificado (Android 9.0 a 14)**.
-- **Modelos Probados y Verificados**:
-  - Chromecast con Google TV (HD y 4K)
-  - NVIDIA Shield TV / Shield TV Pro
-  - Nokia Streaming Box 8000 / 8010
-  - Strong Leap-S1 / S3 y demás reproductores con Android TV / Google TV oficial.
+- **Dispositivos que he probado personalmente**:
+  - Homatics Box R 4K Plus.
+  - Xiaomi TV Box 3rd Gen.
+- La compatibilidad puede variar en otros modelos. Si la pruebas, cuéntame el modelo, la versión de Android TV y la aplicación usada.
 - ⛔ **Amazon Fire TV / Fire OS NO es compatible**:
   - Amazon bloquea por firmware las conexiones ADB locales (`127.0.0.1:5555` - CVE-2024-27350), impidiendo la activación autónoma en 1 clic.
   - Fire OS oculta los servicios de accesibilidad de terceros en los ajustes del sistema.
@@ -125,3 +124,59 @@ Copyright (C) 2026 The TvAfrTools contributors.
 ## Hoja de ruta
 
 [Hoja de ruta](ROADMAP.md)
+
+---
+
+## Texto para compartir
+
+Buenas, shurs.
+
+Llevaba tiempo harto de que el AFR no funcionase como quería en Disney+, DAZN y otros servicios. Cuando la frecuencia de los fotogramas del vídeo no coincide con los Hz de la tele, los movimientos de cámara pueden dar tirones. Así que me puse a hacer **TvAfrTools**, una app nativa para Android TV y Google TV que intenta detectar los fps y ajustar la frecuencia de pantalla, también en algunos casos de reproducción protegida.
+
+Además tiene mapeo de botones del mando, selector manual de Hz, multitarea, HUD técnico y mando web para controlar la tele desde el móvil. Es un proyecto personal, gratuito y con el código abierto en GitHub.
+
+### Qué necesitas
+
+- Android TV o Google TV con Android 9–14. Fire TV / Fire OS no está soportado.
+- De momento solo la he probado en un **Homatics Box R 4K Plus** y una **Xiaomi TV Box 3rd Gen**. En otros modelos puede variar; si la probáis, decidme cuál y con qué aplicación.
+
+### Descarga
+
+- **Downloader:** código `7763887` ([aftv.news/7763887](https://aftv.news/7763887)).
+- [Descargar la última APK](https://github.com/TSCNEO/TvAfrTools/releases/latest/download/TvAfrTools.apk) · [Ver versiones](https://github.com/TSCNEO/TvAfrTools/releases) · [Código fuente](https://github.com/TSCNEO/TvAfrTools)
+
+Se instala con Downloader, Send Files to TV o ADB. La app puede requerir activar permisos desde el propio televisor.
+
+Es un proyecto personal y todavía puede tener fallos; agradeceré sugerencias y reportes, sobre todo de gente que pueda probarlo en otros dispositivos.
+
+⭐ Si os gusta o os resulta útil, regaladle una estrella en GitHub. Son dos segundos y me ayuda mucho a que el proyecto llegue a más gente: [TSCNEO/TvAfrTools](https://github.com/TSCNEO/TvAfrTools) (botón **Star**, arriba a la derecha; hace falta una cuenta gratuita).
+# TvAfrTools
+
+Una utilidad gratuita y de código abierto para Android TV y Google TV. La hice porque me cansé de no tener ajuste automático de frecuencia (AFR) en aplicaciones como Disney+, DAZN y otros servicios de streaming: cuando los fotogramas del vídeo y los Hz de la tele no coinciden, los paneos pueden verse a tirones.
+
+TvAfrTools intenta detectar la frecuencia del vídeo y ajustar la pantalla, incluso en algunos casos con reproducción protegida Widevine L1. El resultado depende del dispositivo y de cada aplicación, así que no puedo prometer que funcione igual en todas las teles.
+
+También incluye acciones rápidas para el mando, selector manual de Hz, multitarea, HUD técnico y mando web desde el móvil.
+
+## Descarga e instalación
+
+- **Código Downloader:** `7763887` ([aftv.news/7763887](https://aftv.news/7763887)). Introduce el código en la app Downloader de la tele.
+- [Descargar siempre la última APK estable](https://github.com/TSCNEO/TvAfrTools/releases/latest/download/TvAfrTools.apk)
+- [Ver versiones y cambios](https://github.com/TSCNEO/TvAfrTools/releases)
+- También puedes instalarla con Send Files to TV o ADB.
+
+## Dispositivos probados
+
+Solo he podido probarla en un **Homatics Box R 4K Plus** y una **Xiaomi TV Box 3rd Gen**. Agradezco especialmente que indiquéis el modelo de tele o box, la versión de Android TV y la app de streaming si la probáis en otro dispositivo.
+
+Requiere Android TV o Google TV 9–14. **Fire TV / Fire OS no está soportado.**
+
+Es un proyecto personal que hago en mi tiempo libre. Si encontráis un fallo o tenéis una idea, podéis [abrir un issue](https://github.com/TSCNEO/TvAfrTools/issues) o comentarlo en el hilo.
+
+⭐ Si os gusta o os resulta útil, regaladle una estrella en GitHub: [TSCNEO/TvAfrTools](https://github.com/TSCNEO/TvAfrTools) (botón **Star**, arriba a la derecha; hace falta una cuenta gratuita).
+
+El código está publicado bajo licencia [GPL-3.0](LICENSE).
+
+---
+
+# TvAfrTools
