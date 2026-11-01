@@ -535,18 +535,20 @@ class MainActivity : AppCompatActivity() {
             initial = prefs.pauseOnSwitch
         ) { prefs.pauseOnSwitch = it })
 
-        col.addView(makeInteractiveToggleCard(
-            title = getString(R.string.afr_native_title),
-            desc = getString(R.string.afr_native_desc),
-            initial = prefs.matchNativeResolution
-        ) { prefs.matchNativeResolution = it })
-
+        val delayRow = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpToPx(16), dpToPx(10), dpToPx(16), dpToPx(10))
+            background = ContextCompat.getDrawable(this@MainActivity, R.drawable.setting_row_selector)
+        }
         val delayLabel = TextView(this).apply {
-            setTextColor(Color.WHITE)
+            setTextColor(Color.parseColor("#F8FAFC"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            typeface = Typeface.DEFAULT_BOLD
             text = getString(R.string.afr_resume_delay, prefs.resumeDelayMs / 1000.0)
         }
-        col.addView(delayLabel)
-        col.addView(android.widget.SeekBar(this).apply {
+        delayRow.addView(delayLabel)
+        delayRow.addView(android.widget.SeekBar(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             max = 18
             progress = (prefs.resumeDelayMs - 1000) / 500
             contentDescription = getString(R.string.afr_resume_accessibility)
@@ -561,6 +563,13 @@ class MainActivity : AppCompatActivity() {
                 override fun onStopTrackingTouch(bar: android.widget.SeekBar?) {}
             })
         })
+        col.addView(delayRow)
+
+        col.addView(makeInteractiveToggleCard(
+            title = getString(R.string.afr_native_title),
+            desc = getString(R.string.afr_native_desc),
+            initial = prefs.matchNativeResolution
+        ) { prefs.matchNativeResolution = it })
 
         col.addView(makeInteractiveToggleCard(
             title = getString(R.string.afr_25_title),
