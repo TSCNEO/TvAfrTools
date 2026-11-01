@@ -122,7 +122,3 @@ Found a bug or have a feature idea? We would love your feedback!
 TvAfrTools is free software distributed under the **GNU General Public License v3.0** (GPL-3.0). You may use, study, modify and redistribute it freely. If you distribute a modified version, you must release its source code under the same license. The full text is in [LICENSE](LICENSE).
 
 Copyright (C) 2026 The TvAfrTools contributors.
-
-## Roadmap
-
-[Roadmap](ROADMAP.md)
