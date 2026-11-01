@@ -79,11 +79,10 @@ Before updating from an older version, exit playback and return to the TV home s
 
 - **Operating System**: Android TV / Google TV 9.0 (API 28) up to Android 14 (API 34).
 - **Target Platforms**: **Certified Android TV & Google TV only (Android 9.0 to 14)**.
-- **Tested & Verified Devices**:
-  - Chromecast with Google TV (HD & 4K)
-  - NVIDIA Shield TV / Shield TV Pro
-  - Nokia Streaming Box 8000 / 8010
-  - Strong Leap-S1 / S3 & other standard Google TV / Android TV boxes.
+- **Personally tested devices**:
+  - Homatics Box R 4K Plus.
+  - Xiaomi TV Box 3rd Gen.
+- Results may vary on other models. Please report the device model, Android version, and video app when testing.
 - ⛔ **Amazon Fire TV / Fire OS is NOT supported**:
   - Amazon deliberately blocks local loopback ADB connections (`127.0.0.1:5555`) in Fire OS updates (CVE-2024-27350), preventing autonomous on-device self-activation.
   - Fire OS hides third-party accessibility services from the system UI.
@@ -101,13 +100,26 @@ Before updating from an older version, exit playback and return to the TV home s
      ```
    - **From the Downloader app on your TV**: type code **7763887** (short link: [aftv.news/7763887](https://aftv.news/7763887)). It always resolves to the latest release, so the same code works for every future version.
    - Never use a link with the version baked into the filename (for example `TvAfrTools-v1.2.33.apk`): it stops working as soon as the next version is published.
-2. **Install & Grant Permissions**:
+2. **Install the APK**: open the downloaded file and confirm installation. If Android blocks it, allow **Install unknown apps** for Downloader or the app opening the file.
+3. **Set up ADB and activate permissions**:
    - Enable **Developer options** on your TV (usually by pressing **Build** several times under **Settings → About**), then enable **USB debugging**. No USB cable is needed.
    - The app starts its privileged daemon through local ADB on port **5555**. Some devices also require **Network debugging / ADB debugging over the network** to be enabled; USB debugging alone may not expose this port. The option names depend on the manufacturer.
    - Open TvAfrTools on your TV.
    - When prompted, click **"Auto-activate in 1 click"**.
    - If a dialog appears on screen asking *"Allow USB debugging?"*, check *"Always allow from this computer"* and press **OK**.
-3. **Enjoy judder-free movies & smooth multitasking!**
+4. **Check that the engine is ready**: under **Info & Update**, verify that Accessibility Service is **Active & bound**, Overlay Permission is **Granted**, and Background Engine is active.
+5. **Choose where AFR runs**: open **AFR apps** and enable the apps you want, such as Disney+ or DAZN. **The list starts empty: automatic AFR will not run unless you select an app.** In AFR settings, keep **Automatically match refresh rate during playback** enabled.
+6. **Try playback**: open a selected app and play a video. HDMI switching may briefly blank the screen. Check the refresh rate using the HUD or your TV's signal information; if the display already uses a suitable rate, no change may be needed. Returning to the home screen should attempt to restore the previous display configuration.
+
+### If something does not work
+
+- **No ADB authorization dialog or engine fails to start**: check USB debugging and network debugging if available. Retry activation and accept the dialog on the TV. Automatic startup requires local ADB connections on port **5555**; USB debugging alone may not be enough if the manufacturer does not expose this port.
+- **Accessibility is inactive**: retry automatic activation. Check the service under **Settings → Accessibility**; Android 13/14 may restrict apps installed outside the store.
+- **Engine is active but refresh rate does not change**: check **AFR apps**, the automatic matching toggle, and whether your TV supports the desired rate. Try the manual selector to distinguish detection problems from display switching problems. Detection varies by device and video app.
+- **Display remains limited to a refresh rate after playback**: use the display rescue action under **Info & Update** to clear refresh rate limits.
+- **It stops working after a reboot**: open TvAfrTools, check engine status, and repeat activation if needed.
+
+If the problem persists, open an issue with the device model, Android version, TvAfrTools version, video app, and permission and engine status.
 
 ---
 

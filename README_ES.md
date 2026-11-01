@@ -100,13 +100,26 @@ Antes de actualizar desde una versión anterior, sal de la reproducción y vuelv
      ```
    - **Desde la app Downloader del televisor**: introduce el código **7763887** (enlace corto: [aftv.news/7763887](https://aftv.news/7763887)). Ese código apunta siempre a la última versión, así que te sirve para todas las futuras.
    - No uses nunca un enlace con la versión en el nombre (por ejemplo `TvAfrTools-v1.2.33.apk`): deja de funcionar en cuanto se publica la siguiente versión.
-2. **Instala y Concede Permisos**:
+2. **Instala el APK**: ábrelo y confirma la instalación. Si Android la bloquea, permite **Instalar aplicaciones desconocidas** para Downloader o para la app desde la que abres el archivo.
+3. **Prepara ADB y activa los permisos**:
    - Activa las **Opciones de desarrollador** del televisor (normalmente pulsando varias veces en **Compilación**, dentro de **Ajustes → Información**) y después activa **Depuración USB**. No necesitas conectar ningún cable USB.
    - La app arranca el demonio privilegiado mediante ADB local en el puerto **5555**. Algunos dispositivos también requieren activar **Depuración por red / ADB por red**; la depuración USB por sí sola puede no abrir ese puerto. Los nombres de los ajustes dependen del fabricante.
    - Abre TvAfrTools en la tele.
    - Pulsa en **"Activar automáticamente en 1 clic"**.
    - Si sale el mensaje en pantalla *"¿Permitir depuración USB?"*, marca *"Permitir siempre"* y pulsa **OK**.
-3. **¡Listo!** Ya puedes configurar el cambio de Hz, el mando y la multitarea.
+4. **Comprueba que el motor está listo**: en **Información**, verifica que el servicio de accesibilidad aparece **Activo y vinculado**, la superposición **Concedido** y el motor en segundo plano está activo.
+5. **Elige dónde usar AFR**: entra en **Apps AFR** y activa las aplicaciones que quieras, por ejemplo Disney+ o DAZN. **La lista empieza vacía: si no seleccionas ninguna app, el AFR automático no actuará.** En los ajustes AFR, deja activado **Ajuste automático de Hz al reproducir vídeo**.
+6. **Prueba una reproducción**: abre una de las apps seleccionadas y reproduce un vídeo. El cambio de señal HDMI puede dejar la pantalla negra unos instantes. Comprueba los Hz con el HUD o con la información de señal del televisor; si la pantalla ya estaba en una frecuencia adecuada, puede no haber cambio. Al volver al inicio, la app intentará restaurar la configuración anterior.
+
+### Si algo no funciona
+
+- **No aparece la autorización ADB o el motor no arranca**: comprueba la depuración USB y, si existe, la depuración por red. Vuelve a pulsar la activación y acepta el diálogo en la TV. El arranque automático requiere que el dispositivo permita conexiones ADB locales al puerto **5555**; si el fabricante no lo habilita, activar la depuración USB puede no bastar.
+- **Accesibilidad inactiva**: vuelve a intentar la activación automática. Puedes comprobar el servicio en **Ajustes → Accesibilidad**; en Android 13/14 puede haber restricciones para apps instaladas fuera de la tienda.
+- **El motor está activo pero no cambian los Hz**: revisa **Apps AFR**, el interruptor de ajuste automático y que el televisor admita la frecuencia deseada. Prueba el selector manual para distinguir un problema de detección de uno de cambio de pantalla. La detección puede variar según el dispositivo y la app de vídeo.
+- **La pantalla queda limitada a una frecuencia tras salir**: usa **Información → Rescatar pantalla (quitar límites de Hz)**.
+- **Tras reiniciar deja de funcionar**: abre TvAfrTools, comprueba el estado del motor y repite la activación si hace falta.
+
+Si sigue fallando, abre un issue con el modelo, la versión de Android, la versión de TvAfrTools, la app de vídeo y el estado de los permisos y del motor.
 
 ---
 
