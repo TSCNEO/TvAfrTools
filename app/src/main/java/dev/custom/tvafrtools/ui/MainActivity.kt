@@ -21,6 +21,7 @@ import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -53,6 +54,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: AppPrefs
     private var autoBootstrapAttempted = false
+    private var updateDialogShownInSession = false
 
     // UI navigation state
     private enum class NavSection(val titleRes: Int, val subRes: Int, val icon: String) {
@@ -87,9 +89,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        UpdateManager.checkOnAppOpen(applicationContext) { version ->
+        UpdateManager.checkOnAppOpen(applicationContext) { info ->
             if (!isFinishing && !isDestroyed && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
-                Toast.makeText(this, getString(R.string.update_startup_notice, version), Toast.LENGTH_LONG).show()
+                if (!updateDialogShownInSession) {
+                    updateDialogShownInSession = true
+                    showUpdateAvailableDialog(info)
+                }
             }
         }
         lifecycleScope.launch {
@@ -971,46 +976,9 @@ class MainActivity : AppCompatActivity() {
                 if (info != null) {
                     updateStatusText.text = getString(R.string.update_available_title, info.tagName)
                     updateStatusText.setTextColor(Color.parseColor("#10B981"))
-
-                    val changelogView = ScrollView(this).apply {
-                        isFocusable = true
-                        descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
-                        setPadding(dpToPx(24), dpToPx(12), dpToPx(24), dpToPx(12))
+                    showUpdateAvailableDialog(info) { status ->
+                        updateStatusText.text = status
                     }
-                    val notesTv = TextView(this).apply {
-                        text = markdownToSpanned(info.releaseNotes)
-                        setTextColor(Color.parseColor("#E2E8F0"))
-                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                        setLineSpacing(dpToPx(2).toFloat(), 1f)
-                    }
-                    changelogView.addView(notesTv)
-
-                    AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.update_available_title, info.tagName))
-                        .setView(changelogView)
-                        .setPositiveButton(getString(R.string.update_btn_install)) { _, _ ->
-                            updateStatusText.text = getString(R.string.update_downloading, 0)
-                            UpdateManager.downloadAndInstall(
-                                this,
-                                info,
-                                onProgress = { pct ->
-                                    updateStatusText.text = getString(R.string.update_downloading, pct)
-                                },
-                                onStatus = { status ->
-                                    updateStatusText.text = status
-                                },
-                                onComplete = { success, msg ->
-                                    updateStatusText.text = msg
-                                    if (success) {
-                                        updateStatusText.setTextColor(Color.parseColor("#10B981"))
-                                    } else {
-                                        updateStatusText.setTextColor(Color.parseColor("#EF4444"))
-                                    }
-                                }
-                            )
-                        }
-                        .setNegativeButton(getString(R.string.btn_later), null)
-                        .show()
                 } else {
                     updateStatusText.text = err ?: getString(R.string.update_up_to_date, BuildConfig.VERSION_NAME)
                     updateStatusText.setTextColor(Color.parseColor("#94A3B8"))
@@ -1025,6 +993,117 @@ class MainActivity : AppCompatActivity() {
 
         col.addView(updateCard)
         return scroll
+    }
+
+    private fun showUpdateAvailableDialog(info: UpdateInfo, onStatusChanged: ((String) -> Unit)? = null) {
+        if (isFinishing || isDestroyed) return
+
+        val changelogView = ScrollView(this).apply {
+            isFocusable = true
+            descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+            setPadding(dpToPx(24), dpToPx(12), dpToPx(24), dpToPx(12))
+        }
+        val notesTv = TextView(this).apply {
+            text = markdownToSpanned(info.releaseNotes)
+            setTextColor(Color.parseColor("#E2E8F0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setLineSpacing(dpToPx(2).toFloat(), 1f)
+        }
+        changelogView.addView(notesTv)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_available_title, info.tagName))
+            .setView(changelogView)
+            .setPositiveButton(getString(R.string.update_btn_install)) { _, _ ->
+                showUpdateProgressDialog(info, onStatusChanged)
+            }
+            .setNegativeButton(getString(R.string.btn_later), null)
+            .create()
+
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.requestFocus()
+    }
+
+    private fun showUpdateProgressDialog(info: UpdateInfo, onStatusChanged: ((String) -> Unit)? = null) {
+        if (isFinishing || isDestroyed) return
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpToPx(24), dpToPx(16), dpToPx(24), dpToPx(20))
+        }
+
+        val statusTv = TextView(this).apply {
+            text = getString(R.string.update_downloading, 0)
+            setTextColor(Color.parseColor("#E2E8F0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setPadding(0, 0, 0, dpToPx(14))
+        }
+
+        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            isIndeterminate = false
+            max = 100
+            progress = 0
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(10)
+            )
+        }
+
+        layout.addView(statusTv)
+        layout.addView(progressBar)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_progress_title, info.tagName))
+            .setView(layout)
+            .setCancelable(false)
+            .setNegativeButton(getString(R.string.btn_got_it), null)
+            .create()
+
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.visibility = View.GONE
+
+        UpdateManager.downloadAndInstall(
+            this,
+            info,
+            onProgress = { pct ->
+                progressBar.isIndeterminate = false
+                progressBar.progress = pct
+                val text = getString(R.string.update_downloading, pct)
+                statusTv.text = text
+                onStatusChanged?.invoke(text)
+            },
+            onStatus = { status ->
+                statusTv.text = status
+                if (status.contains("Instalando", ignoreCase = true) || status.contains("Installing", ignoreCase = true)) {
+                    progressBar.isIndeterminate = true
+                }
+                onStatusChanged?.invoke(status)
+            },
+            onComplete = { success, msg ->
+                onStatusChanged?.invoke(msg)
+                if (success) {
+                    progressBar.isIndeterminate = false
+                    progressBar.progress = 100
+                    statusTv.text = msg
+                    statusTv.setTextColor(Color.parseColor("#10B981"))
+                    statusTv.postDelayed({
+                        try {
+                            if (dialog.isShowing && !isFinishing && !isDestroyed) {
+                                dialog.dismiss()
+                            }
+                        } catch (_: Throwable) {}
+                    }, 1800L)
+                } else {
+                    progressBar.visibility = View.GONE
+                    statusTv.text = msg
+                    statusTv.setTextColor(Color.parseColor("#EF4444"))
+                    dialog.setCancelable(true)
+                    val btn = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                    btn?.visibility = View.VISIBLE
+                    btn?.requestFocus()
+                }
+            }
+        )
     }
 
     // ================= HELPER UI BUILDERS =================

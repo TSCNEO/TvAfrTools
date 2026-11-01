@@ -215,7 +215,8 @@ Una vez aceptado, pulsa Reintentar.</string>
 
 Novedades:
 %s</string>
-    <string name="update_btn_install">Descargar e Instalar</string>
+    <string name="update_btn_install">Actualizar</string>
+    <string name="update_progress_title">Actualizando %s</string>
     <string name="update_downloading">Descargando actualización (%d%%)...</string>
     <string name="update_installing">Instalando versión v%s...</string>
     <string name="update_up_to_date">Ya tienes instalada la versión más reciente (v%s)</string>
@@ -277,5 +278,5 @@ Repositorio: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="afr_native_title">Usar resolución nativa del vídeo</string>
     <string name="afr_native_desc">Deja el escalado a la TV. Usa una resolución y frecuencia compatibles; conserva la resolución actual si no se detecta.</string>
     <string name="afr_native_marker">[RESOLUCIÓN DEL VÍDEO]</string>
-    <string name="update_startup_notice">Actualización %1$s disponible. Ve a Sistema → Buscar actualizaciones.</string>
+    <string name="update_startup_notice">Actualización %1$s disponible. Ve a Información → Buscar actualizaciones.</string>
 </resources>

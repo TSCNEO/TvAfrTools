@@ -44,25 +44,51 @@ object UpdateManager {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     @Synchronized
-    fun checkOnAppOpen(context: Context, onAvailable: (String) -> Unit) {
+    fun checkOnAppOpen(context: Context, onAvailable: (UpdateInfo) -> Unit) {
         val app = context.applicationContext
         val settings = app.getSharedPreferences("update_checks", Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
         val savedVersion = settings.getString("available_version", "").orEmpty()
         if (savedVersion.isNotBlank() && !isNewerVersion(savedVersion.removePrefix("v").removePrefix("V"), BuildConfig.VERSION_NAME)) {
-            settings.edit().remove("available_version").apply()
+            settings.edit()
+                .remove("available_version")
+                .remove("available_tag")
+                .remove("available_notes")
+                .remove("available_url")
+                .remove("available_size")
+                .apply()
         }
         val last = settings.getLong("last_attempt", 0L)
-        if (now >= last && now - last < 6 * 60 * 60 * 1000L) {
-            val cached = settings.getString("available_version", "").orEmpty()
-            if (cached.isNotBlank() && isNewerVersion(cached.removePrefix("v"), BuildConfig.VERSION_NAME)) onAvailable(cached)
+        val cachedTag = settings.getString("available_tag", "").orEmpty()
+        val cachedVer = settings.getString("available_version", "").orEmpty()
+        val cachedUrl = settings.getString("available_url", "").orEmpty()
+        val cachedNotes = settings.getString("available_notes", "").orEmpty()
+        val cachedSize = settings.getLong("available_size", 0L)
+
+        if (now >= last && now - last < 6 * 60 * 60 * 1000L && cachedUrl.isNotBlank()) {
+            if (cachedVer.isNotBlank() && isNewerVersion(cachedVer.removePrefix("v").removePrefix("V"), BuildConfig.VERSION_NAME)) {
+                val cachedInfo = UpdateInfo(
+                    tagName = cachedTag.ifBlank { "v$cachedVer" },
+                    versionName = cachedVer,
+                    releaseNotes = cachedNotes,
+                    downloadUrl = cachedUrl,
+                    fileSize = cachedSize
+                )
+                mainHandler.post { onAvailable(cachedInfo) }
+            }
             return
         }
         settings.edit().putLong("last_attempt", now).apply()
         checkForUpdate(app) { info, _ ->
             if (info != null) {
-                settings.edit().putString("available_version", info.tagName).apply()
-                onAvailable(info.tagName)
+                settings.edit()
+                    .putString("available_tag", info.tagName)
+                    .putString("available_version", info.versionName)
+                    .putString("available_notes", info.releaseNotes)
+                    .putString("available_url", info.downloadUrl)
+                    .putLong("available_size", info.fileSize)
+                    .apply()
+                onAvailable(info)
             }
         }
     }
