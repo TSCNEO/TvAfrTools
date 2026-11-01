@@ -18,6 +18,13 @@
 
 ---
 
+## What's new in 1.3.1
+
+- Measured 24.000/23.976, 30/29.97 and 60/59.94 fps remain distinct when choosing the display refresh rate.
+- Video timestamps take priority over coarse estimates. The HUD marks estimated fps with **≈**.
+- The fractional-rate preference only affects estimates, preserving measured rates.
+- [Full release notes](docs/releases/v1.3.1.md).
+
 ## What's new in 1.3.0
 
 - **Refreshed TV interface:** side navigation with icons, clearer focus, compact grids and an updated web remote.

@@ -18,6 +18,13 @@
 
 ---
 
+## Novedades en 1.3.1
+
+- Se distinguen 24,000/23,976, 30/29,97 y 60/59,94 fps medidos al elegir los Hz de pantalla.
+- Los timestamps del vídeo tienen prioridad sobre las estimaciones. El HUD marca los fps estimados con **≈**.
+- La preferencia fraccional solo afecta a estimaciones y respeta las frecuencias medidas.
+- [Notas completas de la versión](docs/releases/v1.3.1.md).
+
 ## Novedades en 1.3.0
 
 - **Interfaz renovada para TV:** navegación lateral con iconos, foco más visible, cuadrículas compactas y mando web actualizado.
