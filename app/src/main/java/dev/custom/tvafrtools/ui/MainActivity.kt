@@ -529,29 +529,48 @@ class MainActivity : AppCompatActivity() {
             initial = prefs.fractionalFrameRate
         ) { prefs.fractionalFrameRate = it })
 
+        lateinit var delaySeek: android.widget.SeekBar
+        lateinit var delayLabel: TextView
+        fun updateDelayEnabled(enabled: Boolean) {
+            delaySeek.isEnabled = enabled
+            delaySeek.isFocusable = enabled
+            delayLabel.setTextColor(Color.parseColor(if (enabled) "#F8FAFC" else "#858D9B"))
+        }
+
         col.addView(makeInteractiveToggleCard(
             title = getString(R.string.afr_pause_title),
             desc = getString(R.string.afr_pause_desc),
             initial = prefs.pauseOnSwitch
-        ) { prefs.pauseOnSwitch = it })
+        ) {
+            prefs.pauseOnSwitch = it
+            updateDelayEnabled(it)
+        })
 
         val delayRow = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dpToPx(16), dpToPx(10), dpToPx(16), dpToPx(10))
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.setting_row_selector)
         }
-        val delayLabel = TextView(this).apply {
+        delayLabel = TextView(this).apply {
             setTextColor(Color.parseColor("#F8FAFC"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = Typeface.DEFAULT_BOLD
             text = getString(R.string.afr_resume_delay, prefs.resumeDelayMs / 1000.0)
         }
         delayRow.addView(delayLabel)
-        delayRow.addView(android.widget.SeekBar(this).apply {
+        delaySeek = android.widget.SeekBar(this).apply {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             max = 18
             progress = (prefs.resumeDelayMs - 1000) / 500
             contentDescription = getString(R.string.afr_resume_accessibility)
+            setOnFocusChangeListener { _, focused ->
+                delayRow.isSelected = focused
+                delayLabel.setTextColor(Color.parseColor(if (focused) "#0F1014" else if (isEnabled) "#F8FAFC" else "#858D9B"))
+                val activeColor = ColorStateList.valueOf(Color.parseColor(if (focused) "#0F1014" else "#F59E0B"))
+                progressTintList = activeColor
+                thumbTintList = activeColor
+                progressBackgroundTintList = ColorStateList.valueOf(Color.parseColor("#454A57"))
+            }
             setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: android.widget.SeekBar?, value: Int, fromUser: Boolean) {
                     if (fromUser) {
@@ -562,7 +581,9 @@ class MainActivity : AppCompatActivity() {
                 override fun onStartTrackingTouch(bar: android.widget.SeekBar?) {}
                 override fun onStopTrackingTouch(bar: android.widget.SeekBar?) {}
             })
-        })
+        }
+        delayRow.addView(delaySeek)
+        updateDelayEnabled(prefs.pauseOnSwitch)
         col.addView(delayRow)
 
         col.addView(makeInteractiveToggleCard(
