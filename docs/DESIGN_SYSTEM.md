@@ -50,7 +50,7 @@ No se diseñará una variante táctil de la aplicación nativa. Para el mando we
 - **Acciones rápidas:** lista de acciones disponibles con descripción breve. No presentar métricas ficticias.
 - **Mando web:** dirección real y estado con jerarquía clara; sin inventar QR ni conectividad.
 - **Sistema:** filas alineadas para dispositivo, HDMI, permisos y demonio, con estados textuales. Permiso pendiente muestra acción concreta; no pintar todas las cifras de colores distintos.
-- **Selector AFR:** lista modal con Auto, restablecimiento del modo del sistema y modos disponibles; marca la selección real, foco independiente y Back restaura el origen. **HUD:** texto técnico compacto sobre superficie legible; sin borde verde arbitrario. **Recientes:** nombres y recursos reales, foco visible y acción de limpieza diferenciada.
+- **Selector AFR:** modal con Auto y restablecimiento; agrupar modos por resolución, mostrando primero la actual en cuadrícula de dos columnas. Otras resoluciones y opciones adicionales son desplegables; rescate permanece en opciones. Ordenar 23,976, 24, 50, 59,94 y 60 Hz antes de otros modos disponibles, sin agrupar frecuencias distintas; marcar el modo activo y mantener foco independiente. Back cierra el panel. **HUD:** texto técnico compacto sobre superficie legible; sin borde verde arbitrario. **Recientes:** nombres y recursos reales, foco visible y acción de limpieza diferenciada.
 
 ## DO / DON'T y validación
 

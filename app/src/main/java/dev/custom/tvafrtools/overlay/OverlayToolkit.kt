@@ -392,43 +392,88 @@ class OverlayToolkit(
             afrController.stopAfr()
         }
         card.addView(revertBtn)
-        card.addView(createPanelButton(context.getString(R.string.display_rescue_action), isHighlighted = false) {
+        val options = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        val optionsButton = createPanelButton(context.getString(R.string.overlay_more_options), isHighlighted = false) {
+            options.visibility = if (options.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        }
+        card.addView(optionsButton)
+        options.addView(createPanelButton(context.getString(R.string.display_rescue_action), isHighlighted = false) {
             closeAfrPanel()
             afrController.rescueDisplay()
         })
-
         val panelPrefs = dev.custom.tvafrtools.config.AppPrefs(context)
-        card.addView(createPanelButton(
-            (if (panelPrefs.matchNativeResolution) "☑ " else "☐ ") + context.getString(R.string.afr_native_title),
-            isHighlighted = panelPrefs.matchNativeResolution
-        ) {
+        fun nativeLabel(): String = (if (panelPrefs.matchNativeResolution) "☑ " else "☐ ") + context.getString(R.string.afr_native_title)
+        val nativeButton = createPanelButton(nativeLabel(), isHighlighted = false) { }
+        nativeButton.setOnClickListener {
             panelPrefs.matchNativeResolution = !panelPrefs.matchNativeResolution
-            closeAfrPanel()
-            openAfrPanel()
-        })
-
-        modes.forEach { m ->
-            val isCurrent = currentMode?.modeId == m.modeId
-            val isMatch = liveFps > 1.0f && (abs(m.refreshRate - liveFps) < 0.05f || (liveFps in 23.9f..24.1f && abs(m.refreshRate - 23.976f) < 0.05f))
-
-            val label = buildString {
-                append(String.format(Locale.US, "%dx%d  —  %.3f Hz", m.physicalWidth, m.physicalHeight, m.refreshRate))
-                if (abs(m.refreshRate - 23.976f) < 0.05f) append("  Cine/Series (Disney+/Prime/Netflix)")
-                else if (abs(m.refreshRate - 24.0f) < 0.05f) append("  Cine 24.000p Exacto")
-                else if (abs(m.refreshRate - 50.0f) < 0.05f) append("  TV/Deportes PAL (25/50p)")
-                else if (abs(m.refreshRate - 59.94f) < 0.05f) append("  (NTSC 59.94p)")
-                if (afrController.isNativeVideoMode(m)) append("   " + context.getString(R.string.afr_native_marker))
-                if (isMatch) append("   VÍDEO DETECTADO")
-                if (isCurrent) append("   [ACTIVO]")
-            }
-            val btn = createPanelButton(label, isHighlighted = isCurrent) {
-                closeAfrPanel()
-                afrController.applyModeId(m.modeId)
-            }
-            card.addView(btn)
+            nativeButton.text = nativeLabel()
         }
+        options.addView(nativeButton)
+        card.addView(options)
 
-
+        val grouped = modes.groupBy { it.physicalWidth to it.physicalHeight }
+        val currentSize = currentMode?.let { it.physicalWidth to it.physicalHeight }
+        val firstSize = currentSize?.takeIf { it in grouped } ?: grouped.keys.firstOrNull()
+        val otherSizes = grouped.keys.filter { it != firstSize }
+        val preferredRates = listOf(23.976f, 24f, 50f, 59.94f, 60f)
+        val numberFormat = java.text.NumberFormat.getNumberInstance().apply {
+            maximumFractionDigits = 3
+            isGroupingUsed = false
+        }
+        fun rateRank(rate: Float): Int = preferredRates.indexOfFirst { abs(rate - it) < 0.005f }
+            .let { if (it < 0) preferredRates.size else it }
+        fun addResolutionGroup(container: LinearLayout, size: Pair<Int, Int>) {
+            val title = TextView(context).apply {
+                text = context.getString(R.string.overlay_resolution_group, size.first, size.second)
+                setTextColor(Color.parseColor("#B8C0CE"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                setPadding(dp(4), dp(16), dp(4), dp(4))
+            }
+            container.addView(title)
+            grouped.getValue(size).sortedWith(compareBy<Display.Mode> { rateRank(it.refreshRate) }.thenBy { it.refreshRate })
+                .chunked(2).forEach { pair ->
+                    val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+                    pair.forEachIndexed { index, mode ->
+                        val active = currentMode?.modeId == mode.modeId
+                        val rate = numberFormat.format(mode.refreshRate.toDouble())
+                        val label = buildString {
+                            append(context.getString(R.string.overlay_refresh_rate, rate))
+                            if (abs(mode.refreshRate - 23.976f) < 0.005f || abs(mode.refreshRate - 24f) < 0.005f) {
+                                append(" · ").append(context.getString(R.string.overlay_cinema))
+                            }
+                            if (active) append(" · ").append(context.getString(R.string.overlay_mode_active))
+                        }
+                        row.addView(createPanelButton(label, isHighlighted = active) {
+                            closeAfrPanel()
+                            afrController.applyModeId(mode.modeId)
+                        }.apply {
+                            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply {
+                                topMargin = dp(6)
+                                if (index == 0) marginEnd = dp(8)
+                            }
+                        })
+                    }
+                    if (pair.size == 1) row.addView(View(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
+                    })
+                    container.addView(row)
+                }
+        }
+        if (firstSize != null) addResolutionGroup(card, firstSize)
+        if (otherSizes.isNotEmpty()) {
+            val otherModes = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = View.GONE
+            }
+            card.addView(createPanelButton(context.getString(R.string.overlay_other_resolutions), isHighlighted = false) {
+                otherModes.visibility = if (otherModes.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            })
+            otherSizes.forEach { addResolutionGroup(otherModes, it) }
+            card.addView(otherModes)
+        }
 
         val closeBtn = createPanelButton("Cerrar panel (Atrás)", isHighlighted = false) {
             closeAfrPanel()

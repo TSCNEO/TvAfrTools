@@ -285,4 +285,10 @@ Novedades:
     <string name="display_rescue_action">Rescatar pantalla (quitar límites de Hz)</string>
     <string name="display_rescue_done">Límites de frecuencia eliminados</string>
     <string name="display_rescue_failed">No se pudieron quitar los límites. Activa el motor y vuelve a intentarlo.</string>
+    <string name="overlay_more_options">Más opciones</string>
+    <string name="overlay_other_resolutions">Otras resoluciones</string>
+    <string name="overlay_resolution_group">%1$d × %2$d</string>
+    <string name="overlay_refresh_rate">%1$s Hz</string>
+    <string name="overlay_cinema">Cine / series</string>
+    <string name="overlay_mode_active">Activo</string>
 </resources>
