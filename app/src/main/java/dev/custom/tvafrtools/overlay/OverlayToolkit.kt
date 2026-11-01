@@ -327,14 +327,14 @@ class OverlayToolkit(
             setPadding(dp(24), dp(20), dp(24), dp(20))
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(16).toFloat()
+                cornerRadius = dp(12).toFloat()
                 setColor(Color.parseColor("#F2111216"))
                 setStroke(dp(2), Color.parseColor("#F59E0B"))
             }
         }
 
         val headerTitle = TextView(context).apply {
-            text = "🎬 Selector de Frecuencia HDMI (AFR)"
+            text = "Selector de frecuencia HDMI (AFR)"
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
@@ -360,9 +360,9 @@ class OverlayToolkit(
             mainHandler.post {
                 if (isPanelVisible) {
                     val fpsPart = if (probed > 1.0f) {
-                        "🎯 Vídeo: %.3f fps [%s]".format(Locale.US, probed, src)
+                        "Vídeo: %.3f fps [%s]".format(Locale.US, probed, src)
                     } else if (liveFps > 1.0f) {
-                        "🎯 Vídeo: %.3f fps".format(Locale.US, liveFps)
+                        "Vídeo: %.3f fps".format(Locale.US, liveFps)
                     } else {
                         "Vídeo: Sin stream activo"
                     }
@@ -404,12 +404,12 @@ class OverlayToolkit(
 
             val label = buildString {
                 append(String.format(Locale.US, "%dx%d  —  %.3f Hz", m.physicalWidth, m.physicalHeight, m.refreshRate))
-                if (abs(m.refreshRate - 23.976f) < 0.05f) append("  ⭐ Cine/Series (Disney+/Prime/Netflix)")
-                else if (abs(m.refreshRate - 24.0f) < 0.05f) append("  ⭐ Cine 24.000p Exacto")
-                else if (abs(m.refreshRate - 50.0f) < 0.05f) append("  ⭐ TV/Deportes PAL (25/50p)")
+                if (abs(m.refreshRate - 23.976f) < 0.05f) append("  Cine/Series (Disney+/Prime/Netflix)")
+                else if (abs(m.refreshRate - 24.0f) < 0.05f) append("  Cine 24.000p Exacto")
+                else if (abs(m.refreshRate - 50.0f) < 0.05f) append("  TV/Deportes PAL (25/50p)")
                 else if (abs(m.refreshRate - 59.94f) < 0.05f) append("  (NTSC 59.94p)")
                 if (afrController.isNativeVideoMode(m)) append("   " + context.getString(R.string.afr_native_marker))
-                if (isMatch) append("   🎯 VÍDEO DETECTADO")
+                if (isMatch) append("   VÍDEO DETECTADO")
                 if (isCurrent) append("   [ACTIVO]")
             }
             val btn = createPanelButton(label, isHighlighted = isCurrent || isMatch) {
@@ -431,10 +431,12 @@ class OverlayToolkit(
         }
 
         val cardParams = FrameLayout.LayoutParams(
-            dp(540),
-            WindowManager.LayoutParams.WRAP_CONTENT
+            minOf(dp(560), context.resources.displayMetrics.widthPixels - dp(96)),
+            WindowManager.LayoutParams.MATCH_PARENT
         ).apply {
             gravity = Gravity.CENTER
+            topMargin = dp(27)
+            bottomMargin = dp(27)
         }
         root.addView(scroll, cardParams)
 
@@ -564,7 +566,7 @@ class OverlayToolkit(
                     setPadding(dp(24), dp(20), dp(24), dp(20))
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
-                        cornerRadius = dp(16).toFloat()
+                        cornerRadius = dp(12).toFloat()
                         setColor(Color.parseColor("#F2111216"))
                         setStroke(dp(2), Color.parseColor("#454A57"))
                     }
@@ -647,10 +649,12 @@ class OverlayToolkit(
                 }
 
                 val cardParams = FrameLayout.LayoutParams(
-                    dp(580),
-                    WindowManager.LayoutParams.WRAP_CONTENT
+                    minOf(dp(560), context.resources.displayMetrics.widthPixels - dp(96)),
+                    WindowManager.LayoutParams.MATCH_PARENT
                 ).apply {
                     gravity = Gravity.CENTER
+                    topMargin = dp(27)
+                    bottomMargin = dp(27)
                 }
                 root.addView(scroll, cardParams)
 

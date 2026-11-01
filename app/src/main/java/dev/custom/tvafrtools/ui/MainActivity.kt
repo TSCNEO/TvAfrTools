@@ -57,13 +57,13 @@ class MainActivity : AppCompatActivity() {
     private var updateDialogShownInSession = false
 
     // UI navigation state
-    private enum class NavSection(val titleRes: Int, val subRes: Int, val icon: String) {
-        AFR(R.string.nav_afr, R.string.nav_afr_sub, "🎬"),
-        AFR_APPS(R.string.nav_afr_apps, R.string.nav_afr_apps_sub, "📺"),
-        MAPPER(R.string.nav_mapper, R.string.nav_mapper_sub, "🎮"),
-        ACTIONS(R.string.nav_actions, R.string.nav_actions_sub, "🚀"),
-        WEBREMOTE(R.string.nav_webremote, R.string.nav_webremote_sub, "🌐"),
-        SYSTEM(R.string.nav_system, R.string.nav_system_sub, "⚡");
+    private enum class NavSection(val titleRes: Int, val subRes: Int, val iconRes: Int) {
+        AFR(R.string.nav_afr, R.string.nav_afr_sub, R.drawable.ic_nav_afr),
+        AFR_APPS(R.string.nav_afr_apps, R.string.nav_afr_apps_sub, R.drawable.ic_nav_apps),
+        MAPPER(R.string.nav_mapper, R.string.nav_mapper_sub, R.drawable.ic_nav_mapper),
+        ACTIONS(R.string.nav_actions, R.string.nav_actions_sub, R.drawable.ic_nav_actions),
+        WEBREMOTE(R.string.nav_webremote, R.string.nav_webremote_sub, R.drawable.ic_nav_web),
+        SYSTEM(R.string.nav_system, R.string.nav_system_sub, R.drawable.ic_nav_system);
 
         fun getTitle(ctx: Context): String = ctx.getString(titleRes)
         fun getSubtitle(ctx: Context): String = ctx.getString(subRes)
@@ -149,7 +149,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val title = TextView(this).apply {
-            text = "⚠️ Permiso de Accesibilidad inactivo"
+            text = "Permiso de accesibilidad inactivo"
             setTextColor(Color.parseColor("#FCA5A5"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = Typeface.DEFAULT_BOLD
@@ -315,21 +315,28 @@ class MainActivity : AppCompatActivity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             typeface = Typeface.DEFAULT_BOLD
         }
-        val appSubtitle = TextView(this).apply {
-            text = "Home Cinema Suite"
-            setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-        }
         brandTextLayout.addView(appTitle)
-        brandTextLayout.addView(appSubtitle)
+        // Branding stays compact to reserve vertical space for navigation.
         brandHeader.addView(logoImg)
         brandHeader.addView(brandTextLayout)
         sidebar.addView(brandHeader)
 
-        // Navigation Items
+        // Keep every destination reachable with large text or a small TV viewport.
+        val navList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val navScroll = ScrollView(this).apply {
+            isFillViewport = false
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+            addView(navList)
+        }
+        sidebar.addView(navScroll)
         for (sec in NavSection.values()) {
             val navItem = TextView(this).apply {
                 text = sec.getTitle(this@MainActivity)
+                val icon = ContextCompat.getDrawable(this@MainActivity, sec.iconRes)?.mutate()
+                icon?.setBounds(0, 0, dpToPx(24), dpToPx(24))
+                icon?.setTintList(ContextCompat.getColorStateList(this@MainActivity, R.drawable.nav_item_text_selector))
+                setCompoundDrawablesRelative(icon, null, null, null)
+                compoundDrawablePadding = dpToPx(12)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                 gravity = Gravity.CENTER_VERTICAL
                 minimumHeight = dpToPx(56)
@@ -355,26 +362,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             navButtons[sec] = navItem
-            sidebar.addView(navItem)
+            navList.addView(navItem)
         }
 
-        // Bottom Device Status in Sidebar
-        val spacer = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                0,
-                1f
-            )
-        }
-        sidebar.addView(spacer)
-
-        val deviceModelText = TextView(this).apply {
-            text = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}\nAndroid ${Build.VERSION.RELEASE}"
-            setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(10, 0, 10, 6)
-        }
-        sidebar.addView(deviceModelText)
         root.addView(sidebar)
 
         // ================= RIGHT DETAIL PANE =================
@@ -1215,8 +1205,9 @@ class MainActivity : AppCompatActivity() {
             text = label
             gravity = Gravity.CENTER
             setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.drawable.action_button_text_selector))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setPadding(dpToPx(18), dpToPx(10), dpToPx(18), dpToPx(10))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            minHeight = dpToPx(48)
+            setPadding(dpToPx(24), dpToPx(8), dpToPx(24), dpToPx(8))
             isFocusable = true
             isFocusableInTouchMode = false
             isClickable = true
