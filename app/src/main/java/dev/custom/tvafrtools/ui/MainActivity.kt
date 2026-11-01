@@ -698,8 +698,19 @@ class MainActivity : AppCompatActivity() {
             Triple(R.string.action_night_dimmer_title, R.string.action_night_dimmer_desc, QuickAction.NIGHT_DIMMER_TOGGLE),
             Triple(R.string.action_mouse_title, R.string.action_mouse_desc, QuickAction.MOUSE_TOGGLE)
         )
-        actions.forEach { (title, description, action) ->
-            col.addView(makeCardButton(getString(title), getString(description)) { runServiceAction(action) })
+        actions.chunked(2).forEach { pair ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dpToPx(8) }
+            }
+            pair.forEachIndexed { index, (title, description, action) ->
+                row.addView(makeCardButton(getString(title), getString(description)) { runServiceAction(action) }.apply {
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f).apply {
+                        if (index == 0) marginEnd = dpToPx(8)
+                    }
+                })
+            }
+            col.addView(row)
         }
 
         return scroll
@@ -775,25 +786,31 @@ class MainActivity : AppCompatActivity() {
         ) { prefs.startOnBoot = it })
 
 
-        fun addSystemAction(label: String, action: () -> Unit) {
-            col.addView(makeActionButton(label, action).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply { bottomMargin = dpToPx(8) }
-            })
-        }
-        addSystemAction(getString(R.string.btn_auto_activate)) { showAutoSetupDialog() }
-        addSystemAction(getString(R.string.btn_open_accessibility)) {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
-        addSystemAction(getString(R.string.system_btn_overlay)) {
-            if (!Settings.canDrawOverlays(this)) {
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-            } else {
-                Toast.makeText(this, getString(R.string.toast_overlay_granted), Toast.LENGTH_SHORT).show()
+        fun addSystemRow(first: TextView, second: TextView) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dpToPx(8) }
             }
+            first.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f).apply { marginEnd = dpToPx(8) }
+            second.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+            row.addView(first)
+            row.addView(second)
+            col.addView(row)
         }
-        addSystemAction(getString(R.string.system_btn_app_settings)) { showRestrictedSettingsGuideDialog() }
+        addSystemRow(
+            makeActionButton(getString(R.string.btn_auto_activate)) { showAutoSetupDialog() },
+            makeActionButton(getString(R.string.btn_open_accessibility)) { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        )
+        addSystemRow(
+            makeActionButton(getString(R.string.system_btn_overlay)) {
+                if (!Settings.canDrawOverlays(this)) {
+                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+                } else {
+                    Toast.makeText(this, getString(R.string.toast_overlay_granted), Toast.LENGTH_SHORT).show()
+                }
+            },
+            makeActionButton(getString(R.string.system_btn_app_settings)) { showRestrictedSettingsGuideDialog() }
+        )
 
         val statusCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1057,7 +1074,7 @@ class MainActivity : AppCompatActivity() {
             isFocusable = true
             minimumHeight = dpToPx(56)
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.setting_row_selector)
-            setPadding(dpToPx(20), dpToPx(14), dpToPx(20), dpToPx(14))
+            setPadding(dpToPx(16), dpToPx(10), dpToPx(16), dpToPx(10))
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1159,7 +1176,7 @@ class MainActivity : AppCompatActivity() {
             text = label
             gravity = Gravity.CENTER
             setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.color.action_button_text_selector))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             minHeight = dpToPx(48)
             setPadding(dpToPx(24), dpToPx(8), dpToPx(24), dpToPx(8))
             isFocusable = true
