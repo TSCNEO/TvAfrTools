@@ -94,7 +94,7 @@
 
     <!-- System & Update Section -->
     <string name="system_title">Información del Dispositivo y Sistema</string>
-    <string name="system_check_update">Buscar Actualizaciones en GitHub</string>
+    <string name="system_check_update">Buscar actualizaciones</string>
     <string name="system_device">Dispositivo</string>
     <string name="system_android_version">Versión de Android</string>
     <string name="system_display_mode">Pantalla Actual</string>
@@ -245,8 +245,7 @@ Novedades:
     <string name="status_standard_mode">Modo estándar (Botones activos)</string>
     <string name="status_inactive_activate_hint">Inactivo (Pulsa Activar permisos)</string>
     <string name="system_updates_title">Actualizaciones</string>
-    <string name="system_installed_version">Versión instalada: v%1$s (Build %2$d)
-Repositorio: https://github.com/TSCNEO/TvAfrTools</string>
+    <string name="system_installed_version">Versión actual: %1$s</string>
     <string name="toast_overlay_granted">Permiso de superposición ya concedido</string>
     <string name="btn_later">Más tarde</string>
     <string name="nav_afr_apps">Apps AFR</string>

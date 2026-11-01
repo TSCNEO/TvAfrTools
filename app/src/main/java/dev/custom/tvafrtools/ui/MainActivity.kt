@@ -797,6 +797,9 @@ class MainActivity : AppCompatActivity() {
             row.addView(second)
             col.addView(row)
         }
+        col.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(12))
+        })
         addSystemRow(
             makeActionButton(getString(R.string.btn_auto_activate)) { showAutoSetupDialog() },
             makeActionButton(getString(R.string.btn_open_accessibility)) { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
@@ -817,6 +820,9 @@ class MainActivity : AppCompatActivity() {
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
             setPadding(dpToPx(24), dpToPx(20), dpToPx(24), dpToPx(20))
             isFocusable = false
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dpToPx(16)
+            }
         }
 
         val cardTitle = TextView(this).apply {
@@ -884,9 +890,7 @@ class MainActivity : AppCompatActivity() {
             statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_web_remote), "http://${WebRemoteServer.getLocalIpAddress()}:${WebRemoteServer.PORT}", Color.parseColor("#93C5FD")))
         }
 
-        col.addView(statusCard)
-
-        // Card de Actualización de Software (GitHub Releases)
+        // Updates precede system details so the current version is easy to find.
         val updateCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
@@ -907,7 +911,7 @@ class MainActivity : AppCompatActivity() {
             typeface = Typeface.DEFAULT_BOLD
         }
         val updateDesc = TextView(this).apply {
-            text = getString(R.string.system_installed_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
+            text = getString(R.string.system_installed_version, BuildConfig.VERSION_NAME)
             setTextColor(Color.parseColor("#B8C0CE"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, dpToPx(6), 0, dpToPx(14))
@@ -946,6 +950,7 @@ class MainActivity : AppCompatActivity() {
         updateCard.addView(updateStatusText)
 
         col.addView(updateCard)
+        col.addView(statusCard)
         return scroll
     }
 
