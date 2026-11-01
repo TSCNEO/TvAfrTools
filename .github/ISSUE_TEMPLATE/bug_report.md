@@ -7,7 +7,7 @@ assignees: ""
 ---
 
 **Device Information / Información del Dispositivo:**
-- Device model (e.g. [DISPOSITIVO], [DISPOSITIVO], Chromecast with Google TV, Fire TV Cube 3):
+- Device manufacturer and model:
 - Android TV version (e.g. Android 9, 10, 11, 12, 14):
 - TV model / Audio Receiver (if relevant to AFR / CEC / Sound):
 - TvAfrTools version (e.g. v1.2.8):

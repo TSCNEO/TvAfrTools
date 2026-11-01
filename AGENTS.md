@@ -75,11 +75,11 @@ Para futuras versiones:
 - **Solución implementada**:
   1. `LocalAdbBootstrap.kt`: Ahora realiza un `append` condicional preservando todos los servicios de accesibilidad existentes (`cur:dev.custom...`), impidiendo desactivar Projectivy ni ninguna otra app instalada.
   2. `TvAfrAccessibilityService.kt`: En `launchPackage`, si la app destino es el launcher (Projectivy `io.freemytv` o launcher por defecto), se despacha de forma segura mediante `performGlobalAction(GLOBAL_ACTION_HOME)` nativo en lugar de recrear la tarea como app estándar.
-  3. Se ha restaurado y verificado en Homatics que ambos servicios están `Bound` y activos al mismo tiempo.
+  3. Se ha verificado que ambos servicios están `Bound` y activos al mismo tiempo.
 
 ### Versión 1.2.2 (Multitarea Universal y Detección de Apps Recientes)
 - **Causa del problema**:
-  - En Android TV (Homatics, Xiaomi Mi Box, Google TV), el sistema operativo carece del selector estándar de aplicaciones recientes de móviles/tablets cuando se usa un launcher de terceros (o `GLOBAL_ACTION_RECENTS` no hace nada).
+  - En Android TV (Android TV y Google TV), el sistema operativo carece del selector estándar de aplicaciones recientes de móviles/tablets cuando se usa un launcher de terceros (o `GLOBAL_ACTION_RECENTS` no hace nada).
   - La app base `tvQuickActions` resuelve esto prescindiendo del recents nativo de Android e implementando su propio gestor de aplicaciones recientes (`AbstractC0281c.f4637k` + `W1.H` + `UsageStatsManager`).
   - En versiones anteriores de `TvAfrTools`, la consulta dependía únicamente de `ActivityTaskManager.getTasks()`, que en Android 13/14 solo lista tareas con ventanas activas en ese instante (Running Tasks), arrojando 0 resultados para apps en segundo plano o suspendidas.
 - **Solución implementada replicando fielmente la arquitectura de la app base**:
@@ -173,7 +173,7 @@ Para futuras versiones:
 
 ## 6. Política de Plataformas y Exclusión de Fire OS
 - **Plataformas Soportadas Oficialmente**: **Únicamente Android TV y Google TV estándar / puros (Android 9.0 a 14 / APIs 28 a 34)**.
-  - Ejemplos: [DISPOSITIVO], [DISPOSITIVO], Chromecast con Google TV, NVIDIA Shield, Nokia Streaming Box, etc.
+  - Ejemplos: Chromecast con Google TV, NVIDIA Shield, Nokia Streaming Box, etc.
 - **Exclusión Definitiva de Amazon Fire TV (Fire OS)**:
   - **No se da soporte a Fire OS**: Amazon opera un fork fuertemente cerrado y modificado de Android que bloquea activamente los pilares de la app:
     1. *Bloqueo de Loopback ADB (CVE-2024-27350)*: Impide la activación autónoma en el dispositivo (`127.0.0.1:5555 Broken pipe`).

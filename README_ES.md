@@ -80,8 +80,6 @@ Antes de actualizar desde una versión anterior, sal de la reproducción y vuelv
 - **Sistema Operativo**: Android TV / Google TV 9.0 (API 28) hasta Android 14 (API 34).
 - **Plataformas Soportadas**: **Exclusivamente Android TV y Google TV estándar / certificado (Android 9.0 a 14)**.
 - **Modelos Probados y Verificados**:
-  - [DISPOSITIVO] / cajas SEI Robotics (Amlogic S905X4)
-  - [DISPOSITIVO] (1ª y 2ª Gen) / Mi TV Stick 4K
   - Chromecast con Google TV (HD y 4K)
   - NVIDIA Shield TV / Shield TV Pro
   - Nokia Streaming Box 8000 / 8010

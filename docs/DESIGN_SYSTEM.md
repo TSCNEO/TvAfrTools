@@ -66,4 +66,4 @@ Antes de cerrar una implementación: contrastes medidos en combinaciones reales;
 4. Aprobada la aplicación a las seis secciones, diálogos, superposiciones y mando web. No habrá variante táctil nativa.
 
 
-**Ajuste aprobado por el usuario:** escala tipográfica reducida tras prueba en Homatics; los botones largos deben crecer en altura y las acciones de sistema y acciones rápidas se agrupan en una cuadrícula de dos columnas de igual altura; las filas crecen para textos largos. La restauración elimina el modo impuesto por la aplicación; no presupone 60 Hz.
+**Ajuste aprobado por el usuario:** escala tipográfica reducida tras prueba en un televisor; los botones largos deben crecer en altura y las acciones de sistema y acciones rápidas se agrupan en una cuadrícula de dos columnas de igual altura; las filas crecen para textos largos. La restauración elimina el modo impuesto por la aplicación; no presupone 60 Hz.
