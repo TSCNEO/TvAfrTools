@@ -98,8 +98,8 @@ class OverlayToolkit(
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.RECTANGLE
                         cornerRadius = dp(12).toFloat()
-                        setColor(Color.parseColor("#E6141923"))
-                        setStroke(dp(1), Color.parseColor("#F59E0B"))
+                        setColor(Color.parseColor("#F2191B22"))
+                        setStroke(dp(1), Color.parseColor("#454A57"))
                     }
                 }
                 val params = WindowManager.LayoutParams(

@@ -46,6 +46,7 @@ class AfrController(
     private val context: Context,
     private val prefs: AppPrefs,
     private val onBannerMessage: (String) -> Unit,
+    private val onDisplayNotice: (String, Long) -> Unit,
     private val onRequestManualSelector: (() -> Unit)? = null
 ) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -81,6 +82,25 @@ class AfrController(
     private var afrOverlayParams: WindowManager.LayoutParams? = null
     private var isAfrActive: Boolean = false
     private var activeTargetModeId: Int = -1
+    private var pendingDisplayNotice = false
+    private var displayNoticeTargetId: Int? = null
+    private val displayNoticeComplete = Runnable {
+        if (!destroyed && pendingDisplayNotice) {
+            pendingDisplayNotice = false
+            getCurrentDisplayMode()?.let { mode ->
+                onDisplayNotice(context.getString(R.string.display_current_mode, mode.physicalWidth, mode.physicalHeight, mode.refreshRate), 10000L)
+            }
+        }
+    }
+
+    private fun startDisplayNotice(restoring: Boolean, targetModeId: Int? = null) {
+        mainHandler.removeCallbacks(displayNoticeComplete)
+        pendingDisplayNotice = true
+        displayNoticeTargetId = targetModeId
+        onDisplayNotice(context.getString(if (restoring) R.string.display_restoring else R.string.display_switching), 20000L)
+        mainHandler.postDelayed(displayNoticeComplete, 15000L)
+    }
+
     private var waitingForDisplayChangePlay: Boolean = false
     private var pausedForegroundPackage: String = ""
     private val resumePlayback = Runnable {
@@ -116,15 +136,10 @@ class AfrController(
         override fun onDisplayChanged(displayId: Int) {
             if (displayId != Display.DEFAULT_DISPLAY) return
             val mode = getCurrentDisplayMode()
-            if (mode != null && isAfrActive) {
-                onBannerMessage(
-                    context.getString(
-                        R.string.hdmi_synced,
-                        mode.physicalWidth,
-                        mode.physicalHeight,
-                        mode.refreshRate
-                    )
-                )
+            if (pendingDisplayNotice && mode != null &&
+                (displayNoticeTargetId == null || mode.modeId == displayNoticeTargetId)) {
+                mainHandler.removeCallbacks(displayNoticeComplete)
+                mainHandler.postDelayed(displayNoticeComplete, 1500L)
             }
             if (waitingForDisplayChangePlay && mode?.modeId == activeTargetModeId) {
                 mainHandler.removeCallbacks(resumePlayback)
@@ -454,6 +469,7 @@ class AfrController(
             return
         }
 
+        startDisplayNotice(restoring = false, targetModeId = chosen.modeId)
         if (pausePlaybackHandshake) {
             beginPauseHandshake()
             mainHandler.postDelayed({
@@ -477,6 +493,7 @@ class AfrController(
             )
             return
         }
+        startDisplayNotice(restoring = false, targetModeId = modeId)
         if (pausePlaybackHandshake) {
             beginPauseHandshake()
             mainHandler.postDelayed({
@@ -542,6 +559,11 @@ class AfrController(
         mainHandler.removeCallbacks(resumePlayback)
         waitingForDisplayChangePlay = false
         val wasActive = isAfrActive
+        if (wasActive && !silent) startDisplayNotice(restoring = true)
+        if (silent) {
+            pendingDisplayNotice = false
+            mainHandler.removeCallbacks(displayNoticeComplete)
+        }
         isAfrActive = false
         activeTargetModeId = -1
         afrOverlayView?.let { v ->
@@ -557,9 +579,6 @@ class AfrController(
             ServerClient.clearSystemDisplayMode()
         }
 
-        if (wasActive && !silent) {
-            onBannerMessage(context.getString(R.string.afr_stopped_default))
-        }
     }
 
     fun isAfrCurrentlyActive(): Boolean = isAfrActive

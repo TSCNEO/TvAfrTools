@@ -141,6 +141,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
             context = this,
             prefs = prefs,
             onBannerMessage = { msg -> overlayToolkit.showBanner(msg) },
+            onDisplayNotice = { msg, duration -> overlayToolkit.showBanner(msg, duration) },
             onRequestManualSelector = { overlayToolkit.openAfrPanel() }
         )
         overlayToolkit = OverlayToolkit(this, afrController)

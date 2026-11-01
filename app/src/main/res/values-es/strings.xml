@@ -278,4 +278,7 @@ Novedades:
     <string name="afr_native_desc">Deja el escalado a la TV. Usa una resolución y frecuencia compatibles; conserva la resolución actual si no se detecta.</string>
     <string name="afr_native_marker">[RESOLUCIÓN DEL VÍDEO]</string>
     <string name="update_startup_notice">Actualización %1$s disponible. Ve a Información → Buscar actualizaciones.</string>
+    <string name="display_switching">Ajustando pantalla…</string>
+    <string name="display_restoring">Restableciendo el modo de pantalla…</string>
+    <string name="display_current_mode">Pantalla actual: %1$dx%2$d · %3$.3f Hz</string>
 </resources>
