@@ -287,9 +287,9 @@ class MainActivity : AppCompatActivity() {
         val sidebar = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.parseColor("#0C0D10")) // Darker rail background
-            setPadding(28, 28, 20, 28)
+            setPadding(dpToPx(48), dpToPx(27), dpToPx(8), dpToPx(27))
             layoutParams = LinearLayout.LayoutParams(
-                dpToPx(270),
+                dpToPx(272),
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
         }
@@ -329,9 +329,11 @@ class MainActivity : AppCompatActivity() {
         // Navigation Items
         for (sec in NavSection.values()) {
             val navItem = TextView(this).apply {
-                text = "${sec.icon}   ${sec.getTitle(this@MainActivity)}"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-                setPadding(dpToPx(16), dpToPx(13), dpToPx(16), dpToPx(13))
+                text = sec.getTitle(this@MainActivity)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                gravity = Gravity.CENTER_VERTICAL
+                minHeight = dpToPx(56)
+                setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8))
                 isFocusable = true
                 isClickable = true
                 background = ContextCompat.getDrawable(this@MainActivity, R.drawable.nav_item_bg_selector)
@@ -378,7 +380,7 @@ class MainActivity : AppCompatActivity() {
         // ================= RIGHT DETAIL PANE =================
         val rightPane = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dpToPx(36), dpToPx(28), dpToPx(36), dpToPx(28))
+            setPadding(dpToPx(32), dpToPx(27), dpToPx(48), dpToPx(27))
             layoutParams = LinearLayout.LayoutParams(
                 0,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -400,17 +402,17 @@ class MainActivity : AppCompatActivity() {
         val sectionTitle = TextView(this).apply {
             id = View.generateViewId()
             tag = "SECTION_TITLE"
-            text = "${currentSection.icon}   ${currentSection.getTitle(this@MainActivity)}"
+            text = currentSection.getTitle(this@MainActivity)
             setTextColor(Color.parseColor("#F8FAFC"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             typeface = Typeface.DEFAULT_BOLD
         }
         val sectionSubtitle = TextView(this).apply {
             id = View.generateViewId()
             tag = "SECTION_SUBTITLE"
             text = currentSection.getSubtitle(this@MainActivity)
-            setTextColor(Color.parseColor("#8E95A5"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setTextColor(Color.parseColor("#B8C0CE"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
         }
         sectionHeaderLayout.addView(sectionTitle)
         sectionHeaderLayout.addView(sectionSubtitle)
@@ -489,7 +491,7 @@ class MainActivity : AppCompatActivity() {
         // Update headers
         val titleView = window.decorView.findViewWithTag<TextView>("SECTION_TITLE")
         val subView = window.decorView.findViewWithTag<TextView>("SECTION_SUBTITLE")
-        titleView?.text = "${section.icon}   ${section.getTitle(this)}"
+        titleView?.text = section.getTitle(this)
         subView?.text = section.getSubtitle(this)
 
         refreshSectionContent()
