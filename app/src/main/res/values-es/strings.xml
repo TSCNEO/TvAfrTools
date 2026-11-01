@@ -262,8 +262,8 @@ Novedades:
     <string name="afr_25_desc">Adapta contenidos a 25 fps para que se vean fluidos a 50 Hz</string>
     <string name="afr_30_title">Duplicar 30 fps a 60 Hz</string>
     <string name="afr_30_desc">Usa 60 Hz para 30 fps y 59,94 Hz para 29,97 fps, si están disponibles</string>
-    <string name="afr_restore_title">Restablecer el modo del sistema al salir</string>
-    <string name="afr_restore_desc">Elimina el modo de pantalla elegido por la aplicación.</string>
+    <string name="afr_restore_title">Restaurar pantalla al cambiar de app</string>
+    <string name="afr_restore_desc">Al cambiar a otra aplicación o volver al inicio, deshace el ajuste de pantalla realizado por AFR.</string>
     <string name="volume_smooth_title">Control suave del volumen</string>
     <string name="volume_smooth_desc">Evita saltos bruscos de volumen al dejar pulsado el botón en mandos Bluetooth</string>
     <string name="boot_recovery_title">Recuperar servicios al encender</string>

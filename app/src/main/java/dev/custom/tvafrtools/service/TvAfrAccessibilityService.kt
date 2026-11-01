@@ -191,7 +191,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
                     afrController.automaticAppEligible = !isLauncherPackage(pkg)
 
                     // If user navigated back to launcher (Projectivy, Google TV, ATV, etc.)
-                    // or switched away from the streaming app, immediately restore 60Hz and clear system modes!
+                    // or switched away from the foreground app, restore the previous display configuration.
                     if (prefs.autoStopAfrOnExit && afrController.isAfrCurrentlyActive()) {
                         if (isLauncherPackage(pkg) || (!oldPkg.isBlank() && !isLauncherPackage(oldPkg) && pkg != oldPkg)) {
                             afrController.stopAfr(silent = false)

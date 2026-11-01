@@ -262,8 +262,8 @@ Changes:
     <string name="afr_25_desc">Displays 25 fps video at 50 Hz.</string>
     <string name="afr_30_title">Double 30 fps to 60 Hz</string>
     <string name="afr_30_desc">Uses 60 Hz for 30 fps and 59.94 Hz for 29.97 fps when supported.</string>
-    <string name="afr_restore_title">Restore system display mode on exit</string>
-    <string name="afr_restore_desc">Clears the display mode selected by the app.</string>
+    <string name="afr_restore_title">Restore display when switching apps</string>
+    <string name="afr_restore_desc">When switching to another app or returning home, undo the display adjustment made by AFR.</string>
     <string name="volume_smooth_title">Smooth volume control</string>
     <string name="volume_smooth_desc">Prevents sudden volume jumps when holding a Bluetooth remote button.</string>
     <string name="boot_recovery_title">Recover services at startup</string>
