@@ -114,6 +114,10 @@ object PrivilegedServer {
             val server = ServerSocket()
             server.reuseAddress = true
             server.bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT), 50)
+            if (displaySnapshotFile().exists() && !restoreDisplaySnapshot()) {
+                displayRecoveryFailed = true
+                System.err.println("Display settings recovery failed; refusing further AFR switches")
+            }
             println("TvAfrTools PrivilegedServer listening on 127.0.0.1:$PORT")
             Thread({
                 while (true) {
@@ -156,7 +160,6 @@ object PrivilegedServer {
     private fun ensureUniversalSystemSettings() {
         Thread {
             try {
-                runShellCommand("settings put secure match_content_frame_rate 2")
                 runShellCommand("setprop persist.adb.tcp.port 5555")
             } catch (_: Throwable) {
             }
@@ -959,43 +962,100 @@ object PrivilegedServer {
      * Universal system-level display mode setter for devices/apps where Window preferredDisplayModeId
      * is ignored or overridden by the streaming app.
      */
-    private var savedDisplayMode: String? = null
-    private var savedRefreshRange: Pair<String, String>? = null
+    // This journal is written before touching system settings, and survives a
+    // process restart or APK replacement. The alpha uses an independent file.
+    private fun displaySnapshotFile(): File = File(
+        "/data/local/tmp/" + if (BuildConfig.DEBUG) "tvafrtools_alpha_display.properties" else "tvafrtools_display.properties"
+    )
+    private var displayRecoveryFailed = false
+    private var displaySnapshotActive = false
 
-    private fun setSystemPreferredDisplayMode(modeId: Int, width: Int, height: Int, refreshRate: Float): Boolean {
-        return try {
-            if (modeId <= 0 || width <= 0 || height <= 0 || refreshRate <= 1.0f) {
-                savedRefreshRange?.let { (min, peak) ->
-                    for ((key, value) in listOf("min_refresh_rate" to min, "peak_refresh_rate" to peak)) {
-                        if (value == "null" || value.isBlank()) runShellCommand("settings delete system $key")
-                        else runShellCommand("settings put system $key $value")
-                    }
-                }
-                savedRefreshRange = null
-                val previous = savedDisplayMode
-                if (previous != null) runShellCommand("cmd display set-user-preferred-display-mode $previous 0")
-                else runShellCommand("cmd display clear-user-preferred-display-mode 0")
-                savedDisplayMode = null
-                true
-            } else {
-                runShellCommand("settings put secure match_content_frame_rate 2")
-                val hzStr = String.format(Locale.US, "%.6f", refreshRate)
-                if (savedRefreshRange == null) {
-                    val previous = runShellCommand("cmd display get-user-preferred-display-mode 0")
-                    savedDisplayMode = Regex("""(\d+)\s+(\d+)\s+(\d+(?:\.\d+)?)""").find(previous)?.value
-                }
-                if (savedRefreshRange == null) savedRefreshRange =
-                    runShellCommand("settings get system min_refresh_rate").trim() to
-                    runShellCommand("settings get system peak_refresh_rate").trim()
-                runShellCommand("settings put system min_refresh_rate $hzStr")
-                runShellCommand("settings put system peak_refresh_rate $hzStr")
-                val cmd = "cmd display set-user-preferred-display-mode $width $height $hzStr 0"
-                runShellCommand(cmd)
-                true
-            }
-        } catch (_: Throwable) {
+    private fun runChecked(vararg command: String): Boolean = try {
+        val process = ProcessBuilder(*command).redirectErrorStream(true).start()
+        if (!process.waitFor(5, TimeUnit.SECONDS)) {
+            process.destroy()
             false
+        } else process.exitValue() == 0
+    } catch (_: Throwable) { false }
+
+    private fun captureDisplaySnapshot(): Boolean {
+        return try {
+        val preferredOutput = runShellCommand("cmd display get-user-preferred-display-mode 0").trim()
+        val preferred = Regex("""(\d+)\s+(\d+)\s+(\d+(?:\.\d+)?)""").find(preferredOutput)?.value
+        if (preferred == null && !preferredOutput.contains("null", ignoreCase = true)) return false
+        val min = runShellCommand("settings get system min_refresh_rate").trim()
+        val peak = runShellCommand("settings get system peak_refresh_rate").trim()
+        val match = runShellCommand("settings get secure match_content_frame_rate").trim()
+        val numberOrNull = Regex("""(?:null|\d+(?:\.\d+)?)""")
+        if (!numberOrNull.matches(min) || !numberOrNull.matches(peak) || !numberOrNull.matches(match)) return false
+        val snapshot = java.util.Properties().apply {
+            setProperty("min", min)
+            setProperty("peak", peak)
+            setProperty("match", match)
+            setProperty("preferred", preferred.orEmpty())
         }
+        val target = displaySnapshotFile()
+        val temp = File(target.path + ".tmp")
+        java.io.FileOutputStream(temp).use { stream -> snapshot.store(stream, "AFR display state"); stream.fd.sync() }
+        if (!temp.renameTo(target)) { temp.delete(); return false }
+        true
+        } catch (_: Throwable) { false }
+    }
+
+    @Synchronized
+    private fun restoreDisplaySnapshot(): Boolean {
+        val file = displaySnapshotFile()
+        if (!file.exists()) return true
+        return try {
+            val snapshot = java.util.Properties().apply { file.inputStream().use { load(it) } }
+            val numberOrNull = Regex("""(?:null|\d+(?:\.\d+)?)""")
+            val min = snapshot.getProperty("min") ?: return false
+            val peak = snapshot.getProperty("peak") ?: return false
+            val match = snapshot.getProperty("match") ?: return false
+            val preferred = snapshot.getProperty("preferred") ?: return false
+            if (!numberOrNull.matches(min) || !numberOrNull.matches(peak) || !numberOrNull.matches(match) ||
+                (preferred.isNotEmpty() && !Regex("""\d+\s+\d+\s+\d+(?:\.\d+)?""").matches(preferred))) return false
+            fun restoreSetting(namespace: String, key: String, value: String): Boolean =
+                if (value == "null") runChecked("settings", "delete", namespace, key)
+                else runChecked("settings", "put", namespace, key, value)
+            val minOk = restoreSetting("system", "min_refresh_rate", min)
+            val peakOk = restoreSetting("system", "peak_refresh_rate", peak)
+            val matchOk = restoreSetting("secure", "match_content_frame_rate", match)
+            val modeOk = if (preferred.isEmpty()) runChecked("cmd", "display", "clear-user-preferred-display-mode", "0")
+                else runChecked("cmd", "display", "set-user-preferred-display-mode", *preferred.split(Regex("""\s+""")).toTypedArray(), "0")
+            if (minOk && peakOk && matchOk && modeOk && file.delete()) {
+                displaySnapshotActive = false
+                displayRecoveryFailed = false
+                true
+            } else false
+        } catch (_: Throwable) { false }
+    }
+
+    @Synchronized
+    private fun resetRefreshLimits(): Boolean {
+        val restored = restoreDisplaySnapshot()
+        val minCleared = runChecked("settings", "delete", "system", "min_refresh_rate")
+        val peakCleared = runChecked("settings", "delete", "system", "peak_refresh_rate")
+        return restored && minCleared && peakCleared
+    }
+
+    @Synchronized
+    private fun setSystemPreferredDisplayMode(modeId: Int, width: Int, height: Int, refreshRate: Float): Boolean {
+        if (modeId <= 0 || width <= 0 || height <= 0 || refreshRate <= 1.0f) return restoreDisplaySnapshot()
+        if (displayRecoveryFailed) return false
+        if (!displaySnapshotActive) {
+            if (displaySnapshotFile().exists() && !restoreDisplaySnapshot()) return false
+            if (!captureDisplaySnapshot()) return false
+            displaySnapshotActive = true
+        }
+        val hz = String.format(Locale.US, "%.6f", refreshRate)
+        val matchOk = runChecked("settings", "put", "secure", "match_content_frame_rate", "2")
+        val minOk = runChecked("settings", "put", "system", "min_refresh_rate", hz)
+        val peakOk = runChecked("settings", "put", "system", "peak_refresh_rate", hz)
+        val modeOk = runChecked("cmd", "display", "set-user-preferred-display-mode", width.toString(), height.toString(), hz, "0")
+        if (matchOk && minOk && peakOk && modeOk) return true
+        if (!restoreDisplaySnapshot()) displayRecoveryFailed = true
+        return false
     }
 
     /**
@@ -1246,6 +1306,9 @@ object PrivilegedServer {
                 "CYCLE_AUDIO" -> {
                     val mode = cycleAudioPassthroughMode()
                     writer.println("OK $mode")
+                }
+                "RESET_REFRESH_LIMITS" -> {
+                    writer.println(if (resetRefreshLimits()) "OK RESET_REFRESH_LIMITS" else "ERR RESET_REFRESH_LIMITS")
                 }
                 "SET_DISPLAY_MODE" -> {
                     val modeId = parts.getOrNull(1)?.toIntOrNull() ?: -1

@@ -407,6 +407,10 @@ class TvAfrAccessibilityService : AccessibilityService() {
         }
     }
 
+    fun rescueDisplay() {
+        if (::afrController.isInitialized) afrController.rescueDisplay()
+    }
+
     fun executeQuickAction(action: QuickAction, targetPkg: String? = null) {
         when (action) {
             QuickAction.NONE -> {}

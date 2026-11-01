@@ -392,6 +392,10 @@ class OverlayToolkit(
             afrController.stopAfr()
         }
         card.addView(revertBtn)
+        card.addView(createPanelButton(context.getString(R.string.display_rescue_action), isHighlighted = false) {
+            closeAfrPanel()
+            afrController.rescueDisplay()
+        })
 
         val panelPrefs = dev.custom.tvafrtools.config.AppPrefs(context)
         card.addView(createPanelButton(

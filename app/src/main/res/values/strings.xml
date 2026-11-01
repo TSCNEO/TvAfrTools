@@ -282,4 +282,7 @@ Changes:
     <string name="display_restoring">↩ Restoring…</string>
     <string name="display_current_mode">AFR: %1$dp@%2$s Hz</string>
     <string name="display_restored_mode">↩ %1$dp@%2$s Hz</string>
+    <string name="display_rescue_action">Rescue display (clear refresh limits)</string>
+    <string name="display_rescue_done">Refresh limits removed</string>
+    <string name="display_rescue_failed">Could not clear limits. Activate the engine and try again.</string>
 </resources>

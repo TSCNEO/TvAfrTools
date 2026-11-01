@@ -845,6 +845,23 @@ class MainActivity : AppCompatActivity() {
             makeActionButton(getString(R.string.system_btn_app_settings)) { showRestrictedSettingsGuideDialog() }
         )
 
+        col.addView(makeActionButton(getString(R.string.display_rescue_action)) {
+            val service = TvAfrAccessibilityService.instance
+            if (service != null) {
+                service.rescueDisplay()
+            } else {
+                lifecycleScope.launch {
+                    val success = withContext(Dispatchers.IO) {
+                        if (!ServerClient.isServerRunning()) LocalAdbBootstrap.autoStartPrivilegedDaemon(applicationContext)
+                        ServerClient.resetRefreshLimits()
+                    }
+                    Toast.makeText(this@MainActivity, getString(if (success) R.string.display_rescue_done else R.string.display_rescue_failed), Toast.LENGTH_LONG).show()
+                }
+            }
+        }.apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dpToPx(8) }
+        })
+
         val statusCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)

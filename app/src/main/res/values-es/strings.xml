@@ -282,4 +282,7 @@ Novedades:
     <string name="display_restoring">↩ Restableciendo…</string>
     <string name="display_current_mode">AFR: %1$dp@%2$s Hz</string>
     <string name="display_restored_mode">↩ %1$dp@%2$s Hz</string>
+    <string name="display_rescue_action">Rescatar pantalla (quitar límites de Hz)</string>
+    <string name="display_rescue_done">Límites de frecuencia eliminados</string>
+    <string name="display_rescue_failed">No se pudieron quitar los límites. Activa el motor y vuelve a intentarlo.</string>
 </resources>

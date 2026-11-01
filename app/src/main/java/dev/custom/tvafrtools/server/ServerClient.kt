@@ -148,14 +148,16 @@ object ServerClient {
 
     fun setSystemDisplayMode(modeId: Int, width: Int, height: Int, refreshRate: Float): Boolean {
         val hzStr = String.format(Locale.US, "%.6f", refreshRate)
-        val resp = sendCommand("SET_DISPLAY_MODE $modeId $width $height $hzStr")
+        val resp = sendCommand("SET_DISPLAY_MODE $modeId $width $height $hzStr", 10000)
         return resp.startsWith("OK")
     }
 
     fun clearSystemDisplayMode(): Boolean {
-        val resp = sendCommand("SET_DISPLAY_MODE -1 0 0 0")
+        val resp = sendCommand("SET_DISPLAY_MODE -1 0 0 0", 10000)
         return resp.startsWith("OK")
     }
+
+    fun resetRefreshLimits(): Boolean = sendCommand("RESET_REFRESH_LIMITS", 15000).startsWith("OK")
 
     fun installApk(apkPath: String): Boolean {
         val resp = sendCommand("INSTALL_APK $apkPath", 15000)

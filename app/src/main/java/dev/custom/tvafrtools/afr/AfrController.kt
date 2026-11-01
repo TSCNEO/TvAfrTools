@@ -588,6 +588,16 @@ class AfrController(
 
     }
 
+    fun rescueDisplay() {
+        stopAfr(silent = true)
+        displayCommands.execute {
+            val success = ServerClient.resetRefreshLimits()
+            mainHandler.post {
+                onBannerMessage(context.getString(if (success) R.string.display_rescue_done else R.string.display_rescue_failed))
+            }
+        }
+    }
+
     fun isAfrCurrentlyActive(): Boolean = isAfrActive
 
     private fun ensureAfrOverlayCreated() {
