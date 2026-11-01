@@ -16,6 +16,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Validate release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          NOTES="docs/releases/${RELEASE_TAG}.md"
+          if [ ! -s "$NOTES" ] || ! grep -q '[^[:space:]]' "$NOTES"; then
+            echo "::error::Add non-empty release notes at $NOTES before creating the tag."
+            exit 1
+          fi
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -92,7 +102,8 @@ jobs:
         with:
           name: TvAfrTools ${{ github.ref_name }}
           files: dist/TvAfrTools.apk
-          generate_release_notes: true
+          body_path: docs/releases/${{ github.ref_name }}.md
+          generate_release_notes: false
           # A semver prerelease tag (v1.2.3-rc1) must never become "latest":
           # the Downloader short link points at releases/latest/download/.
           prerelease: ${{ contains(github.ref_name, '-') }}
