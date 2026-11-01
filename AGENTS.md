@@ -195,3 +195,7 @@ Para futuras versiones:
 - En GitHub Actions las credenciales viven en *Repository secrets*: `KEYSTORE_BASE64` (el `.jks` en base64), `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. El workflow decodifica el keystore a `$RUNNER_TEMP/signing/` y desaparece con el runner.
 - Generar el base64 sin saltos de línea: `base64 -w0 release.jks` (Linux) o `base64 -i release.jks | tr -d '\n'` (macOS).
 - Prohibido escribir contraseñas, rutas absolutas de usuario, IPs de red local o identificadores de dispositivos en cualquier fichero del repo.
+
+## UI Design System — Mandatory Rules
+
+Antes de crear, modificar o refactorizar cualquier interfaz Android o Android TV, leer `docs/DESIGN_SYSTEM.md`. Mientras su estado sea propuesta pendiente, no asumir que está aprobado ni tratarlo como normativa definitiva. Una vez aprobado, es la fuente de verdad de colores, tipografía, espacios, geometría, componentes, navegación, movimiento y estados. Reutilizar tokens y componentes existentes; no inventar estilos inconsistentes. Respetar las normas compartidas y las variantes propias de Android y TV. Cualquier cambio de identidad requiere aprobación explícita y actualización del documento. Comprobar toda implementación de UI contra el sistema antes de terminarla; si falta una regla, proponer su ampliación antes de aplicarla y justificar cualquier excepción.
