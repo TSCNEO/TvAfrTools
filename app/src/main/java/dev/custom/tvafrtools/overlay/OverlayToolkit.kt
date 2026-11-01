@@ -183,7 +183,7 @@ class OverlayToolkit(
                 }
 
                 val text = buildString {
-                    append("⚡ TvAfrTools HUD\n")
+                    append("TvAfrTools HUD\n")
                     if (mode != null) {
                         append(
                             String.format(
@@ -238,7 +238,7 @@ class OverlayToolkit(
                 showBanner("HUD Técnico ocultado")
             } else {
                 val tv = TextView(context).apply {
-                    setTextColor(Color.parseColor("#E2E8F0"))
+                    setTextColor(Color.parseColor("#F8FAFC"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                     typeface = Typeface.MONOSPACE
                     setPadding(dp(14), dp(10), dp(14), dp(10))
@@ -271,7 +271,7 @@ class OverlayToolkit(
                     lastRxTimeMs = SystemClock.elapsedRealtime()
                     hudUpdateRunnable.run()
                 } catch (_: Exception) {
-                    showBanner("⚠ Concede permiso de superposición para el HUD")
+                    showBanner("Concede permiso de superposición para el HUD")
                 }
             }
         }
@@ -334,7 +334,7 @@ class OverlayToolkit(
         }
 
         val headerTitle = TextView(context).apply {
-            text = "Selector de frecuencia HDMI (AFR)"
+            text = context.getString(R.string.overlay_manual_afr_title)
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
@@ -376,7 +376,7 @@ class OverlayToolkit(
             }
         }.start()
 
-        val autoBtn = createPanelButton(context.getString(R.string.overlay_auto_afr_btn), isHighlighted = true) {
+        val autoBtn = createPanelButton(context.getString(R.string.overlay_auto_afr_btn), isHighlighted = false) {
             closeAfrPanel()
             afrController.triggerOneClickAfr()
         }
@@ -412,7 +412,7 @@ class OverlayToolkit(
                 if (isMatch) append("   VÍDEO DETECTADO")
                 if (isCurrent) append("   [ACTIVO]")
             }
-            val btn = createPanelButton(label, isHighlighted = isCurrent || isMatch) {
+            val btn = createPanelButton(label, isHighlighted = isCurrent) {
                 closeAfrPanel()
                 afrController.applyModeId(m.modeId)
             }
@@ -421,7 +421,7 @@ class OverlayToolkit(
 
 
 
-        val closeBtn = createPanelButton("✕ Cerrar Panel (Atrás)", isHighlighted = false) {
+        val closeBtn = createPanelButton("Cerrar panel (Atrás)", isHighlighted = false) {
             closeAfrPanel()
         }
         card.addView(closeBtn)
@@ -458,7 +458,7 @@ class OverlayToolkit(
             isPanelVisible = true
             autoBtn.requestFocus()
         } catch (_: Exception) {
-            showBanner("⚠ Concede el permiso 'Mostrar sobre otras aplicaciones'")
+            showBanner("Concede el permiso 'Mostrar sobre otras aplicaciones'")
         }
     }
 
@@ -588,7 +588,7 @@ class OverlayToolkit(
                 }
                 card.addView(subtitle)
 
-                val cleanBtn = createPanelButton(context.getString(R.string.overlay_clean_ram_btn), isHighlighted = true) {
+                val cleanBtn = createPanelButton(context.getString(R.string.overlay_clean_ram_btn), isHighlighted = false) {
                     closeRecentsPanel()
                     performRamClean(currentForegroundPkg)
                 }
@@ -639,7 +639,7 @@ class OverlayToolkit(
                     }
                 }
 
-                val closeBtn = createPanelButton("✕ Cerrar Multitarea (Atrás)", isHighlighted = false) {
+                val closeBtn = createPanelButton("Cerrar multitarea (Atrás)", isHighlighted = false) {
                     closeRecentsPanel()
                 }
                 card.addView(closeBtn)
@@ -676,7 +676,7 @@ class OverlayToolkit(
                     isRecentsVisible = true
                     cleanBtn.requestFocus()
                 } catch (_: Exception) {
-                    showBanner("⚠ Concede permiso de superposición para abrir Multitarea")
+                    showBanner("Concede permiso de superposición para abrir Multitarea")
                 }
             }
         }.start()
@@ -719,8 +719,8 @@ class OverlayToolkit(
                         setColor(Color.parseColor("#F59E0B"))
                         setStroke(dp(2), Color.WHITE)
                     } else if (isHighlighted) {
-                        setColor(Color.parseColor("#26211C"))
-                        setStroke(dp(1), Color.parseColor("#D97706"))
+                        setColor(Color.parseColor("#22252D"))
+                        setStroke(dp(1), Color.parseColor("#F59E0B"))
                     } else {
                         setColor(Color.parseColor("#191B22"))
                         setStroke(dp(1), Color.parseColor("#454A57"))
@@ -757,7 +757,7 @@ class OverlayToolkit(
                     }
                 }
                 dimmerView = null
-                showBanner("☀ Atenuador Nocturno: Desactivado")
+                showBanner("Atenuador Nocturno: Desactivado")
                 return@post
             }
 
@@ -797,7 +797,7 @@ class OverlayToolkit(
                 } catch (_: Exception) {
                 }
             }
-            showBanner("🌙 Atenuador Nocturno: -$pct% brillo")
+            showBanner("Atenuador Nocturno: -$pct% brillo")
         }
     }
 
@@ -819,13 +819,13 @@ class OverlayToolkit(
                 }
                 cursorView = null
                 cursorParams = null
-                showBanner("🖱 Ratón Virtual desactivado (D-Pad normal)")
+                showBanner("Ratón Virtual desactivado (D-Pad normal)")
             } else {
                 val size = dp(22)
                 val v = View(context).apply {
                     background = GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
-                        setColor(Color.parseColor("#E638BDF8"))
+                        setColor(Color.parseColor("#E6F59E0B"))
                         setStroke(dp(2), Color.WHITE)
                     }
                 }
@@ -849,7 +849,7 @@ class OverlayToolkit(
                     cursorView = v
                     cursorParams = params
                     isMouseActive = true
-                    showBanner("🖱 Ratón Virtual activado (Usa las flechas del mando)")
+                    showBanner("Ratón Virtual activado (Usa las flechas del mando)")
                 } catch (_: Exception) {
                 }
             }

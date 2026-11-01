@@ -1,5 +1,6 @@
 package dev.custom.tvafrtools.server
 
+import dev.custom.tvafrtools.BuildConfig
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -54,7 +55,7 @@ import kotlin.math.abs
  * 7. HDR / Dolby Vision Conversion Mode & Audio Output Format Cycling
  */
 object PrivilegedServer {
-    const val PORT = 15099
+    const val PORT = BuildConfig.DAEMON_PORT
 
     @Volatile
     private var currentFps: Float = 0f
@@ -1074,7 +1075,7 @@ object PrivilegedServer {
                     val baseActivityField = task.javaClass.getField("baseActivity")
                     val comp = baseActivityField.get(task) as? android.content.ComponentName ?: continue
                     val pkg = comp.packageName
-                    if (pkg != "dev.custom.tvafrtools" &&
+                    if (pkg != "dev.custom.tvafrtools" && pkg != "dev.custom.tvafrtools.alpha" &&
                         !pkg.contains("launcher") &&
                         !pkg.contains("tvrecommendations") &&
                         !pkg.startsWith("com.android.systemui") &&
@@ -1093,7 +1094,7 @@ object PrivilegedServer {
         val recents = getRecentPackages()
         var killed = 0
         for (pkg in recents) {
-            if (pkg != excludePkg && pkg != "dev.custom.tvafrtools") {
+            if (pkg != excludePkg && pkg != "dev.custom.tvafrtools" && pkg != "dev.custom.tvafrtools.alpha") {
                 if (forceStopPackage(pkg)) {
                     killed++
                 }

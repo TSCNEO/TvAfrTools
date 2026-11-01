@@ -3,6 +3,7 @@ package dev.custom.tvafrtools.adb
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import dev.custom.tvafrtools.BuildConfig
 import dev.custom.tvafrtools.server.PrivilegedServer
 import dev.custom.tvafrtools.server.ServerClient
 import java.io.DataInputStream
@@ -96,12 +97,18 @@ object LocalAdbBootstrap {
             append("settings put secure accessibility_enabled 1; ")
             // Match only the daemon process, never the enclosing sh -c command.
             if (daemonRunning && !forceRestart) append("exit 0; ")
-            append("pkill -f ^app_process.*${PrivilegedServer::class.java.name} 2>/dev/null || true; ")
+            if (BuildConfig.DEBUG) {
+                append("pkill -f ^tvafrtools_alpha 2>/dev/null || true; ")
+            } else {
+                append("pkill -f ^app_process.*${PrivilegedServer::class.java.name} 2>/dev/null || true; ")
+            }
             append("sleep 0.2; ")
             append("apk=\$(pm path $pkg | tr -d \"\\r\" | head -n 1 | cut -d: -f2); ")
             append("if [ -z \"\$apk\" ]; then apk=\"$apkPath\"; fi; ")
             append("export CLASSPATH=\"\$apk\"; ")
-            append("nohup app_process /system/bin ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/tvafr_daemon.log 2>&1 & ")
+            val processName = if (BuildConfig.DEBUG) " --nice-name=tvafrtools_alpha" else ""
+            val logName = if (BuildConfig.DEBUG) "tvafr_alpha_daemon.log" else "tvafr_daemon.log"
+            append("nohup app_process /system/bin$processName ${PrivilegedServer::class.java.name} </dev/null >/data/local/tmp/$logName 2>&1 & ")
             append("sleep 0.3; ")
             append("exit 0")
         }

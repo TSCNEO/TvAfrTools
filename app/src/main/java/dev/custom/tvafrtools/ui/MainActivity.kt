@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: AppPrefs
     private var autoBootstrapAttempted = false
     private var updateDialogShownInSession = false
+    private var renderedAccessibilityState: Boolean? = null
 
     // UI navigation state
     private enum class NavSection(val titleRes: Int, val subRes: Int, val iconRes: Int) {
@@ -113,7 +114,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             updateLiveStatusBadge()
-            refreshSectionContent()
+            val accessibilityActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this@MainActivity)
+            if (accessibilityActive != renderedAccessibilityState) refreshSectionContent()
         }
     }
 
@@ -142,21 +144,21 @@ class MainActivity : AppCompatActivity() {
                 setMargins(0, 0, 0, dpToPx(16))
             }
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#261717"))
-                cornerRadius = dpToPx(10).toFloat()
-                setStroke(dpToPx(1), Color.parseColor("#DC2626"))
+                setColor(Color.parseColor("#191B22"))
+                cornerRadius = dpToPx(12).toFloat()
+                setStroke(dpToPx(1), Color.parseColor("#FCA5A5"))
             }
         }
 
         val title = TextView(this).apply {
-            text = "Permiso de accesibilidad inactivo"
+            text = getString(R.string.banner_acc_inactive_title)
             setTextColor(Color.parseColor("#FCA5A5"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = Typeface.DEFAULT_BOLD
             setPadding(0, 0, 0, dpToPx(4))
         }
         val desc = TextView(this).apply {
-            text = "Necesario para interceptar botones del mando, ajustar Hz automáticamente y mostrar el menú flotante."
+            text = getString(R.string.banner_acc_inactive_desc)
             setTextColor(Color.parseColor("#F8FAFC"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(0, 0, 0, dpToPx(10))
@@ -168,15 +170,10 @@ class MainActivity : AppCompatActivity() {
 
         btnRow.addView(makeActionButton(getString(R.string.btn_auto_activate)) {
             showAutoSetupDialog()
-        })
+        }.apply { layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dpToPx(8) } })
         btnRow.addView(makeActionButton(getString(R.string.btn_open_accessibility)) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        })
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            btnRow.addView(makeActionButton(getString(R.string.btn_setup_guide)) {
-                showRestrictedSettingsGuideDialog()
-            })
-        }
+        }.apply { layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
 
         banner.addView(title)
         banner.addView(desc)
@@ -191,7 +188,7 @@ class MainActivity : AppCompatActivity() {
                 "En Android TV y Google TV, la ficha de la app no tiene el menú de 3 puntos que tienen los teléfonos móviles.\n\n" +
                 "Por eso, TvAfrTools desbloquea los permisos automáticamente:\n\n" +
                 "1. Asegúrate de tener activada la \"Depuración USB\" en los Ajustes de Desarrollador de tu TV.\n" +
-                "2. Pulsa en \"⚡ Activar automáticamente\".\n" +
+                "2. Pulsa en \"Activar automáticamente\".\n" +
                 "3. Si tu TV muestra la ventana de confirmación, marca \"Permitir siempre\" y pulsa Aceptar con el mando."
             )
             .setPositiveButton(getString(R.string.btn_auto_activate)) { _, _ ->
@@ -206,7 +203,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.dialog_auto_setup_title))
             .setMessage(
                 "Conectando al sistema ADB interno...\n\n" +
-                "👉 IMPORTANTE: Si aparece una ventana en tu televisor preguntando si permites la depuración USB, marca la casilla Permitir siempre y pulsa Aceptar con el mando."
+                "IMPORTANTE: Si aparece una ventana en tu televisor preguntando si permites la depuración USB, marca la casilla Permitir siempre y pulsa Aceptar con el mando."
             )
             .setCancelable(false)
             .setNegativeButton(getString(R.string.mapper_btn_cancel), null)
@@ -250,14 +247,14 @@ class MainActivity : AppCompatActivity() {
                             "• O bien activa Depuración USB en las Opciones de Desarrollador de tu televisor."
                         }
                     )
-                    .setPositiveButton(if (res.waitingForTvAuthPopup) "Reintentar" else "🛡 Abrir Accesibilidad") { _, _ ->
+                    .setPositiveButton(if (res.waitingForTvAuthPopup) "Reintentar" else "Abrir Accesibilidad") { _, _ ->
                         if (res.waitingForTvAuthPopup) {
                             showAutoSetupDialog()
                         } else {
                             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                         }
                     }
-                    .setNeutralButton("⚙️ Ficha de la app") { _, _ ->
+                    .setNeutralButton("Ficha de la app") { _, _ ->
                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.parse("package:$packageName")
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -269,7 +266,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             updateLiveStatusBadge()
-            refreshSectionContent()
+            val accessibilityActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this@MainActivity)
+            if (accessibilityActive != renderedAccessibilityState) refreshSectionContent()
         }
     }
 
@@ -334,7 +332,7 @@ class MainActivity : AppCompatActivity() {
                 text = sec.getTitle(this@MainActivity)
                 val icon = ContextCompat.getDrawable(this@MainActivity, sec.iconRes)?.mutate()
                 icon?.setBounds(0, 0, dpToPx(24), dpToPx(24))
-                icon?.setTintList(ContextCompat.getColorStateList(this@MainActivity, R.drawable.nav_item_text_selector))
+                icon?.setTintList(ContextCompat.getColorStateList(this@MainActivity, R.color.nav_item_text_selector))
                 setCompoundDrawablesRelative(icon, null, null, null)
                 compoundDrawablePadding = dpToPx(12)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
@@ -344,7 +342,7 @@ class MainActivity : AppCompatActivity() {
                 isFocusable = true
                 isClickable = true
                 background = ContextCompat.getDrawable(this@MainActivity, R.drawable.nav_item_bg_selector)
-                setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.drawable.nav_item_text_selector))
+                setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.color.nav_item_text_selector))
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -414,9 +412,9 @@ class MainActivity : AppCompatActivity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(dpToPx(14), dpToPx(7), dpToPx(14), dpToPx(7))
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#1C1E26"))
+                setColor(Color.parseColor("#22252D"))
                 cornerRadius = dpToPx(8).toFloat()
-                setStroke(dpToPx(1), Color.parseColor("#363A48"))
+                setStroke(dpToPx(1), Color.parseColor("#454A57"))
             }
         }
         topBar.addView(liveStatusPill)
@@ -451,6 +449,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val accActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this)
+        renderedAccessibilityState = accActive
         if (!accActive) {
             layout.addView(buildAccessibilityWarningBanner())
         }
@@ -693,41 +692,17 @@ class MainActivity : AppCompatActivity() {
         }
         scroll.addView(col)
 
-        val grid1 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, dpToPx(10))
+        val actions = listOf(
+            Triple(R.string.action_screen_off_title, R.string.action_screen_off_desc, QuickAction.REAL_SCREEN_TOGGLE),
+            Triple(R.string.action_hud_title, R.string.action_hud_desc, QuickAction.HUD_TOGGLE),
+            Triple(R.string.action_clean_ram_title, R.string.action_clean_ram_desc, QuickAction.CLEAN_BACKGROUND_RAM),
+            Triple(R.string.action_recents_title, R.string.action_recents_desc, QuickAction.RECENT_APPS_SWITCHER),
+            Triple(R.string.action_night_dimmer_title, R.string.action_night_dimmer_desc, QuickAction.NIGHT_DIMMER_TOGGLE),
+            Triple(R.string.action_mouse_title, R.string.action_mouse_desc, QuickAction.MOUSE_TOGGLE)
+        )
+        actions.forEach { (title, description, action) ->
+            col.addView(makeCardButton(getString(title), getString(description)) { runServiceAction(action) })
         }
-        grid1.addView(makeCardButton(getString(R.string.action_screen_off_title), getString(R.string.action_screen_off_desc)) {
-            runServiceAction(QuickAction.REAL_SCREEN_TOGGLE)
-        })
-        grid1.addView(makeCardButton(getString(R.string.action_hud_title), getString(R.string.action_hud_desc)) {
-            runServiceAction(QuickAction.HUD_TOGGLE)
-        })
-        col.addView(grid1)
-
-        val grid2 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, dpToPx(10))
-        }
-        grid2.addView(makeCardButton(getString(R.string.action_clean_ram_title), getString(R.string.action_clean_ram_desc)) {
-            runServiceAction(QuickAction.CLEAN_BACKGROUND_RAM)
-        })
-        grid2.addView(makeCardButton(getString(R.string.action_recents_title), getString(R.string.action_recents_desc)) {
-            runServiceAction(QuickAction.RECENT_APPS_SWITCHER)
-        })
-        col.addView(grid2)
-
-        val grid3 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, dpToPx(10))
-        }
-        grid3.addView(makeCardButton(getString(R.string.action_night_dimmer_title), getString(R.string.action_night_dimmer_desc)) {
-            runServiceAction(QuickAction.NIGHT_DIMMER_TOGGLE)
-        })
-        grid3.addView(makeCardButton(getString(R.string.action_mouse_title), getString(R.string.action_mouse_desc)) {
-            runServiceAction(QuickAction.MOUSE_TOGGLE)
-        })
-        col.addView(grid3)
 
         return scroll
     }
@@ -914,7 +889,7 @@ class MainActivity : AppCompatActivity() {
             statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_acc), if (accActive) getString(R.string.status_active_linked) else getString(R.string.status_inactive), if (accActive) Color.parseColor("#6EE7B7") else Color.parseColor("#FCA5A5")))
             statusRowsContainer.addView(createStatusRow(getString(R.string.system_row_overlay), if (overlayGranted) getString(R.string.status_granted) else getString(R.string.status_pending), if (overlayGranted) Color.parseColor("#6EE7B7") else Color.parseColor("#FCA5A5")))
             val daemonText = when {
-                daemonSample.online -> "🟢 Listo (${"%.2f".format(daemonSample.fps)} FPS | ${"%.1f".format(daemonSample.cpuTempC)}°C)"
+                daemonSample.online -> "Listo (${"%.2f".format(daemonSample.fps)} FPS | ${"%.1f".format(daemonSample.cpuTempC)}°C)"
                 accActive -> getString(R.string.status_standard_mode)
                 else -> getString(R.string.status_inactive_activate_hint)
             }
@@ -1111,13 +1086,13 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             isFocusable = true
             minimumHeight = dpToPx(56)
-            background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
+            background = ContextCompat.getDrawable(this@MainActivity, R.drawable.setting_row_selector)
             setPadding(dpToPx(20), dpToPx(14), dpToPx(20), dpToPx(14))
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                bottomMargin = dpToPx(10)
+                bottomMargin = 0
             }
         }
 
@@ -1182,8 +1157,8 @@ class MainActivity : AppCompatActivity() {
             minimumHeight = dpToPx(56)
             background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
             setPadding(dpToPx(20), dpToPx(18), dpToPx(20), dpToPx(18))
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                rightMargin = dpToPx(10)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = dpToPx(8)
             }
             setOnClickListener { onClick() }
         }
@@ -1213,7 +1188,7 @@ class MainActivity : AppCompatActivity() {
         return TextView(this).apply {
             text = label
             gravity = Gravity.CENTER
-            setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.drawable.action_button_text_selector))
+            setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.color.action_button_text_selector))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             minHeight = dpToPx(48)
             setPadding(dpToPx(24), dpToPx(8), dpToPx(24), dpToPx(8))

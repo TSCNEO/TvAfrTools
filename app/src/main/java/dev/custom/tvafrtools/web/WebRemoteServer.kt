@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
+import dev.custom.tvafrtools.BuildConfig
 import dev.custom.tvafrtools.config.QuickAction
 import dev.custom.tvafrtools.server.ServerClient
 import java.io.BufferedReader
@@ -28,7 +29,7 @@ class WebRemoteServer(
     private val onBanner: (String) -> Unit
 ) {
     companion object {
-        const val PORT = 8099
+        const val PORT = BuildConfig.WEB_PORT
 
         fun getLocalIpAddress(): String {
             try {

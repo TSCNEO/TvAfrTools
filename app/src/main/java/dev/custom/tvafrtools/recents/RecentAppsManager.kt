@@ -39,7 +39,8 @@ object RecentAppsManager {
         "com.wolf.firelauncher",
         "com.nes.recents",
         "android",
-        "dev.custom.tvafrtools"
+        "dev.custom.tvafrtools",
+        "dev.custom.tvafrtools.alpha"
     )
 
     private val liveRecentPackages = CopyOnWriteArrayList<String>()

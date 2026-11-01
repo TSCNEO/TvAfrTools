@@ -45,6 +45,7 @@ object UpdateManager {
 
     @Synchronized
     fun checkOnAppOpen(context: Context, onAvailable: (UpdateInfo) -> Unit) {
+        if (BuildConfig.DEBUG) return
         val app = context.applicationContext
         val settings = app.getSharedPreferences("update_checks", Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
@@ -97,6 +98,10 @@ object UpdateManager {
         context: Context,
         onResult: (UpdateInfo?, String?) -> Unit
     ) {
+        if (BuildConfig.DEBUG) {
+            mainHandler.post { onResult(null, "Actualizaciones desactivadas en la versión de prueba") }
+            return
+        }
         Thread {
             try {
                 val url = URL(API_URL)

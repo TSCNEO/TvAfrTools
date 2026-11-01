@@ -74,13 +74,18 @@ android {
 
     buildTypes {
         release {
+            buildConfigField("int", "DAEMON_PORT", "15099")
+            buildConfigField("int", "WEB_PORT", "8099")
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("release")
         }
         debug {
+            applicationIdSuffix = ".alpha"
+            versionNameSuffix = ".debug"
+            buildConfigField("int", "DAEMON_PORT", "15100")
+            buildConfigField("int", "WEB_PORT", "8100")
             isMinifyEnabled = false
-            // Debug builds reuse the release key when available so that switching
-            // build types never forces an uninstall on the device.
+            // The alpha has its own package and can coexist with the stable app.
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
