@@ -84,11 +84,17 @@ class AfrController(
     private var activeTargetModeId: Int = -1
     private var pendingDisplayNotice = false
     private var displayNoticeTargetId: Int? = null
+    private var displayNoticeRestoring = false
     private val displayNoticeComplete = Runnable {
         if (!destroyed && pendingDisplayNotice) {
             pendingDisplayNotice = false
             getCurrentDisplayMode()?.let { mode ->
-                onDisplayNotice(context.getString(R.string.display_current_mode, mode.physicalWidth, mode.physicalHeight, mode.refreshRate), 10000L)
+                val rate = java.text.NumberFormat.getNumberInstance().apply {
+                    maximumFractionDigits = 3
+                    isGroupingUsed = false
+                }.format(mode.refreshRate.toDouble())
+                val message = if (displayNoticeRestoring) R.string.display_restored_mode else R.string.display_current_mode
+                onDisplayNotice(context.getString(message, mode.physicalHeight, rate), 10000L)
             }
         }
     }
@@ -97,6 +103,7 @@ class AfrController(
         mainHandler.removeCallbacks(displayNoticeComplete)
         pendingDisplayNotice = true
         displayNoticeTargetId = targetModeId
+        displayNoticeRestoring = restoring
         onDisplayNotice(context.getString(if (restoring) R.string.display_restoring else R.string.display_switching), 20000L)
         mainHandler.postDelayed(displayNoticeComplete, 15000L)
     }

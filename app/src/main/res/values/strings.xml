@@ -278,7 +278,8 @@ Changes:
     <string name="afr_native_desc">Lets the TV upscale. Uses a supported video resolution and refresh rate; keeps the current resolution if unavailable.</string>
     <string name="afr_native_marker">[VIDEO RESOLUTION]</string>
     <string name="update_startup_notice">Update %1$s available. Open Info &amp; Update → Check for updates.</string>
-    <string name="display_switching">Adjusting display…</string>
-    <string name="display_restoring">Restoring system display mode…</string>
-    <string name="display_current_mode">Current display: %1$dx%2$d · %3$.3f Hz</string>
+    <string name="display_switching">AFR: adjusting…</string>
+    <string name="display_restoring">↩ Restoring…</string>
+    <string name="display_current_mode">AFR: %1$dp@%2$s Hz</string>
+    <string name="display_restored_mode">↩ %1$dp@%2$s Hz</string>
 </resources>

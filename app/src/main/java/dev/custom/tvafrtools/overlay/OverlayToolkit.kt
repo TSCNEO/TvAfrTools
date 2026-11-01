@@ -86,7 +86,7 @@ class OverlayToolkit(
             WindowManager.LayoutParams.TYPE_SYSTEM_ALERT
         }
 
-    fun showBanner(message: String, durationMs: Long = 3200L) {
+    fun showBanner(message: String, durationMs: Long = 3200L, compact: Boolean = false) {
         mainHandler.post {
             mainHandler.removeCallbacks(hideBannerRunnable)
             if (bannerView == null) {
@@ -123,7 +123,12 @@ class OverlayToolkit(
                 } catch (_: Exception) {
                 }
             }
-            bannerView?.text = message
+            bannerView?.apply {
+                text = message
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 12f else 15f)
+                if (compact) setPadding(dp(12), dp(6), dp(12), dp(6))
+                else setPadding(dp(20), dp(12), dp(20), dp(12))
+            }
             mainHandler.postDelayed(hideBannerRunnable, durationMs)
         }
     }
