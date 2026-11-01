@@ -16,7 +16,7 @@ Un instrumento sobrio y preciso que hace comprensible el estado de la reproducci
 
 Colores opacos en sRGB; no modificar por pantalla. Fondo `#111216`; rail `#0C0D10`; superficie `#191B22`; superficie elevada `#22252D`; borde `#454A57`; separador `#363A45`; texto principal `#F8FAFC`; secundario `#B8C0CE`; deshabilitado `#858D9B`; foco/acción `#F59E0B` con texto `#0F1014`; éxito `#6EE7B7`; aviso `#FCD34D`; error `#FCA5A5`; enlace `#93C5FD`. Los estados se expresan también con texto e icono, nunca solo color. Fondo modal negro `#000000` al 60% de opacidad. No usar gradientes, brillo ni vidrio.
 
-Tipografía: familia Android `sans-serif` (Roboto donde esté disponible), regular 400 y medium 500; bold 700 solo títulos. TV: título 28sp/34sp, sección 22sp/28sp, cuerpo y controles 18sp/24sp, auxiliar 16sp/22sp. Datos técnicos: 20sp/26sp medium, cifras tabulares si están disponibles. Android táctil futuro: título 24sp/30sp, sección 20sp/26sp, cuerpo/control 16sp/24sp, auxiliar 14sp/20sp. Respetar escala de fuente del sistema, permitir dos líneas y crecimiento vertical; no reducir texto para encajarlo.
+Tipografía: familia Android `sans-serif` (Roboto donde esté disponible), regular 400 y medium 500; bold 700 solo títulos. TV: título 24sp/30sp, sección 20sp/26sp, cuerpo y controles 16sp/22sp, auxiliar 14sp/20sp. Datos técnicos: 20sp/26sp medium, cifras tabulares si están disponibles. Android táctil futuro: título 24sp/30sp, sección 20sp/26sp, cuerpo/control 16sp/24sp, auxiliar 14sp/20sp. Respetar escala de fuente del sistema, permitir dos líneas y crecimiento vertical; no reducir texto para encajarlo.
 
 Espacios dp: 4, 8, 12, 16, 24, 32, 48 y 64. Separación icono-texto 12; filas 8; grupos 24; secciones 32. Bordes 1dp; foco 2dp. Radios: 4dp para indicadores, 8dp para filas y botones, 12dp para paneles y diálogos. Sin sombras decorativas; elevación 0, diálogo 8dp para separación funcional. Sin escalado de foco: evita recortes y desplazamiento.
 
@@ -48,7 +48,7 @@ No se diseñará una variante táctil de la aplicación nativa. Para el mando we
 - **Acciones rápidas:** lista de acciones disponibles con descripción breve. No presentar métricas ficticias.
 - **Mando web:** dirección real y estado con jerarquía clara; sin inventar QR ni conectividad.
 - **Sistema:** filas alineadas para dispositivo, HDMI, permisos y demonio, con estados textuales. Permiso pendiente muestra acción concreta; no pintar todas las cifras de colores distintos.
-- **Selector AFR:** lista modal con Auto, reversión estándar y modos disponibles; marca la selección real, foco independiente y Back restaura el origen. **HUD:** texto técnico compacto sobre superficie legible; sin borde verde arbitrario. **Recientes:** nombres y recursos reales, foco visible y acción de limpieza diferenciada.
+- **Selector AFR:** lista modal con Auto, restablecimiento del modo del sistema y modos disponibles; marca la selección real, foco independiente y Back restaura el origen. **HUD:** texto técnico compacto sobre superficie legible; sin borde verde arbitrario. **Recientes:** nombres y recursos reales, foco visible y acción de limpieza diferenciada.
 
 ## DO / DON'T y validación
 
@@ -62,3 +62,6 @@ Antes de cerrar una implementación: contrastes medidos en combinaciones reales;
 2. Escala de texto y zona segura TV pendientes de comprobación en televisor real.
 3. Aprobadas la sustitución de emojis por iconos de línea y la conservación de los activos existentes.
 4. Aprobada la aplicación a las seis secciones, diálogos, superposiciones y mando web. No habrá variante táctil nativa.
+
+
+**Ajuste aprobado por el usuario:** escala tipográfica reducida tras prueba en Homatics; los botones largos deben crecer en altura y las acciones de sistema se presentan en filas independientes. La restauración elimina el modo impuesto por la aplicación; no presupone 60 Hz.

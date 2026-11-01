@@ -153,14 +153,14 @@ class MainActivity : AppCompatActivity() {
         val title = TextView(this).apply {
             text = getString(R.string.banner_acc_inactive_title)
             setTextColor(Color.parseColor("#FCA5A5"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             typeface = Typeface.DEFAULT_BOLD
             setPadding(0, 0, 0, dpToPx(4))
         }
         val desc = TextView(this).apply {
             text = getString(R.string.banner_acc_inactive_desc)
             setTextColor(Color.parseColor("#F8FAFC"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, 0, 0, dpToPx(10))
         }
 
@@ -335,7 +335,7 @@ class MainActivity : AppCompatActivity() {
                 icon?.setTintList(ContextCompat.getColorStateList(this@MainActivity, R.color.nav_item_text_selector))
                 setCompoundDrawablesRelative(icon, null, null, null)
                 compoundDrawablePadding = dpToPx(12)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
                 gravity = Gravity.CENTER_VERTICAL
                 minimumHeight = dpToPx(56)
                 setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8))
@@ -392,7 +392,7 @@ class MainActivity : AppCompatActivity() {
             tag = "SECTION_TITLE"
             text = currentSection.getTitle(this@MainActivity)
             setTextColor(Color.parseColor("#F8FAFC"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
             typeface = Typeface.DEFAULT_BOLD
         }
         val sectionSubtitle = TextView(this).apply {
@@ -400,7 +400,7 @@ class MainActivity : AppCompatActivity() {
             tag = "SECTION_SUBTITLE"
             text = currentSection.getSubtitle(this@MainActivity)
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         }
         sectionHeaderLayout.addView(sectionTitle)
         sectionHeaderLayout.addView(sectionSubtitle)
@@ -409,7 +409,7 @@ class MainActivity : AppCompatActivity() {
         liveStatusPill = TextView(this).apply {
             text = "Comprobando..."
             setTextColor(Color.parseColor("#F59E0B"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(dpToPx(14), dpToPx(7), dpToPx(14), dpToPx(7))
             background = GradientDrawable().apply {
                 setColor(Color.parseColor("#22252D"))
@@ -591,9 +591,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dpToPx(14), 0, 0)
         }
-        testRow.addView(makeActionButton(getString(R.string.qa_one_click_afr)) { runServiceAction(QuickAction.ONE_CLICK_AFR) })
         testRow.addView(makeActionButton(getString(R.string.qa_afr_panel)) { runServiceAction(QuickAction.AFR_PANEL) })
-        testRow.addView(makeActionButton(getString(R.string.qa_stop_afr)) { runServiceAction(QuickAction.STOP_AFR) })
         col.addView(testRow)
 
         return scroll
@@ -615,7 +613,7 @@ class MainActivity : AppCompatActivity() {
         val infoText = TextView(this).apply {
             text = "Elige un botón del mando y ponle la función que quieras"
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         topRow.addView(infoText)
@@ -627,7 +625,7 @@ class MainActivity : AppCompatActivity() {
             val emptyCard = TextView(this).apply {
                 text = "Todavía no has configurado ningún botón.\nPulsa 'Añadir botón del mando' para empezar."
                 setTextColor(Color.parseColor("#B8C0CE"))
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 setPadding(dpToPx(20), dpToPx(24), dpToPx(20), dpToPx(24))
                 background = ContextCompat.getDrawable(this@MainActivity, R.drawable.card_interactive_selector)
             }
@@ -666,7 +664,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     setTextColor(Color.parseColor("#F8FAFC"))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                 }
                 card.addView(detail)
@@ -740,7 +738,7 @@ class MainActivity : AppCompatActivity() {
         val urlLabel = TextView(this).apply {
             text = "Dirección de acceso desde tu móvil:"
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         }
         val urlVal = TextView(this).apply {
             text = url
@@ -752,7 +750,7 @@ class MainActivity : AppCompatActivity() {
         val urlHint = TextView(this).apply {
             text = "Abre esta dirección en el navegador de tu móvil (conectado a la misma Wi-Fi):"
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         }
         urlCard.addView(urlLabel)
         urlCard.addView(urlVal)
@@ -777,53 +775,25 @@ class MainActivity : AppCompatActivity() {
         ) { prefs.startOnBoot = it })
 
 
-        val btnRow1 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, dpToPx(10))
+        fun addSystemAction(label: String, action: () -> Unit) {
+            col.addView(makeActionButton(label, action).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dpToPx(8) }
+            })
         }
-        val btnRow2 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 0, 0, dpToPx(16))
-        }
-
-        val b1 = makeActionButton(getString(R.string.btn_auto_activate)) {
-            showAutoSetupDialog()
-        }.apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                rightMargin = dpToPx(10)
-            }
-        }
-        val b2 = makeActionButton(getString(R.string.btn_open_accessibility)) {
+        addSystemAction(getString(R.string.btn_auto_activate)) { showAutoSetupDialog() }
+        addSystemAction(getString(R.string.btn_open_accessibility)) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }.apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
-
-        val b3 = makeActionButton(getString(R.string.system_btn_overlay)) {
+        addSystemAction(getString(R.string.system_btn_overlay)) {
             if (!Settings.canDrawOverlays(this)) {
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
             } else {
                 Toast.makeText(this, getString(R.string.toast_overlay_granted), Toast.LENGTH_SHORT).show()
             }
-        }.apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                rightMargin = dpToPx(10)
-            }
         }
-
-        val b4 = makeActionButton(getString(R.string.system_btn_app_settings)) {
-            showRestrictedSettingsGuideDialog()
-        }.apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        }
-
-        btnRow1.addView(b1)
-        btnRow1.addView(b2)
-        btnRow2.addView(b3)
-        btnRow2.addView(b4)
-
-        col.addView(btnRow1)
-        col.addView(btnRow2)
+        addSystemAction(getString(R.string.system_btn_app_settings)) { showRestrictedSettingsGuideDialog() }
 
         val statusCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -835,7 +805,7 @@ class MainActivity : AppCompatActivity() {
         val cardTitle = TextView(this).apply {
             text = getString(R.string.system_card_title)
             setTextColor(Color.parseColor("#F59E0B"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             typeface = Typeface.DEFAULT_BOLD
             setPadding(0, 0, 0, dpToPx(12))
         }
@@ -856,13 +826,13 @@ class MainActivity : AppCompatActivity() {
                 val labelTv = TextView(this@MainActivity).apply {
                     text = label
                     setTextColor(Color.parseColor("#B8C0CE"))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f)
                 }
                 val valueTv = TextView(this@MainActivity).apply {
                     text = value
                     setTextColor(valueColor)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     typeface = Typeface.DEFAULT_BOLD
                     gravity = Gravity.END
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.9f)
@@ -916,13 +886,13 @@ class MainActivity : AppCompatActivity() {
         val updateTitle = TextView(this).apply {
             text = getString(R.string.system_updates_title)
             setTextColor(Color.parseColor("#F59E0B"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             typeface = Typeface.DEFAULT_BOLD
         }
         val updateDesc = TextView(this).apply {
             text = getString(R.string.system_installed_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, dpToPx(6), 0, dpToPx(14))
         }
 
@@ -973,7 +943,7 @@ class MainActivity : AppCompatActivity() {
         val notesTv = TextView(this).apply {
             text = markdownToSpanned(info.releaseNotes)
             setTextColor(Color.parseColor("#F8FAFC"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setLineSpacing(dpToPx(2).toFloat(), 1f)
         }
         changelogView.addView(notesTv)
@@ -1103,13 +1073,13 @@ class MainActivity : AppCompatActivity() {
         val titleTv = TextView(this).apply {
             text = title
             setTextColor(Color.parseColor("#F8FAFC"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = Typeface.DEFAULT_BOLD
         }
         val descTv = TextView(this).apply {
             text = desc
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, dpToPx(2), 0, 0)
         }
         textLayout.addView(titleTv)
@@ -1166,13 +1136,13 @@ class MainActivity : AppCompatActivity() {
         val titleTv = TextView(this).apply {
             text = title
             setTextColor(Color.parseColor("#F8FAFC"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = Typeface.DEFAULT_BOLD
         }
         val descTv = TextView(this).apply {
             text = desc
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, dpToPx(6), 0, 0)
         }
         card.addView(titleTv)
@@ -1189,7 +1159,7 @@ class MainActivity : AppCompatActivity() {
             text = label
             gravity = Gravity.CENTER
             setTextColor(ContextCompat.getColorStateList(this@MainActivity, R.color.action_button_text_selector))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             minHeight = dpToPx(48)
             setPadding(dpToPx(24), dpToPx(8), dpToPx(24), dpToPx(8))
             isFocusable = true

@@ -239,7 +239,7 @@ class OverlayToolkit(
             } else {
                 val tv = TextView(context).apply {
                     setTextColor(Color.parseColor("#F8FAFC"))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     typeface = Typeface.MONOSPACE
                     setPadding(dp(14), dp(10), dp(14), dp(10))
                     background = GradientDrawable().apply {
@@ -336,7 +336,7 @@ class OverlayToolkit(
         val headerTitle = TextView(context).apply {
             text = context.getString(R.string.overlay_manual_afr_title)
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
         }
         card.addView(headerTitle)
@@ -349,7 +349,7 @@ class OverlayToolkit(
             val fpsStr = if (liveFps > 1f) String.format(Locale.US, "%.3f fps", liveFps) else "Buscando stream..."
             text = "Actual: $curStr   |   Vídeo: $fpsStr"
             setTextColor(Color.parseColor("#B8C0CE"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(0, dp(4), 0, dp(12))
         }
         card.addView(subtitle)
@@ -381,7 +381,7 @@ class OverlayToolkit(
             afrController.triggerOneClickAfr()
         }
         card.addView(autoBtn)
-        // Opción Revertir / Restaurar Frecuencia nativa 60Hz inmediatamente debajo de Auto
+        // Opción de restablecer el modo del sistema inmediatamente debajo de Auto
         val revertBtn = createPanelButton(context.getString(R.string.overlay_revert_60hz_btn), isHighlighted = false) {
             closeAfrPanel()
             afrController.stopAfr()
@@ -575,7 +575,7 @@ class OverlayToolkit(
                 val headerTitle = TextView(context).apply {
                     text = context.getString(R.string.overlay_recents_title)
                     setTextColor(Color.WHITE)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
                 }
                 card.addView(headerTitle)
@@ -583,7 +583,7 @@ class OverlayToolkit(
                 val subtitle = TextView(context).apply {
                     text = context.getString(R.string.overlay_free_mem, availMb, totalMb) + "  •  OK  |  " + context.getString(R.string.overlay_recents_hint)
                     setTextColor(Color.parseColor("#B8C0CE"))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     setPadding(0, dp(4), 0, dp(12))
                 }
                 card.addView(subtitle)
@@ -692,7 +692,7 @@ class OverlayToolkit(
         return TextView(context).apply {
             this.text = text
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(dp(16), dp(11), dp(16), dp(11))
             isFocusable = true
             isFocusableInTouchMode = true

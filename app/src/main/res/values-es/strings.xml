@@ -43,8 +43,8 @@
     <string name="afr_opt_24_to_48_desc">Reproducción 2:2 sin artefactos si tu televisor soporta 48 Hz.</string>
     <string name="afr_opt_pause_switch">Pausar brevemente durante el cambio de pantalla</string>
     <string name="afr_opt_pause_switch_desc">Pausa el vídeo 1.2 segundos para no perderte el inicio mientras la TV hace el cambio HDMI.</string>
-    <string name="afr_opt_auto_restore">Volver a 60 Hz normales al salir al menú de la tele</string>
-    <string name="afr_opt_auto_restore_desc">Garantiza que los menús de la tele y el launcher se muevan siempre fluidos a 60 Hz.</string>
+    <string name="afr_opt_auto_restore">Restablecer el modo del sistema al salir</string>
+    <string name="afr_opt_auto_restore_desc">Elimina el modo de pantalla elegido por la aplicación.</string>
     <string name="afr_btn_test_manual">Probar conmutación manual ahora</string>
     <string name="afr_btn_test_manual_desc">Abre el menú flotante interactivo para probar el cambio de Hz con el mando.</string>
 
@@ -141,7 +141,7 @@ Una vez aceptado, pulsa Reintentar.</string>
     <string name="qa_open_app">Abrir una aplicación...</string>
     <string name="qa_one_click_afr">Ajustar Hz al vídeo actual</string>
     <string name="qa_afr_panel">Elegir Hz manualmente</string>
-    <string name="qa_stop_afr">↩ Volver a 60 Hz normales</string>
+    <string name="qa_stop_afr">Restablecer modo de pantalla del sistema</string>
     <string name="qa_real_screen_toggle">Apagar pantalla (música sonando)</string>
     <string name="qa_hud_toggle">Ver datos en pantalla (FPS y temp)</string>
     <string name="qa_clean_background_ram">Liberar memoria RAM</string>
@@ -160,7 +160,7 @@ Una vez aceptado, pulsa Reintentar.</string>
     <!-- Floating Overlays & Banners -->
     <string name="overlay_manual_afr_title">Cambiar Frecuencia de Pantalla</string>
     <string name="overlay_auto_afr_btn">Frecuencia Automática (Auto-detectar)</string>
-    <string name="overlay_revert_60hz_btn">↩ Revertir a 60 Hz Estándar</string>
+    <string name="overlay_revert_60hz_btn">Restablecer modo de pantalla del sistema</string>
     <string name="overlay_current_rate">Frecuencia actual: %s</string>
     <string name="overlay_recents_title">Aplicaciones Abiertas</string>
     <string name="overlay_clean_ram_btn">Liberar RAM (Cerrar todas las apps en 2º plano)</string>
@@ -178,7 +178,7 @@ Una vez aceptado, pulsa Reintentar.</string>
     <string name="banner_mouse_on">Ratón virtual activado (Usa las flechas del mando)</string>
     <string name="banner_mouse_off">Ratón virtual desactivado</string>
     <string name="banner_afr_switched">Ajustado a %1$s Hz para vídeo de %2$s fps</string>
-    <string name="banner_afr_reverted">↩ Pantalla restaurada a 60 Hz</string>
+    <string name="banner_afr_reverted">Modo de pantalla del sistema restablecido</string>
     <string name="banner_afr_no_video">No se detectó reproducción activa de vídeo</string>
 
     <!-- Service & Actions Banners -->
@@ -263,8 +263,8 @@ Repositorio: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="afr_25_desc">Adapta contenidos a 25 fps para que se vean fluidos a 50 Hz</string>
     <string name="afr_30_title">Duplicar 30 fps a 60 Hz</string>
     <string name="afr_30_desc">Usa 60 Hz para 30 fps y 59,94 Hz para 29,97 fps, si están disponibles</string>
-    <string name="afr_restore_title">Restaurar el modo anterior al salir</string>
-    <string name="afr_restore_desc">Recupera la resolución y frecuencia previas al AFR</string>
+    <string name="afr_restore_title">Restablecer el modo del sistema al salir</string>
+    <string name="afr_restore_desc">Elimina el modo de pantalla elegido por la aplicación.</string>
     <string name="volume_smooth_title">Control suave del volumen</string>
     <string name="volume_smooth_desc">Evita saltos bruscos de volumen al dejar pulsado el botón en mandos Bluetooth</string>
     <string name="boot_recovery_title">Recuperar servicios al encender</string>

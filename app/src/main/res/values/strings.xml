@@ -43,8 +43,8 @@
     <string name="afr_opt_24_to_48_desc">Smooth 2:2 pulldown without motion interpolation artifacts.</string>
     <string name="afr_opt_pause_switch">Brief pause during HDMI mode switch</string>
     <string name="afr_opt_pause_switch_desc">Pauses video for 1.2s to prevent missing the intro during HDMI handshake.</string>
-    <string name="afr_opt_auto_restore">Restore 60 Hz when exiting to TV launcher</string>
-    <string name="afr_opt_auto_restore_desc">Ensures system UI and launchers stay smooth at 60 Hz.</string>
+    <string name="afr_opt_auto_restore">Restore system display mode on exit</string>
+    <string name="afr_opt_auto_restore_desc">Clears the display mode selected by the app.</string>
     <string name="afr_btn_test_manual">Test manual switching now</string>
     <string name="afr_btn_test_manual_desc">Opens the floating selector to manually switch Hz with your remote.</string>
 
@@ -141,7 +141,7 @@ Once accepted, click Retry.</string>
     <string name="qa_open_app">Launch an installed app...</string>
     <string name="qa_one_click_afr">Auto-match Hz to current video</string>
     <string name="qa_afr_panel">Choose Hz manually</string>
-    <string name="qa_stop_afr">↩ Revert to normal 60 Hz</string>
+    <string name="qa_stop_afr">Restore system display mode</string>
     <string name="qa_real_screen_toggle">Turn screen off (keep audio)</string>
     <string name="qa_hud_toggle">On-Screen Stats (FPS &amp; Temp)</string>
     <string name="qa_clean_background_ram">Free memory RAM</string>
@@ -160,7 +160,7 @@ Once accepted, click Retry.</string>
     <!-- Floating Overlays & Banners -->
     <string name="overlay_manual_afr_title">Display Refresh Rate</string>
     <string name="overlay_auto_afr_btn">Auto-Detect Frame Rate</string>
-    <string name="overlay_revert_60hz_btn">↩ Revert to Standard 60 Hz</string>
+    <string name="overlay_revert_60hz_btn">Restore system display mode</string>
     <string name="overlay_current_rate">Current: %s</string>
     <string name="overlay_recents_title">Open Applications</string>
     <string name="overlay_clean_ram_btn">Free RAM (Close background apps)</string>
@@ -178,7 +178,7 @@ Once accepted, click Retry.</string>
     <string name="banner_mouse_on">Virtual mouse enabled (Use D-Pad arrows)</string>
     <string name="banner_mouse_off">Virtual mouse disabled</string>
     <string name="banner_afr_switched">Switched to %1$s Hz for %2$s fps video</string>
-    <string name="banner_afr_reverted">↩ Display restored to 60 Hz</string>
+    <string name="banner_afr_reverted">System display mode restored</string>
     <string name="banner_afr_no_video">No active video playback detected</string>
 
     <!-- Service & Actions Banners -->
@@ -263,8 +263,8 @@ Repository: https://github.com/TSCNEO/TvAfrTools</string>
     <string name="afr_25_desc">Displays 25 fps video at 50 Hz.</string>
     <string name="afr_30_title">Double 30 fps to 60 Hz</string>
     <string name="afr_30_desc">Uses 60 Hz for 30 fps and 59.94 Hz for 29.97 fps when supported.</string>
-    <string name="afr_restore_title">Restore the previous display mode on exit</string>
-    <string name="afr_restore_desc">Restores the resolution and refresh rate used before AFR.</string>
+    <string name="afr_restore_title">Restore system display mode on exit</string>
+    <string name="afr_restore_desc">Clears the display mode selected by the app.</string>
     <string name="volume_smooth_title">Smooth volume control</string>
     <string name="volume_smooth_desc">Prevents sudden volume jumps when holding a Bluetooth remote button.</string>
     <string name="boot_recovery_title">Recover services at startup</string>
