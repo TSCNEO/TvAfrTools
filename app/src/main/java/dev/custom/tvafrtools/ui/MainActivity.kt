@@ -1152,12 +1152,22 @@ class MainActivity : AppCompatActivity() {
         card.addView(textLayout)
 
         val chk = CheckBox(this).apply {
+            isClickable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             isChecked = initial
             isFocusable = false // Let card handle click
             buttonTintList = ColorStateList.valueOf(Color.parseColor("#F59E0B"))
         }
         card.addView(chk)
 
+        card.accessibilityDelegate = object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: android.view.accessibility.AccessibilityNodeInfo) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = CheckBox::class.java.name
+                info.isCheckable = true
+                info.isChecked = chk.isChecked
+            }
+        }
         card.setOnClickListener {
             chk.isChecked = !chk.isChecked
             onChanged(chk.isChecked)
@@ -1224,7 +1234,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateLiveStatusBadge() {
         val dm = getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
         val m = dm.getDisplay(android.view.Display.DEFAULT_DISPLAY)?.mode
-        val hzStr = if (m != null) "%.2f Hz".format(m.refreshRate) else "60.00 Hz"
+        val hzStr = if (m != null) "%.2f Hz".format(m.refreshRate) else "— Hz"
         val a11yActive = TvAfrAccessibilityService.instance != null || isAccessibilityEnabled(this)
         lifecycleScope.launch {
             val daemonOnline = withContext(Dispatchers.IO) { ServerClient.isDaemonOnlineSync() }
