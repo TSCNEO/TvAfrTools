@@ -2,17 +2,22 @@ package dev.custom.tvafrtools.update
 
 import dev.custom.tvafrtools.R
 
+import android.app.PendingIntent
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInstaller
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
-import androidx.core.content.FileProvider
 import dev.custom.tvafrtools.BuildConfig
 import dev.custom.tvafrtools.server.ServerClient
 import org.json.JSONObject
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -32,14 +37,19 @@ data class UpdateInfo(
  * 1. Checking `https://api.github.com/repos/TSCNEO/TvAfrTools/releases/latest`
  * 2. SemVer version comparison against `BuildConfig.VERSION_NAME`
  * 3. Streaming download with live progress tracking
- * 4. Dual-Mode Installation:
+ * 4. Triple-Mode Installation:
  *    - Silent Instant Mode: Installs in 1-second via local ADB Privileged daemon (`pm install -r -d`).
- *    - Native Fallback Mode: Prompts standard Android TV package installer dialog via `FileProvider`.
+ *    - Native PackageInstaller Mode: Uses a `PackageInstaller` session scoped to our own
+ *      package (`setAppPackageName`), which shows the regular app-update confirmation and
+ *      avoids the Play Protect "untrusted publisher" warning.
+ *    - Settings fallback chain for REQUEST_INSTALL_PACKAGES grants across TV skins.
  */
 object UpdateManager {
     private const val TAG = "UpdateManager"
     private const val GITHUB_REPO = "TSCNEO/TvAfrTools"
     private const val API_URL = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
+    private const val APK_NAME = "tvafrtools-update.apk"
+    const val ACTION_INSTALL_STATUS = "dev.custom.tvafrtools.action.INSTALL_STATUS"
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -245,25 +255,10 @@ object UpdateManager {
                     return@Thread
                 }
 
-                // 2. Native Fallback Mode via FileProvider & Intent.ACTION_VIEW
-                mainHandler.post {
-                    try {
-                        val apkUri: Uri = FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            cacheFile
-                        )
-                        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(apkUri, "application/vnd.android.package-archive")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(installIntent)
-                        onComplete(true, "Instalador del sistema iniciado.")
-                    } catch (e: Exception) {
-                        onComplete(false, "No se pudo abrir el instalador: ${e.message}")
-                    }
-                }
+                // 2. Native PackageInstaller session scoped to our own package.
+                // Runs on this worker thread: copying a multi-MB APK on the main thread
+                // would risk an ANR. Callbacks are marshalled back to the main thread.
+                installViaPackageInstaller(context, cacheFile, onComplete, onStatus)
             } catch (e: Exception) {
                 Log.e(TAG, "Download failed", e)
                 mainHandler.post {
@@ -272,6 +267,144 @@ object UpdateManager {
                 }
             }
         }.start()
+    }
+
+    /** True when the app may start package install sessions (Android 8.0+). */
+    fun canRequestPackageInstalls(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
+        return try {
+            context.packageManager.canRequestPackageInstalls()
+        } catch (e: Exception) {
+            Log.w(TAG, "canRequestPackageInstalls failed, assuming granted", e)
+            true
+        }
+    }
+
+    /**
+     * Opens the "Install unknown apps" permission screen for this app.
+     *
+     * TV vendors ship very different Settings builds, so we try three tiers:
+     *   1. ACTION_MANAGE_UNKNOWN_APP_SOURCES with our package URI (AOSP / Google TV).
+     *   2. ACTION_MANAGE_UNKNOWN_APP_SOURCES without data (Fire TV, some Chinese TVs).
+     *   3. ACTION_SECURITY_SETTINGS as a last resort (vendor skins).
+     * Falls back to the app details screen as a final safety net.
+     */
+    fun openInstallPermissionSettings(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+
+        val candidates = mutableListOf<Intent>()
+
+        // Tier 1: per-app unknown-sources page.
+        candidates += Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+            data = Uri.parse("package:${context.packageName}")
+        }
+        // Tier 2: bare unknown-sources list.
+        candidates += Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+        // Tier 3: generic security settings.
+        candidates += Intent(Settings.ACTION_SECURITY_SETTINGS)
+        // Final safety net: app details, where the toggle is also reachable.
+        candidates += Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:${context.packageName}")
+        }
+
+        for (intent in candidates) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                context.startActivity(intent)
+                Log.i(TAG, "Opened install permission settings via ${intent.action}")
+                return true
+            } catch (e: ActivityNotFoundException) {
+                Log.d(TAG, "Settings activity unavailable: ${intent.action}")
+            } catch (e: Exception) {
+                Log.d(TAG, "Settings activity failed: ${intent.action}", e)
+            }
+        }
+        Log.w(TAG, "Could not open any install permission settings screen")
+        return false
+    }
+
+    /**
+     * Installs [apkFile] through a [PackageInstaller] session.
+     *
+     * Using [PackageInstaller.SessionParams.setAppPackageName] with our own package makes the
+     * system treat this as a self-update: the confirmation prompt is the normal
+     * "Update app?" dialog and Play Protect no longer warns about an untrusted publisher.
+     */
+    @Suppress("DEPRECATION")
+    fun installViaPackageInstaller(
+        context: Context,
+        apkFile: File,
+        onComplete: (Boolean, String) -> Unit,
+        onStatus: (String) -> Unit = {}
+    ) {
+        // Safe to call from any thread: every callback is marshalled to the main thread.
+        val complete: (Boolean, String) -> Unit = { ok, msg ->
+            mainHandler.post { onComplete(ok, msg) }
+        }
+        try {
+            if (!apkFile.exists() || apkFile.length() <= 0L) {
+                complete(false, "El archivo de actualización no existe o está vacío.")
+                return
+            }
+            if (!canRequestPackageInstalls(context)) {
+                complete(false, "Falta el permiso para instalar aplicaciones desconocidas.")
+                return
+            }
+
+            val installer = context.packageManager.packageInstaller
+            val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
+                setAppPackageName(context.packageName)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    setPackageSource(PackageInstaller.PACKAGE_SOURCE_DOWNLOADED_FILE)
+                }
+            }
+
+            val sessionId = installer.createSession(params)
+            installer.openSession(sessionId).use { session ->
+                try {
+                    FileInputStream(apkFile).use { input ->
+                        session.openWrite(APK_NAME, 0L, apkFile.length()).use { output ->
+                            input.copyTo(output, 64 * 1024)
+                            session.fsync(output)
+                        }
+                    }
+                    val statusIntent = Intent(context, UpdateInstallReceiver::class.java).apply {
+                        setAction(ACTION_INSTALL_STATUS)
+                        `package` = context.packageName
+                    }
+                    // The system fills in the status extras, so the PendingIntent must be mutable
+                    // (required explicitly from API 31).
+                    var flags = PendingIntent.FLAG_UPDATE_CURRENT
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        flags = flags or PendingIntent.FLAG_MUTABLE
+                    }
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        context,
+                        sessionId,
+                        statusIntent,
+                        flags
+                    )
+                    UpdateInstallReceiver.listener = { success, message, isFinal ->
+                        mainHandler.post {
+                            if (isFinal) onComplete(success, message) else onStatus(message)
+                        }
+                    }
+                    mainHandler.post { onStatus("Instalando actualización...") }
+                    session.commit(pendingIntent.intentSender)
+                } catch (e: Exception) {
+                    Log.e(TAG, "PackageInstaller session failed", e)
+                    try {
+                        session.abandon()
+                    } catch (_: Exception) {}
+                    UpdateInstallReceiver.listener = null
+                    complete(false, "No se pudo preparar la instalación: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "PackageInstaller unavailable", e)
+            UpdateInstallReceiver.listener = null
+            complete(false, "No se pudo abrir el instalador del sistema: ${e.message}")
+        }
     }
 
     fun isNewerVersion(remoteVer: String, localVer: String): Boolean {

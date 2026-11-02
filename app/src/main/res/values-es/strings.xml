@@ -222,6 +222,12 @@ Novedades:
     <string name="update_up_to_date">Ya tienes instalada la versión más reciente (v%s)</string>
     <string name="update_checking">Buscando actualizaciones...</string>
     <string name="update_error">Error al buscar actualizaciones: %s</string>
+    <string name="update_permission_title">Permiso para actualizar</string>
+    <string name="update_permission_msg">Android necesita permiso para instalar actualizaciones desde TvAfrTools.\n\nEn la siguiente pantalla activa &quot;Permitir desde esta fuente&quot; para TvAfrTools y vuelve aquí: la actualización continuará automáticamente.</string>
+    <string name="update_permission_grant">Abrir ajustes</string>
+    <string name="update_permission_pending">Activa &quot;Permitir desde esta fuente&quot; y vuelve a la app.</string>
+    <string name="update_permission_granted">Permiso concedido. Continuando actualización...</string>
+    <string name="update_permission_settings_failed">No se pudo abrir la pantalla de ajustes en este dispositivo. Concede &quot;Instalar apps desconocidas&quot; a TvAfrTools manualmente.</string>
 
     <!-- System Section Details -->
     <string name="btn_edit">Editar</string>

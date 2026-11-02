@@ -222,6 +222,12 @@ Changes:
     <string name="update_up_to_date">You already have the latest version (v%s)</string>
     <string name="update_checking">Checking for updates...</string>
     <string name="update_error">Error checking updates: %s</string>
+    <string name="update_permission_title">Allow installs to update</string>
+    <string name="update_permission_msg">Android needs permission to install app updates from TvAfrTools.\n\nOn the next screen, enable \"Allow from this source\" for TvAfrTools, then come back: the update will continue automatically.</string>
+    <string name="update_permission_grant">Open settings</string>
+    <string name="update_permission_pending">Enable \"Allow from this source\", then return to this app.</string>
+    <string name="update_permission_granted">Permission granted. Continuing update...</string>
+    <string name="update_permission_settings_failed">Could not open the settings screen on this device. Grant \"Install unknown apps\" to TvAfrTools manually.</string>
 
     <!-- System Section Details -->
     <string name="btn_edit">Edit</string>
