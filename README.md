@@ -18,6 +18,11 @@
 
 ---
 
+## What's new in 1.4.3
+
+- Automatically recovers the privileged daemon after a failed startup or disconnection, with connection checks every 15 seconds while automatic startup is enabled.
+- [Release notes](docs/releases/v1.4.3.md).
+
 ## What's new in 1.4.2
 
 - Auto detect starts a complete new measurement, discards the previous reading and waits for fresh verification before applying a refresh rate.

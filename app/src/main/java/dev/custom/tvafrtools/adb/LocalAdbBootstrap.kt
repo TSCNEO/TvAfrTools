@@ -19,6 +19,7 @@ import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Cipher
 
 /**
@@ -35,6 +36,7 @@ import javax.crypto.Cipher
  */
 object LocalAdbBootstrap {
     private const val TAG = "LocalAdbBootstrap"
+    private val recoveryInProgress = AtomicBoolean(false)
 
     private const val A_CNXN = 0x4e584e43
     private const val A_AUTH = 0x48545541
@@ -337,13 +339,22 @@ object LocalAdbBootstrap {
     }
 
     fun ensureServerRunningAsync(context: Context) {
-        Thread {
+        // Boot, accessibility and UI may request recovery concurrently. Never queue
+        // recovery threads behind a slow ADB connection or authorization prompt.
+        if (!recoveryInProgress.compareAndSet(false, true)) return
+        val appContext = context.applicationContext
+        Thread({
             try {
-                if (!isSetupReady(context)) {
-                    autoStartPrivilegedDaemon(context.applicationContext)
+                if (!isSetupReady(appContext)) {
+                    Log.i(TAG, "Privileged daemon unavailable; attempting recovery")
+                    val result = autoStartPrivilegedDaemon(appContext)
+                    Log.i(TAG, "Daemon recovery: success=${result.success}, authorizationRequired=${result.waitingForTvAuthPopup}")
                 }
-            } catch (_: Throwable) {
+            } catch (error: Throwable) {
+                Log.w(TAG, "Daemon recovery failed", error)
+            } finally {
+                recoveryInProgress.set(false)
             }
-        }.start()
+        }, "tvafr-daemon-recovery").start()
     }
 }

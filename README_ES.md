@@ -18,6 +18,11 @@
 
 ---
 
+## Novedades en 1.4.3
+
+- Recupera el demonio tras un arranque fallido o una desconexión, con comprobaciones cada 15 segundos cuando el inicio automático está activado.
+- [Notas de la versión](docs/releases/v1.4.3.md).
+
 ## Novedades en 1.4.2
 
 - «Auto detectar» inicia una medición completa nueva, descarta la lectura anterior y espera a confirmar la frecuencia antes de aplicarla.

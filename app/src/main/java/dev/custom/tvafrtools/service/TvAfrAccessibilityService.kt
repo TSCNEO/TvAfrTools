@@ -57,6 +57,14 @@ class TvAfrAccessibilityService : AccessibilityService() {
     private var webRemoteServer: WebRemoteServer? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val daemonHealthCheck = object : Runnable {
+        override fun run() {
+            if (prefs.startOnBoot) {
+                LocalAdbBootstrap.ensureServerRunningAsync(this@TvAfrAccessibilityService)
+            }
+            mainHandler.postDelayed(this, 15_000L)
+        }
+    }
     private lateinit var audioManager: AudioManager
 
     // Foreground app tracking for Per-App actions, Previous App (Alt+Tab), and AFR auto-stop
@@ -158,9 +166,12 @@ class TvAfrAccessibilityService : AccessibilityService() {
         dev.custom.tvafrtools.recents.RecentAppsManager.loadInitialRecents(this)
         // Ensure local ADB daemon is running automatically
         LocalAdbBootstrap.ensureServerRunningAsync(this)
+        mainHandler.removeCallbacks(daemonHealthCheck)
+        mainHandler.postDelayed(daemonHealthCheck, 15_000L)
     }
 
     override fun onDestroy() {
+        mainHandler.removeCallbacks(daemonHealthCheck)
         instance = null
         webRemoteServer?.stop()
         if (::afrController.isInitialized) {
