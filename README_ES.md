@@ -18,6 +18,12 @@
 
 ---
 
+## Novedades en 1.3.2
+
+- Nueva lectura del decodificador Amlogic vinculada a la app para distinguir 24,000/23,976 fps, también en reproducción protegida cuando está disponible.
+- Se mantiene mientras avanzan los fotogramas; se conservan timestamps y estimaciones como respaldo.
+- [Notas e instrucciones de actualización](docs/releases/v1.3.2.md).
+
 ## Novedades en 1.3.1
 
 - Se distinguen 24,000/23,976, 30/29,97 y 60/59,94 fps medidos al elegir los Hz de pantalla.

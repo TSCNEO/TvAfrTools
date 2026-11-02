@@ -82,6 +82,9 @@ object PrivilegedServer {
     @Volatile
     private var lastTunneledSource: String = "IDLE"
 
+    @Volatile private var foregroundAppPid: Int = -1
+    private val decoderFrameRates = DecoderFrameRateTracker()
+
     // Cached reflection handles
     private var displayControlClass: Class<*>? = null
     private var surfaceControlClass: Class<*>? = null
@@ -141,6 +144,7 @@ object PrivilegedServer {
         // Background monitors protected with individual try/catch
         try { initDisplayClasses() } catch (t: Throwable) { t.printStackTrace() }
         try { ensureUniversalSystemSettings() } catch (t: Throwable) { t.printStackTrace() }
+        currentTaskId = getForegroundTaskId()
         try { startTaskFpsMonitorThread() } catch (t: Throwable) { t.printStackTrace() }
         try { startTunneledVideoLogWatcherThread() } catch (t: Throwable) { t.printStackTrace() }
 
@@ -209,9 +213,20 @@ object PrivilegedServer {
                         val l = line ?: continue
                         val nowMs = SystemClock.elapsedRealtime()
                         val epoch = l.trim().substringBefore(' ').toDoubleOrNull() ?: continue
+                        val decoderFps = decoderFrameRates.accept(l, foregroundAppPid, System.currentTimeMillis() / 1000.0)
+                        if (decoderFps != null) {
+                            lastTunneledFps = decoderFps
+                            lastTunneledFpsTimestampMs = nowMs
+                            lastTunneledSource = "TUNNEL_DECODER"
+                            currentFps = decoderFps
+                            currentFpsSource = lastTunneledSource
+                            tunneledVideoActive = true
+                        }
                         if (kotlin.math.abs(System.currentTimeMillis() - (epoch * 1000).toLong()) > 2000) continue
-
                         captureVideoSize(l)
+                        // Keep a live, app-bound decoder rate ahead of PTS and coarse counters.
+                        if (lastTunneledSource == "TUNNEL_DECODER" && nowMs - lastTunneledFpsTimestampMs < 8000L) continue
+
                         // 1. Check Amlogic / Xiaomi / Homatics VideoSyncFRAC 3:2 pulldown detector
                         if (l.contains("3:2 pattern detected")) {
                             if (lastTunneledSource.startsWith("TUNNEL_PTS") && nowMs - lastTunneledFpsTimestampMs < 8000L) continue
@@ -343,6 +358,7 @@ object PrivilegedServer {
                         currentFpsSource = "IDLE"
                         lastTunneledFps = 0f
                         lastTunneledFpsTimestampMs = 0L
+                        lastTunneledSource = "IDLE"
                         tunneledVideoActive = false
                         tunnelRecent = false
                     }
@@ -432,11 +448,16 @@ object PrivilegedServer {
             val tasks = getTasks.invoke(atm, 1) as? List<*>
             if (!tasks.isNullOrEmpty()) {
                 val taskInfo = tasks[0] ?: return -1
+                val activity = taskInfo.javaClass.getField("topActivity").get(taskInfo) as? android.content.ComponentName
+                foregroundAppPid = activity?.packageName?.let { pkg ->
+                    runShellCommand("pidof $pkg").trim().split(' ').firstOrNull()?.toIntOrNull()
+                } ?: -1
                 val taskIdField = taskInfo.javaClass.getField("taskId")
                 return taskIdField.getInt(taskInfo)
             }
         } catch (_: Throwable) {
         }
+        foregroundAppPid = -1
         return -1
     }
 
