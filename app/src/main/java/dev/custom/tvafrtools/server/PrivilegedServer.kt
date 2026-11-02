@@ -1402,10 +1402,11 @@ object PrivilegedServer {
                     writer.println("OK ${String.format(Locale.US, "%.3f", fps)} $src")
                 }
                 "GET_SYSINFO" -> {
-                    val rate = readLiveRate()
+                    val (rate, resetState) = synchronized(freshDetection) {
+                        readLiveRate() to "REQUEST=${freshDetection.requestId} COMPLETED=${freshDetection.completedId}"
+                    }
                     val tempC = readUniversalSocTempCelsius()
                     val hdmi = readRealHardwareHdmiMode()
-                    val resetState = synchronized(freshDetection) { "REQUEST=${freshDetection.requestId} COMPLETED=${freshDetection.completedId}" }
                     writer.println("OK $resetState FPS=${String.format(Locale.US, "%.3f", rate.fps)} SRC=${rate.source} VERIFIED=${if (rate.verified) 1 else 0} SAMPLES=${rate.samples} SPAN_US=${rate.spanUs} TEMP=${String.format(Locale.US, "%.1f", tempC)} HDMI=$hdmi")
                 }
                 "GET_VIDEO_SIZE" -> writer.println("OK ${readVideoBufferSize()}")
