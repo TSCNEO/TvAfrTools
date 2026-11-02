@@ -201,8 +201,10 @@ class AfrController(
                                 (!prefs.matchNativeResolution || nativeVideoSize == currentSize) && prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                                 val mode = getCurrentDisplayMode()
                                 val desired = resolveRefreshMode(target)
-                                if (mode != null && desired != null && mode.modeId != desired.modeId && !waitingForDisplayChangePlay)
+                                if (mode != null && desired != null && mode.modeId != desired.modeId && !waitingForDisplayChangePlay) {
+                                    Log.i("AfrController", "Automatic AFR app=$appPackage fps=$fps source=${info.fpsSource} target=$target selected=${desired.refreshRate} mode=${desired.modeId}")
                                     applyRefreshRate(target, automatic = true)
+                                }
                             }
                             }
                         }

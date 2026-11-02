@@ -18,6 +18,13 @@
 
 ---
 
+## What's new in 1.3.3
+
+- Fixed Android 14 foreground app detection and decoder attribution when initial fps differ from the actual video rate.
+- Preserves measured fps during Prime Video buffer reallocation, pauses and resolution changes; handles Jellyfin's initial 30 fps configuration.
+- HUD startup detection and AFR diagnostic logs improved.
+- [Release notes and update instructions](docs/releases/v1.3.3.md).
+
 ## What's new in 1.3.2
 
 - Added app-bound Amlogic decoder rate readings to distinguish 24.000/23.976 fps, including protected playback when supported.

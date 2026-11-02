@@ -215,6 +215,8 @@ object PrivilegedServer {
                         val epoch = l.trim().substringBefore(' ').toDoubleOrNull() ?: continue
                         val decoderFps = decoderFrameRates.accept(l, foregroundAppPid, System.currentTimeMillis() / 1000.0)
                         if (decoderFps != null) {
+                            if (lastTunneledSource != "TUNNEL_DECODER" || abs(lastTunneledFps - decoderFps) > 0.005f)
+                                println("FPS source=TUNNEL_DECODER fps=$decoderFps appPid=$foregroundAppPid")
                             lastTunneledFps = decoderFps
                             lastTunneledFpsTimestampMs = nowMs
                             lastTunneledSource = "TUNNEL_DECODER"
@@ -372,7 +374,7 @@ object PrivilegedServer {
                         val newCb = createTaskFpsCallbackStub { fps ->
                             if (fps > 1.0f) {
                                 val ageMs = SystemClock.elapsedRealtime() - lastTunneledFpsTimestampMs
-                                if (ageMs < 8000L && lastTunneledFps in 23.0f..51.0f && fps >= 55.0f) {
+                                if (ageMs < 8000L && lastTunneledFps > 1f) {
                                     currentFps = lastTunneledFps
                                     currentFpsSource = lastTunneledSource
                                 } else {
@@ -439,25 +441,46 @@ object PrivilegedServer {
         }
     }
 
+    private var foregroundPackageForPid = ""
+    private var foregroundPidCheckedAt = 0L
+
+    private fun updateForegroundPid(pkg: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (pkg != foregroundPackageForPid || now - foregroundPidCheckedAt >= 2000L) {
+            foregroundPackageForPid = pkg
+            foregroundPidCheckedAt = now
+            foregroundAppPid = if (pkg.matches(Regex("[A-Za-z0-9_.]+")))
+                runShellCommand("pidof $pkg").trim().split(' ').firstOrNull()?.toIntOrNull() ?: -1 else -1
+        }
+    }
+
     private fun getForegroundTaskId(): Int {
         try {
             val atmClass = Class.forName("android.app.ActivityTaskManager")
-            val getService = atmClass.getMethod("getService")
-            val atm = getService.invoke(null)
-            val getTasks = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType)
-            val tasks = getTasks.invoke(atm, 1) as? List<*>
-            if (!tasks.isNullOrEmpty()) {
-                val taskInfo = tasks[0] ?: return -1
+            val atm = atmClass.getMethod("getService").invoke(null)
+            val tasks = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType).invoke(atm, 1) as? List<*>
+            val taskInfo = tasks?.firstOrNull()
+            if (taskInfo != null) {
                 val activity = taskInfo.javaClass.getField("topActivity").get(taskInfo) as? android.content.ComponentName
-                foregroundAppPid = activity?.packageName?.let { pkg ->
-                    runShellCommand("pidof $pkg").trim().split(' ').firstOrNull()?.toIntOrNull()
-                } ?: -1
-                val taskIdField = taskInfo.javaClass.getField("taskId")
-                return taskIdField.getInt(taskInfo)
+                if (activity != null) {
+                    updateForegroundPid(activity.packageName)
+                    return taskInfo.javaClass.getField("taskId").getInt(taskInfo)
+                }
             }
         } catch (_: Throwable) {
+            // Hidden getTasks overloads vary by Android version; do not disable decoder attribution.
+        }
+        val activities = runShellCommand("dumpsys activity activities")
+        val top = activities.lineSequence().firstOrNull {
+            it.contains("topResumedActivity=") || it.contains("mResumedActivity:")
+        }.orEmpty()
+        val pkg = Regex("""\s([A-Za-z0-9_.]+)/""").find(top)?.groupValues?.get(1)
+        if (pkg != null) {
+            updateForegroundPid(pkg)
+            return Regex("""\bt(\d+)\b""").find(top)?.groupValues?.get(1)?.toIntOrNull() ?: -1
         }
         foregroundAppPid = -1
+        foregroundPackageForPid = ""
         return -1
     }
 

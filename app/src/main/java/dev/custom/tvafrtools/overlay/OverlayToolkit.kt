@@ -153,13 +153,8 @@ class OverlayToolkit(
             Thread {
                 val mode = afrController.getCurrentDisplayMode()
                 val sysInfo = ServerClient.getSysInfo()
-                val videoFps = if (sysInfo.fps > 1.0f) sysInfo.fps else afrController.readCurrentVideoFps()
-                val fpsSrc = when {
-                    sysInfo.fpsSource.startsWith("TUNNEL") -> "Widevine L1 Tunnel"
-                    sysInfo.fpsSource.startsWith("SURFACE") -> "SurfaceFlinger"
-                    sysInfo.fpsSource.startsWith("SYS") -> "HW Decoder"
-                    else -> sysInfo.fpsSource
-                }
+                // UI/compositor fps are not video fps, including during player startup.
+                val videoFps = if (sysInfo.fpsSource.startsWith("SURFACE")) 0f else sysInfo.fps
                 val tempStr = if (sysInfo.socTempCelsius > 0f) {
                     String.format(Locale.US, "%.1f °C", sysInfo.socTempCelsius)
                 } else {
@@ -212,7 +207,7 @@ class OverlayToolkit(
                         }
                         append(String.format(Locale.getDefault(), if (sysInfo.fpsSource.contains("ESTIMATED")) "≈%.0f fps" else "%.3f fps", videoFps)).append('\n')
                     } else {
-                        append(context.getString(R.string.hud_no_stream)).append('\n')
+                        append(context.getString(R.string.hud_detecting_fps)).append('\n')
                     }
                     append("SoC:   $tempStr  |  RAM: $usedMb / $totalMb MB\n")
                     append("Red:   ↓ $speedStr")

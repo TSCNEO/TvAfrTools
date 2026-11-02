@@ -18,6 +18,13 @@
 
 ---
 
+## Novedades en 1.3.3
+
+- Corregida la identificación de la app en Android 14 y la asociación del códec cuando los fps iniciales difieren de los reales.
+- Conserva los fps medidos ante cambios de buffers, pausas y resolución en Prime; admite el arranque a 30 fps de Jellyfin.
+- Mejorada la detección inicial del HUD y añadidos registros de decisiones AFR.
+- [Notas e instrucciones de actualización](docs/releases/v1.3.3.md).
+
 ## Novedades en 1.3.2
 
 - Nueva lectura del decodificador Amlogic vinculada a la app para distinguir 24,000/23,976 fps, también en reproducción protegida cuando está disponible.
