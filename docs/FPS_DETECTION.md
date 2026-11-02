@@ -49,3 +49,7 @@ Run the focused checks with:
 ```
 
 The estimator tests cover integer/fractional pairs, quantization phases, reordered and missing events, codec separation, short samples, malformed protocol evidence and false authority from nominal codec reports.
+
+## Explicit redetection
+
+`REDETECT_FPS` invalidates cached fps and assigns a new request identifier. A capture must begin after that request to complete it; an in-flight older capture is discarded. The client waits for the matching completion and only applies verified evidence. During the request, legacy diagnostics are suppressed from the HUD. Changing foreground apps cancels application of the result.

@@ -18,6 +18,11 @@
 
 ---
 
+## What's new in 1.4.1
+
+- Auto detect starts a complete new measurement, discards the previous reading and waits for fresh verification before applying a refresh rate.
+- [Release notes](docs/releases/v1.4.1.md).
+
 ## What's new in 1.4.0
 
 - Detects video cadence from decoder input PTS, including protected playback when supported by the device.

@@ -18,6 +18,11 @@
 
 ---
 
+## Novedades en 1.4.1
+
+- «Auto detectar» inicia una medición completa nueva, descarta la lectura anterior y espera a confirmar la frecuencia antes de aplicarla.
+- [Notas de la versión](docs/releases/v1.4.1.md).
+
 ## Novedades en 1.4.0
 
 - Detecta la cadencia del vídeo a partir de PTS de entrada al decodificador, también en reproducción protegida cuando el dispositivo lo permite.

@@ -21,7 +21,9 @@ object ServerClient {
         val hdmiRealHardware: String = "",
         val fpsVerified: Boolean = false,
         val fpsSamples: Int = 0,
-        val fpsSpanUs: Long = 0
+        val fpsSpanUs: Long = 0,
+        val detectionRequest: Long = 0,
+        val detectionCompleted: Long = 0
     )
 
     fun sendCommand(cmd: String, timeoutMs: Int = 1800): String {
@@ -70,6 +72,19 @@ object ServerClient {
         return 0f to "ERR"
     }
 
+    fun forceFreshDetection(): SysInfo? {
+        val response = sendCommand("REDETECT_FPS")
+        val id = Regex("""REQUEST=(\d+)""").find(response)?.groupValues?.get(1)?.toLongOrNull() ?: return null
+        val deadline = System.nanoTime() + 14_000_000_000L
+        while (System.nanoTime() < deadline) {
+            val info = getSysInfo()
+            if (info.detectionRequest != id) return null
+            if (info.detectionCompleted == id) return info.takeIf { it.fpsVerified }
+            Thread.sleep(250L)
+        }
+        return null
+    }
+
     fun getSysInfo(): SysInfo = parseSysInfo(sendCommand("GET_SYSINFO", 1200))
 
     internal fun parseSysInfo(resp: String): SysInfo {
@@ -83,9 +98,11 @@ object ServerClient {
         val samples = values["SAMPLES"]?.toIntOrNull() ?: 0
         val spanUs = values["SPAN_US"]?.toLongOrNull() ?: 0L
         val verified = values["VERIFIED"] == "1" && source == "VIDEO_INPUT_PTS" &&
-            fps > 1f && samples >= 40 && spanUs >= 3_000_000L
+            fps > 1f && samples >= 40 && spanUs >= 3_000_000L &&
+            values["REQUEST"] == values["COMPLETED"]
         return SysInfo(fps, source, values["TEMP"]?.toFloatOrNull() ?: -1f,
-            values["HDMI"].orEmpty(), verified, samples, spanUs)
+            values["HDMI"].orEmpty(), verified, samples, spanUs,
+            values["REQUEST"]?.toLongOrNull() ?: 0, values["COMPLETED"]?.toLongOrNull() ?: 0)
     }
 
     fun getVideoBufferSize(): String {

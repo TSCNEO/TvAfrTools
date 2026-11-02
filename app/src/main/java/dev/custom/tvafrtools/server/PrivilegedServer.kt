@@ -86,6 +86,8 @@ object PrivilegedServer {
     private val decoderFrameRates = DecoderFrameRateTracker()
     @Volatile private var inputVideoGeneration = 0L
     @Volatile private var lastFpsRequestAtMs = 0L
+    private val freshDetection = FreshDetectionGate()
+    private val ptsWake = Object()
     @Volatile private var verifiedInputRate: VerifiedInputRate? = null
 
     private fun currentVerifiedInputRate(): VerifiedInputRate? = verifiedInputRate?.takeIf {
@@ -98,6 +100,7 @@ object PrivilegedServer {
 
     private fun readLiveRate(): LiveRate {
         lastFpsRequestAtMs = SystemClock.elapsedRealtime()
+        if (synchronized(freshDetection) { freshDetection.pending }) return LiveRate(0f, "DETECTING", false)
         currentVerifiedInputRate()?.let {
             return LiveRate(it.fps, "VIDEO_INPUT_PTS", true, it.samples, it.spanUs)
         }
@@ -117,23 +120,27 @@ object PrivilegedServer {
                 val streams = decoderFrameRates.activeStreamKeys(pid)
                 val generation = inputVideoGeneration
                 if (pid <= 0 || SystemClock.elapsedRealtime() - lastFpsRequestAtMs > 10_000L) {
-                    Thread.sleep(500L); continue
+                    synchronized(ptsWake) { ptsWake.wait(500L) }; continue
                 }
+                val captureRequest = synchronized(freshDetection) { freshDetection.requestId }
                 val result = PerfettoPtsSampler.capture(pid)
                 val sameStream = pid == foregroundAppPid && generation == inputVideoGeneration &&
                     (streams.isEmpty() || streams == decoderFrameRates.activeStreamKeys(pid))
-                if (sameStream) {
-                    val reading = CodecInputTrace.uniqueVerified(result.readings)
-                    if (reading != null) {
-                        val evidence = reading.evidence
-                        val fps = evidence.fps ?: continue
-                        if (currentVerifiedInputRate()?.fps != fps)
-                            println("FPS verified=1 source=VIDEO_INPUT_PTS pid=$pid codec=${reading.stream.codec} fps=$fps samples=${evidence.samples} spanUs=${evidence.spanUs}")
-                        verifiedInputRate = VerifiedInputRate(pid, generation, streams, fps, SystemClock.elapsedRealtime(), evidence.samples, evidence.spanUs)
-                    } else if (result.readings.isNotEmpty()) {
-                        // Competing codecs or a non-fitting timestamp sequence invalidate old evidence.
-                        verifiedInputRate = null
+                synchronized(freshDetection) {
+                    if (sameStream && captureRequest == freshDetection.requestId) {
+                        val reading = CodecInputTrace.uniqueVerified(result.readings)
+                        if (reading != null) {
+                            val evidence = reading.evidence
+                            val fps = requireNotNull(evidence.fps)
+                            if (currentVerifiedInputRate()?.fps != fps)
+                                println("FPS verified=1 source=VIDEO_INPUT_PTS pid=$pid codec=${reading.stream.codec} fps=$fps samples=${evidence.samples} spanUs=${evidence.spanUs}")
+                            verifiedInputRate = VerifiedInputRate(pid, generation, streams, fps, SystemClock.elapsedRealtime(), evidence.samples, evidence.spanUs)
+                        } else if (result.readings.isNotEmpty()) {
+                            // Competing codecs or a non-fitting timestamp sequence invalidate old evidence.
+                            verifiedInputRate = null
+                        }
                     }
+                    freshDetection.complete(captureRequest)
                 }
                 val status = when {
                     !sameStream -> "SESSION_CHANGED"
@@ -149,7 +156,10 @@ object PrivilegedServer {
                 failures = if (result.error != null) failures + 1 else 0
                 if (failures == 1) println("Input PTS capture unavailable: ${result.error}")
                 // Back off unsupported devices; every session terminates and releases its tracing resources.
-                Thread.sleep(if (failures > 0) 15_000L else 1000L)
+                synchronized(ptsWake) {
+                    if (!synchronized(freshDetection) { freshDetection.pending })
+                        ptsWake.wait(if (failures > 0) 15_000L else 1000L)
+                }
             }
         }, "InputPtsWatcher").apply { isDaemon = true }.start()
     }
@@ -1369,6 +1379,20 @@ object PrivilegedServer {
                 "PING" -> {
                     writer.println("OK PONG VERSION=${BuildConfig.VERSION_CODE} FPS=${String.format(Locale.US, "%.3f", currentFps)} SRC=$currentFpsSource")
                 }
+                "REDETECT_FPS" -> {
+                    val id = synchronized(freshDetection) {
+                        val next = freshDetection.reset()
+                        verifiedInputRate = null
+                        currentFps = 0f
+                        currentFpsSource = "DETECTING"
+                        lastTunneledFps = 0f
+                        lastTunneledFpsTimestampMs = 0L
+                        lastFpsRequestAtMs = SystemClock.elapsedRealtime()
+                        next
+                    }
+                    synchronized(ptsWake) { ptsWake.notifyAll() }
+                    writer.println("OK REQUEST=$id")
+                }
                 "GET_FPS" -> {
                     val rate = readLiveRate()
                     writer.println("OK ${String.format(Locale.US, "%.3f", rate.fps)} ${rate.source} VERIFIED=${if (rate.verified) 1 else 0}")
@@ -1381,7 +1405,8 @@ object PrivilegedServer {
                     val rate = readLiveRate()
                     val tempC = readUniversalSocTempCelsius()
                     val hdmi = readRealHardwareHdmiMode()
-                    writer.println("OK FPS=${String.format(Locale.US, "%.3f", rate.fps)} SRC=${rate.source} VERIFIED=${if (rate.verified) 1 else 0} SAMPLES=${rate.samples} SPAN_US=${rate.spanUs} TEMP=${String.format(Locale.US, "%.1f", tempC)} HDMI=$hdmi")
+                    val resetState = synchronized(freshDetection) { "REQUEST=${freshDetection.requestId} COMPLETED=${freshDetection.completedId}" }
+                    writer.println("OK $resetState FPS=${String.format(Locale.US, "%.3f", rate.fps)} SRC=${rate.source} VERIFIED=${if (rate.verified) 1 else 0} SAMPLES=${rate.samples} SPAN_US=${rate.spanUs} TEMP=${String.format(Locale.US, "%.1f", tempC)} HDMI=$hdmi")
                 }
                 "GET_VIDEO_SIZE" -> writer.println("OK ${readVideoBufferSize()}")
                 "GET_HDMI_REAL" -> {

@@ -236,13 +236,21 @@ class AfrController(
     /**
      * Triggers 1-Click Auto Frame Rate detection and switches HDMI refresh rate.
      */
+    private val freshDetectionRunning = java.util.concurrent.atomic.AtomicBoolean(false)
+
     fun triggerOneClickAfr() {
-        automaticSuspended = false
+        if (!freshDetectionRunning.compareAndSet(false, true)) return
+        val requestedPackage = foregroundPackage
+        automaticSuspended = true
+        onBannerMessage(context.getString(R.string.fps_fresh_detection))
         Thread {
             refreshNativeVideoSize()
-            val info = ServerClient.getSysInfo()
+            val info = try { ServerClient.forceFreshDetection() } catch (_: Exception) { null }
             mainHandler.post {
-                if (info.fpsVerified && info.fps > 1f) {
+                freshDetectionRunning.set(false)
+                automaticSuspended = false
+                if (destroyed || foregroundPackage != requestedPackage) return@post
+                if (info != null && info.fpsVerified && info.fps > 1f) {
                     val target = normalizeTargetRefreshRate(info.fps)
                     Log.i("AfrController", "One-click AFR fps=${info.fps} source=${info.fpsSource} target=$target")
                     applyRefreshRate(target, pausePlaybackHandshake = prefs.pauseOnSwitch)

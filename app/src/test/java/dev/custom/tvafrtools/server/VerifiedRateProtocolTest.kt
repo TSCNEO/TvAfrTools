@@ -22,4 +22,10 @@ class VerifiedRateProtocolTest {
         for (response in listOf("", "ERR", "OK FPS=NaN SRC=VIDEO_INPUT_PTS VERIFIED=1 SAMPLES=96 SPAN_US=4000000"))
             assertFalse(ServerClient.parseSysInfo(response).fpsVerified)
     }
+    @Test fun resetInProgressCannotExposeAnOldVerifiedReading() {
+        val response = "OK FPS=24.000 SRC=VIDEO_INPUT_PTS VERIFIED=1 SAMPLES=96 SPAN_US=4000000 REQUEST=2 COMPLETED=1"
+        assertFalse(ServerClient.parseSysInfo(response).fpsVerified)
+        assertTrue(ServerClient.parseSysInfo(response.replace("COMPLETED=1", "COMPLETED=2")).fpsVerified)
+    }
+
 }
