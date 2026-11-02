@@ -57,6 +57,10 @@ class MainActivity : AppCompatActivity() {
     private var updateDialogShownInSession = false
     private var renderedAccessibilityState: Boolean? = null
 
+    /** Update waiting for the user to grant "install unknown apps". */
+    private var pendingUpdateInfo: UpdateInfo? = null
+    private var pendingUpdateStatusCallback: ((String) -> Unit)? = null
+
     // UI navigation state
     private enum class NavSection(val titleRes: Int, val subRes: Int, val iconRes: Int) {
         AFR(R.string.nav_afr, R.string.nav_afr_sub, R.drawable.ic_nav_afr),
@@ -90,6 +94,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        resumePendingUpdateIfPermitted()
         UpdateManager.checkOnAppOpen(applicationContext) { info ->
             if (!isFinishing && !isDestroyed && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
                 if (!updateDialogShownInSession) {
@@ -1015,13 +1020,75 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.update_available_title, info.tagName))
             .setView(changelogView)
             .setPositiveButton(getString(R.string.update_btn_install)) { _, _ ->
-                showUpdateProgressDialog(info, onStatusChanged)
+                startUpdateOrRequestPermission(info, onStatusChanged)
             }
             .setNegativeButton(getString(R.string.btn_later), null)
             .create()
 
         dialog.show()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.requestFocus()
+    }
+
+    /**
+     * Android 8.0+ requires the per-app "install unknown apps" grant before a
+     * PackageInstaller session may be committed. If it is missing we stop here and
+     * ask for it; [resumePendingUpdateIfPermitted] picks the update back up on resume.
+     */
+    private fun startUpdateOrRequestPermission(info: UpdateInfo, onStatusChanged: ((String) -> Unit)?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !UpdateManager.canRequestPackageInstalls(this)) {
+            pendingUpdateInfo = info
+            pendingUpdateStatusCallback = onStatusChanged
+            showInstallPermissionDialog(onStatusChanged)
+            return
+        }
+        showUpdateProgressDialog(info, onStatusChanged)
+    }
+
+    private fun showInstallPermissionDialog(onStatusChanged: ((String) -> Unit)? = null) {
+        if (isFinishing || isDestroyed) return
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_permission_title))
+            .setMessage(getString(R.string.update_permission_msg))
+            .setPositiveButton(getString(R.string.update_permission_grant)) { _, _ ->
+                val opened = UpdateManager.openInstallPermissionSettings(this)
+                if (!opened) {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.update_permission_settings_failed),
+                        Toast.LENGTH_LONG
+                    ).show()
+                    pendingUpdateInfo = null
+                    pendingUpdateStatusCallback = null
+                }
+                onStatusChanged?.invoke(getString(R.string.update_permission_pending))
+            }
+            .setNegativeButton(getString(R.string.btn_later)) { _, _ ->
+                pendingUpdateInfo = null
+                pendingUpdateStatusCallback = null
+            }
+            .create()
+
+        dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.requestFocus()
+    }
+
+    /** Called from onResume: continues a pending update once the permission is granted. */
+    private fun resumePendingUpdateIfPermitted() {
+        val info = pendingUpdateInfo ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !UpdateManager.canRequestPackageInstalls(this)) return
+        val callback = pendingUpdateStatusCallback
+        pendingUpdateInfo = null
+        pendingUpdateStatusCallback = null
+        if (isFinishing || isDestroyed) {
+            callback?.invoke(getString(R.string.update_permission_granted))
+            return
+        }
+        callback?.invoke(getString(R.string.update_permission_granted))
+        // Let the settings activity finish animating out before showing the progress dialog.
+        window.decorView.postDelayed({
+            if (!isFinishing && !isDestroyed) showUpdateProgressDialog(info, callback)
+        }, 350L)
     }
 
     private fun showUpdateProgressDialog(info: UpdateInfo, onStatusChanged: ((String) -> Unit)? = null) {
