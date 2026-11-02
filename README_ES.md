@@ -18,6 +18,14 @@
 
 ---
 
+## Novedades en 1.4.0
+
+- Detecta la cadencia del vídeo a partir de PTS de entrada al decodificador, también en reproducción protegida cuando el dispositivo lo permite.
+- AFR automático exige timestamps verificados; los fps nominales del códec y los Hz HDMI no autorizan un cambio.
+- El HUD marca las lecturas sin verificar con **≈**. El selector manual sigue disponible si la captura no está soportada o faltan datos.
+- El demonio se actualiza automáticamente al abrir una versión nueva de la app.
+- [Notas de la versión](docs/releases/v1.4.0.md) · [Detalles de detección](docs/FPS_DETECTION.md)
+
 ## Novedades en 1.3.3
 
 - Corregida la identificación de la app en Android 14 y la asociación del códec cuando los fps iniciales difieren de los reales.
@@ -52,9 +60,9 @@ Antes de actualizar desde una versión anterior, sal de la reproducción y vuelv
 
 ## ✨ Funcionalidades Principales
 
-### 🎬 1. Auto Frame Rate (AFR) Universal sin Tirones (*Judder-Free*)
-- **Sincronización exacta de Hz**: Detecta en tiempo real los fotogramas del vídeo (23.976p, 24.0p, 25p, 50p, 59.94p, 60p) y conmuta la frecuencia de refresco HDMI de tu TV para eliminar por completo los tirones (*judder*) al reproducir películas o series.
-- **Compatible con Túnel Protegido Widevine L1**: Funciona incluso con vídeo protegido por DRM en apps de streaming oficial (**Netflix, Disney+, Prime Video, DAZN, Tivimate, Kodi**, etc.) mediante arquitectura híbrida *SurfaceFlinger* + Demonio ADB local.
+### 🎬 1. Auto Frame Rate (AFR) con detección verificada
+- **Ajuste por timestamps**: Contrasta los PTS de entrada al decodificador con las cadencias estándar y selecciona un modo de pantalla compatible cuando la frecuencia queda verificada. Distingue frecuencias enteras y fraccionales.
+- **Reproducción protegida**: El demonio privilegiado puede leer timestamps de entrada de pipelines Codec2 compatibles, incluidos decodificadores seguros. La disponibilidad depende de Android y del dispositivo; una lectura sin verificar no activa AFR automático.
 - **Restauración de pantalla**: Al cambiar de aplicación o volver al inicio, intenta recuperar la configuración anterior sin imponer 60 Hz.
 - **Selector Manual Rápido**: Panel flotante interactivo para forzar cualquier frecuencia con las flechas del mando a distancia.
 
@@ -129,7 +137,8 @@ Antes de actualizar desde una versión anterior, sal de la reproducción y vuelv
    - Si sale el mensaje en pantalla *"¿Permitir depuración USB?"*, marca *"Permitir siempre"* y pulsa **OK**.
 4. **Comprueba que el motor está listo**: en **Información**, verifica que el servicio de accesibilidad aparece **Activo y vinculado**, la superposición **Concedido** y el motor en segundo plano está activo.
 5. **Elige dónde usar AFR**: entra en **Apps AFR** y activa las aplicaciones que quieras, por ejemplo Disney+ o DAZN. **La lista empieza vacía: si no seleccionas ninguna app, el AFR automático no actuará.** En los ajustes AFR, deja activado **Ajuste automático de Hz al reproducir vídeo**.
-6. **Prueba una reproducción**: abre una de las apps seleccionadas y reproduce un vídeo. El cambio de señal HDMI puede dejar la pantalla negra unos instantes. Comprueba los Hz con el HUD o con la información de señal del televisor; si la pantalla ya estaba en una frecuencia adecuada, puede no haber cambio. Al volver al inicio, la app intentará restaurar la configuración anterior.
+6. **Interpreta el HUD**: un valor como **23,976 fps** está verificado; **≈24 fps** es una aproximación y **Detectando fps…** indica que aún no hay una lectura de vídeo utilizable. AFR automático espera a disponer de timestamps suficientes.
+7. **Prueba una reproducción**: abre una de las apps seleccionadas y reproduce un vídeo. El cambio de señal HDMI puede dejar la pantalla negra unos instantes. Comprueba los Hz con el HUD o con la información de señal del televisor; si la pantalla ya estaba en una frecuencia adecuada, puede no haber cambio. Al volver al inicio, la app intentará restaurar la configuración anterior.
 
 ### Si algo no funciona
 

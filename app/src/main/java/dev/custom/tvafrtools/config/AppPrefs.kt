@@ -119,10 +119,6 @@ class AppPrefs(private val context: Context) {
         get() = prefs.getBoolean("afr_enabled", true)
         set(value) = prefs.edit().putBoolean("afr_enabled", value).apply()
 
-    var fractionalFrameRate: Boolean
-        get() = prefs.getBoolean("fractional_frame_rate", true)
-        set(value) = prefs.edit().putBoolean("fractional_frame_rate", value).apply()
-
     var resumeDelayMs: Int
         get() = prefs.getInt("afr_resume_delay_ms", 3000).coerceIn(1000, 10000)
         set(value) = prefs.edit().putInt("afr_resume_delay_ms", value.coerceIn(1000, 10000)).apply()

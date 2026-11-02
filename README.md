@@ -18,6 +18,14 @@
 
 ---
 
+## What's new in 1.4.0
+
+- Detects video cadence from decoder input PTS, including protected playback when supported by the device.
+- Automatic AFR requires verified timestamps; nominal codec fps and HDMI rates cannot authorize a change.
+- The HUD marks unverified readings with **≈**. Manual mode selection remains available when capture is unsupported or evidence is insufficient.
+- The daemon updates automatically when opening a newer app version.
+- [Release notes](docs/releases/v1.4.0.md) · [Detection details](docs/FPS_DETECTION.md)
+
 ## What's new in 1.3.3
 
 - Fixed Android 14 foreground app detection and decoder attribution when initial fps differ from the actual video rate.
@@ -52,9 +60,9 @@ Before updating from an older version, exit playback and return to the TV home s
 
 ## ✨ Key Features
 
-### 🎬 1. Universal Auto Frame Rate (AFR) & Judder-Free Playback
-- **True Frame Rate Matching**: Automatically detects video fps (23.976p, 24.0p, 25p, 50p, 59.94p, 60p) and matches your TV's HDMI refresh rate for perfectly smooth, judder-free panning.
-- **Hardware Widevine L1 Tunnel Compatible**: Works even with hardware-protected DRM streams (Disney+, Netflix, Prime Video, DAZN, etc.) through a hybrid SurfaceFlinger & privileged daemon architecture.
+### 🎬 1. Verified Auto Frame Rate (AFR)
+- **Timestamp-based matching**: Fits decoder input PTS to standard video cadences and selects a supported display mode when the rate is verified. Integer and fractional rates remain distinct.
+- **Protected playback**: The privileged daemon can read input timestamps from supported Codec2 pipelines, including secure decoders. Availability varies by Android version and device; an unverified reading never triggers automatic AFR.
 - **Auto-Restore on Home**: Attempts to restore the previous display configuration when you switch apps or return to your launcher, without forcing 60 Hz.
 - **Manual Quick Switcher**: Interactive D-pad overlay to choose a supported mode or restore the system display mode.
 
@@ -129,7 +137,8 @@ Before updating from an older version, exit playback and return to the TV home s
    - If a dialog appears on screen asking *"Allow USB debugging?"*, check *"Always allow from this computer"* and press **OK**.
 4. **Check that the engine is ready**: under **Info & Update**, verify that Accessibility Service is **Active & bound**, Overlay Permission is **Granted**, and Background Engine is active.
 5. **Choose where AFR runs**: open **AFR apps** and enable the apps you want, such as Disney+ or DAZN. **The list starts empty: automatic AFR will not run unless you select an app.** In AFR settings, keep **Automatically match refresh rate during playback** enabled.
-6. **Try playback**: open a selected app and play a video. HDMI switching may briefly blank the screen. Check the refresh rate using the HUD or your TV's signal information; if the display already uses a suitable rate, no change may be needed. Returning to the home screen should attempt to restore the previous display configuration.
+6. **Read the HUD**: a value such as **23.976 fps** is verified; **≈24 fps** is an approximation, and **Detecting fps…** means no usable video reading is available. Automatic AFR waits for sufficient timestamp evidence.
+7. **Try playback**: open a selected app and play a video. HDMI switching may briefly blank the screen. Check the refresh rate using the HUD or your TV's signal information; if the display already uses a suitable rate, no change may be needed. Returning to the home screen should attempt to restore the previous display configuration.
 
 ### If something does not work
 

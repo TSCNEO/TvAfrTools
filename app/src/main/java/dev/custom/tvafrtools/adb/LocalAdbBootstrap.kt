@@ -71,12 +71,13 @@ object LocalAdbBootstrap {
     }
 
     fun isSetupReady(context: Context): Boolean =
-        isAccessibilityConfigured(context) && dev.custom.tvafrtools.server.ServerClient.isServerRunning()
+        isAccessibilityConfigured(context) && ServerClient.isServerVersionCurrent()
 
     @Synchronized
     fun autoStartPrivilegedDaemon(context: Context, port: Int = 5555, forceRestart: Boolean = false): BootstrapResult {
         val daemonRunning = dev.custom.tvafrtools.server.ServerClient.isServerRunning()
-        if (!forceRestart && daemonRunning && isAccessibilityConfigured(context)) {
+        val restartRequired = forceRestart || (daemonRunning && !ServerClient.isServerVersionCurrent())
+        if (!restartRequired && daemonRunning && isAccessibilityConfigured(context)) {
             return BootstrapResult(true, false, "Demonio conectado")
         }
         val apkPath = context.applicationInfo.sourceDir
@@ -96,7 +97,7 @@ object LocalAdbBootstrap {
             append("case \":\$cur:\" in *\":$accService:\"*) ;; *) if [ -z \"\$cur\" ] || [ \"\$cur\" = \"null\" ]; then settings put secure enabled_accessibility_services \"$accService\"; else settings put secure enabled_accessibility_services \"\$cur:$accService\"; fi ;; esac; ")
             append("settings put secure accessibility_enabled 1; ")
             // Match only the daemon process, never the enclosing sh -c command.
-            if (daemonRunning && !forceRestart) append("exit 0; ")
+            if (daemonRunning && !restartRequired) append("exit 0; ")
             if (BuildConfig.DEBUG) {
                 append("pkill -f ^tvafrtools_alpha 2>/dev/null || true; ")
             } else {

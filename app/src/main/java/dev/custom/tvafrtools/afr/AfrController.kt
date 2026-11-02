@@ -17,7 +17,6 @@ import android.view.WindowManager
 import dev.custom.tvafrtools.R
 import dev.custom.tvafrtools.config.AppPrefs
 import dev.custom.tvafrtools.server.ServerClient
-import java.io.File
 import java.util.Locale
 import kotlin.math.abs
 
@@ -25,11 +24,10 @@ import kotlin.math.abs
  * Clean-room AFR Engine for Android TV (Android 9–14, Universal SoC & Widevine L1 Tunnel Edition).
  *
  * Implements:
- * 1. Tunneled Widevine L1 Video Detection (`PROBE_FPS`) + 5-sample circular buffer Mode Filter:
- *    - When Disney+, Prime Video, or Netflix plays 4K HDR via `HWCVIDEO` tunnel, SurfaceFlinger UI
- *      still runs at 60fps while the tunnel plays at 23.976fps.
- *    - `probeActiveVideoFpsWithSource()` detects `TUNNEL_PTS`, `TUNNEL_VDA`, or `TUNNEL_3_2_PULLDOWN`
- *      directly from the hardware video pipeline so 23.976fps is recognized immediately!
+ * 1. Verified decoder input presentation timestamps:
+ *    - PrivilegedServer captures bounded native Codec2 trace sessions.
+ *    - Automatic AFR requires a unique supported cadence fit over sufficient media time.
+ *    - Declared codec fps and compositor/counter estimates never authorize automatic switching.
  * 2. Exact Fractional & Cinema Frame Rate Mapping:
  *    - 23.976 fps (24 * 1000 / 1001) vs 24.000 fps
  *    - 29.970 fps (30 * 1000 / 1001) vs 30.000 fps
@@ -132,11 +130,6 @@ class AfrController(
         mainHandler.postDelayed(resumePlayback, 8000L + prefs.resumeDelayMs.toLong())
     }
 
-    // 5-sample circular buffer for FPS stabilization
-    private val fpsSamples = FloatArray(5)
-    private var sampleIndex = 0
-    private var sampleCount = 0
-
     private val displayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) {}
         override fun onDisplayRemoved(displayId: Int) {}
@@ -185,8 +178,8 @@ class AfrController(
                         val info = ServerClient.getSysInfo()
                         // Presentation timestamps are constrained by the current HDMI mode.
                         // They must never drive automatic mode changes.
-                        val fps = if (info.fpsSource == "SURFACE_VIDEO" || info.fpsSource == "SURFACE_FLINGER") 0f else info.fps
-                        val target = if (fps > 1f) normalizeTargetRefreshRate(fps, info.fpsSource.contains("ESTIMATED")) else 0f
+                        val fps = if (info.fpsVerified) info.fps else 0f
+                        val target = if (fps > 1f) normalizeTargetRefreshRate(fps) else 0f
                         if (target <= 1f || abs(target - candidate) >= 0.005f) fpsStableSince = now
                         candidate = target
                         // No fixed startup delay: restart the five-second quiet window
@@ -247,158 +240,31 @@ class AfrController(
         automaticSuspended = false
         Thread {
             refreshNativeVideoSize()
-            // 1. First perform a deep probe (catches Tunneled Widevine L1 23.976fps in Disney+/Prime/Netflix!)
-            val (probedFps, probedSource) = ServerClient.probeActiveVideoFpsWithSource()
-            if (probedFps > 1.0f && probedSource.startsWith("TUNNEL_")) {
-                val targetHz = normalizeTargetRefreshRate(probedFps, probedSource.contains("ESTIMATED"))
-                mainHandler.post {
-                    onBannerMessage(
-                        String.format(
-                            Locale.US,
-                            "🎬 Vídeo Detectado: %.3f fps (%s) → %.3f Hz",
-                            probedFps,
-                            formatSourceLabel(probedSource),
-                            targetHz
-                        )
-                    )
-                    applyRefreshRate(targetHz, pausePlaybackHandshake = prefs.pauseOnSwitch)
-                }
-                return@Thread
-            }
-
-            // 2. Otherwise collect 5 samples (or until stable) over 600ms
-            resetSamples()
-            var detected = probedFps
-            var detectedSource = probedSource
-            for (i in 0 until 5) {
-                val sample = readCurrentVideoFps()
-                if (sample > 1.0f) {
-                    val stabilized = addSampleAndGetMode(sample)
-                    if (stabilized > 1.0f) {
-                        detected = stabilized
-                    } else if (detected <= 1.0f) {
-                        detected = sample
-                    }
-                }
-                if (i < 4) Thread.sleep(130L)
-            }
-
+            val info = ServerClient.getSysInfo()
             mainHandler.post {
-                if (detected <= 1.0f) {
-                    val serverUp = ServerClient.isServerRunning()
-                    if (!serverUp) {
+                if (info.fpsVerified && info.fps > 1f) {
+                    val target = normalizeTargetRefreshRate(info.fps)
+                    Log.i("AfrController", "One-click AFR fps=${info.fps} source=${info.fpsSource} target=$target")
+                    applyRefreshRate(target, pausePlaybackHandshake = prefs.pauseOnSwitch)
+                } else {
+                    if (!ServerClient.isServerRunning()) {
                         dev.custom.tvafrtools.adb.LocalAdbBootstrap.ensureServerRunningAsync(context)
                         onBannerMessage(context.getString(R.string.daemon_disconnected_manual))
-                    } else {
-                        onBannerMessage(context.getString(R.string.no_active_stream_manual))
-                    }
+                    } else onBannerMessage(context.getString(R.string.fps_not_verified_manual))
                     onRequestManualSelector?.invoke()
-                } else {
-                    val targetHz = normalizeTargetRefreshRate(detected)
-                    onBannerMessage(
-                        String.format(
-                            Locale.US,
-                            "🎬 Vídeo: %.3f fps (%s) → Ajustando a %.3f Hz",
-                            detected,
-                            formatSourceLabel(detectedSource),
-                            targetHz
-                        )
-                    )
-                    applyRefreshRate(targetHz, pausePlaybackHandshake = prefs.pauseOnSwitch)
                 }
             }
         }.start()
     }
 
-    private fun formatSourceLabel(src: String): String {
-        return when {
-            src.contains("ESTIMATED") -> "≈ Widevine L1 Tunnel"
-            src.startsWith("TUNNEL_") -> "Widevine L1 Tunnel"
-            src.startsWith("SURFACE_FLINGER") -> "SurfaceFlinger"
-            src.startsWith("MEDIA_METRICS") -> "MediaCodec"
-            src.startsWith("SYSPROP") || src.startsWith("SYSFS") -> "Hardware Decoder"
-            else -> "Auto"
-        }
-    }
-
-    /**
-     * Reads the current video FPS from PrivilegedServer or fallback system properties.
-     */
+    /** Manual selector suggestions use the same verified evidence as automatic AFR. */
     fun readCurrentVideoFps(): Float {
-        val serverFps = ServerClient.getLiveVideoFps()
-        if (serverFps > 1.0f) return serverFps
-
-        try {
-            val sp = Class.forName("android.os.SystemProperties")
-            val get = sp.getMethod("get", String::class.java, String::class.java)
-            val prop = (get.invoke(null, "sys.nes.info.frame_rate", "") as? String)
-                ?.replace("fps", "")
-                ?.trim()
-                .orEmpty()
-            if (prop.isNotEmpty()) {
-                val raw = prop.toFloatOrNull() ?: 0f
-                if (raw > 1.0f) {
-                    return when (raw.toInt()) {
-                        100 -> 50f
-                        48 -> 24f
-                        120 -> 60f
-                        else -> raw
-                    }
-                }
-            }
-        } catch (_: Throwable) {
-        }
-
-        val paths = listOf("/sys/class/vdec/vdec_status", "/sys/class/video/frame_rate")
-        for (p in paths) {
-            try {
-                val f = File(p)
-                if (f.exists() && f.canRead()) {
-                    val content = f.readText()
-                    val m = Regex("""frame_rate\s*[:=]\s*(\d+(?:\.\d+)?)""", RegexOption.IGNORE_CASE).find(content)
-                    if (m != null) {
-                        val v = m.groupValues[1].toFloatOrNull() ?: 0f
-                        if (v > 1.0f) return v
-                    }
-                }
-            } catch (_: Throwable) {
-            }
-        }
-        return 0f
+        val info = ServerClient.getSysInfo()
+        return if (info.fpsVerified) info.fps else 0f
     }
 
-    private fun resetSamples() {
-        sampleIndex = 0
-        sampleCount = 0
-        for (i in fpsSamples.indices) fpsSamples[i] = 0f
-    }
-
-    private fun addSampleAndGetMode(fps: Float): Float {
-        val snapped = snapRawFpsToStandard(fps)
-        fpsSamples[sampleIndex] = snapped
-        sampleIndex = (sampleIndex + 1) % fpsSamples.size
-        if (sampleCount < fpsSamples.size) sampleCount++
-
-        var bestVal = snapped
-        var bestCount = 0
-        for (i in 0 until sampleCount) {
-            val candidate = fpsSamples[i]
-            var count = 0
-            for (j in 0 until sampleCount) {
-                if (abs(fpsSamples[j] - candidate) < 0.005f) count++
-            }
-            if (count > bestCount) {
-                bestCount = count
-                bestVal = candidate
-            }
-        }
-        return if (bestCount >= 2) bestVal else snapped
-    }
-
-    private fun snapRawFpsToStandard(fps: Float): Float = FrameRates.snapMeasured(fps)
-
-    fun normalizeTargetRefreshRate(videoFps: Float, estimated: Boolean = false): Float {
-        var target = FrameRates.target(videoFps, estimated, prefs.fractionalFrameRate)
+    fun normalizeTargetRefreshRate(videoFps: Float): Float {
+        var target = FrameRates.snapMeasured(videoFps)
 
         if (abs(target - 25.0f) < 0.2f && prefs.convert25To50Hz) {
             target = 50.0f

@@ -22,8 +22,4 @@ internal object FrameRates {
         else -> 0f
     }
 
-    fun target(fps: Float, estimated: Boolean, preferFractional: Boolean): Float {
-        val rate = snapMeasured(fps)
-        return if (estimated && preferFractional && (rate == 24f || rate == 30f || rate == 60f)) rate * 1000f / 1001f else rate
-    }
 }

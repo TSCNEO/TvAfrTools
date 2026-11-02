@@ -272,6 +272,7 @@ Novedades:
     <string name="hud_video_size">Vídeo (búfer): %1$s</string>
     <string name="hud_unknown">No disponible</string>
     <string name="hud_video_fps">Vídeo: %1$.3f fps [%2$s]</string>
+    <string name="fps_not_verified_manual">Los fps del vídeo aún no están confirmados. Elige un modo de pantalla manualmente.</string>
     <string name="hud_detecting_fps">Vídeo: Detectando fps…</string>
     <string name="hud_no_stream">Vídeo: Sin stream activo</string>
     <string name="hud_signal">Señal: %1$s</string>

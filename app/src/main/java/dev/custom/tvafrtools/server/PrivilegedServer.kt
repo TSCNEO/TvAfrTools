@@ -84,6 +84,75 @@ object PrivilegedServer {
 
     @Volatile private var foregroundAppPid: Int = -1
     private val decoderFrameRates = DecoderFrameRateTracker()
+    @Volatile private var inputVideoGeneration = 0L
+    @Volatile private var lastFpsRequestAtMs = 0L
+    @Volatile private var verifiedInputRate: VerifiedInputRate? = null
+
+    private fun currentVerifiedInputRate(): VerifiedInputRate? = verifiedInputRate?.takeIf {
+        it.isCurrent(foregroundAppPid, inputVideoGeneration, decoderFrameRates.activeStreamKeys(it.pid),
+            SystemClock.elapsedRealtime())
+    }
+
+    private data class LiveRate(val fps: Float, val source: String, val verified: Boolean,
+        val samples: Int = 0, val spanUs: Long = 0)
+
+    private fun readLiveRate(): LiveRate {
+        lastFpsRequestAtMs = SystemClock.elapsedRealtime()
+        currentVerifiedInputRate()?.let {
+            return LiveRate(it.fps, "VIDEO_INPUT_PTS", true, it.samples, it.spanUs)
+        }
+        val fps = if (SystemClock.elapsedRealtime() - lastTunneledFpsTimestampMs < 8000L && lastTunneledFps > 1f)
+            lastTunneledFps else if (currentFps > 1f) currentFps else readUniversalFallbackFps()
+        val source = if (currentFpsSource.startsWith("TUNNEL") && !currentFpsSource.contains("ESTIMATED"))
+            "${currentFpsSource}_ESTIMATED" else currentFpsSource
+        return LiveRate(fps, source, false)
+    }
+
+    private fun startInputPtsMonitorThread() {
+        Thread({
+            var failures = 0
+            var previousStatus = ""
+            while (true) {
+                val pid = foregroundAppPid
+                val streams = decoderFrameRates.activeStreamKeys(pid)
+                val generation = inputVideoGeneration
+                if (pid <= 0 || SystemClock.elapsedRealtime() - lastFpsRequestAtMs > 10_000L) {
+                    Thread.sleep(500L); continue
+                }
+                val result = PerfettoPtsSampler.capture(pid)
+                val sameStream = pid == foregroundAppPid && generation == inputVideoGeneration &&
+                    (streams.isEmpty() || streams == decoderFrameRates.activeStreamKeys(pid))
+                if (sameStream) {
+                    val reading = CodecInputTrace.uniqueVerified(result.readings)
+                    if (reading != null) {
+                        val evidence = reading.evidence
+                        val fps = evidence.fps ?: continue
+                        if (currentVerifiedInputRate()?.fps != fps)
+                            println("FPS verified=1 source=VIDEO_INPUT_PTS pid=$pid codec=${reading.stream.codec} fps=$fps samples=${evidence.samples} spanUs=${evidence.spanUs}")
+                        verifiedInputRate = VerifiedInputRate(pid, generation, streams, fps, SystemClock.elapsedRealtime(), evidence.samples, evidence.spanUs)
+                    } else if (result.readings.isNotEmpty()) {
+                        // Competing codecs or a non-fitting timestamp sequence invalidate old evidence.
+                        verifiedInputRate = null
+                    }
+                }
+                val status = when {
+                    !sameStream -> "SESSION_CHANGED"
+                    result.error != null -> "UNAVAILABLE:${result.error}"
+                    result.readings.isEmpty() -> "NO_VIDEO_PTS"
+                    result.readings.size > 1 -> "COMPETING_CODECS"
+                    else -> result.readings.single().evidence.status.name
+                }
+                if ("$pid:$status" != previousStatus) {
+                    println("Input PTS status=$status pid=$pid traceBytes=${result.traceBytes}")
+                    previousStatus = "$pid:$status"
+                }
+                failures = if (result.error != null) failures + 1 else 0
+                if (failures == 1) println("Input PTS capture unavailable: ${result.error}")
+                // Back off unsupported devices; every session terminates and releases its tracing resources.
+                Thread.sleep(if (failures > 0) 15_000L else 1000L)
+            }
+        }, "InputPtsWatcher").apply { isDaemon = true }.start()
+    }
 
     // Cached reflection handles
     private var displayControlClass: Class<*>? = null
@@ -147,6 +216,7 @@ object PrivilegedServer {
         currentTaskId = getForegroundTaskId()
         try { startTaskFpsMonitorThread() } catch (t: Throwable) { t.printStackTrace() }
         try { startTunneledVideoLogWatcherThread() } catch (t: Throwable) { t.printStackTrace() }
+        try { startInputPtsMonitorThread() } catch (t: Throwable) { t.printStackTrace() }
 
         try {
             Looper.loop()
@@ -213,6 +283,11 @@ object PrivilegedServer {
                         val l = line ?: continue
                         val nowMs = SystemClock.elapsedRealtime()
                         val epoch = l.trim().substringBefore(' ').toDoubleOrNull() ?: continue
+                        if (CodecInputTrace.isNewVideoCodecForPid(l, foregroundAppPid) &&
+                            kotlin.math.abs(System.currentTimeMillis() - (epoch * 1000).toLong()) < 2000L) {
+                            inputVideoGeneration++
+                            verifiedInputRate = null
+                        }
                         val decoderFps = decoderFrameRates.accept(l, foregroundAppPid, System.currentTimeMillis() / 1000.0)
                         if (decoderFps != null) {
                             if (lastTunneledSource != "TUNNEL_DECODER" || abs(lastTunneledFps - decoderFps) > 0.005f)
@@ -786,6 +861,7 @@ object PrivilegedServer {
      * or 0fps during Tunneled Widevine L1 playback (Disney+, Prime Video, Netflix, etc.).
      */
     private fun probeActiveVideoFpsNow(): Pair<Float, String> {
+        currentVerifiedInputRate()?.let { return it.fps to "VIDEO_INPUT_PTS" }
         val nowMs = SystemClock.elapsedRealtime()
         if ((nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 1.0f) {
             return lastTunneledFps to lastTunneledSource
@@ -1291,36 +1367,21 @@ object PrivilegedServer {
             val parts = line.split(" ")
             when (parts[0].uppercase(Locale.US)) {
                 "PING" -> {
-                    writer.println("OK PONG FPS=${String.format(Locale.US, "%.3f", currentFps)} SRC=$currentFpsSource")
+                    writer.println("OK PONG VERSION=${BuildConfig.VERSION_CODE} FPS=${String.format(Locale.US, "%.3f", currentFps)} SRC=$currentFpsSource")
                 }
                 "GET_FPS" -> {
-                    val nowMs = SystemClock.elapsedRealtime()
-                    val fps = if ((nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 1.0f) {
-                        lastTunneledFps
-                    } else if (currentFps > 1.0f) {
-                        currentFps
-                    } else {
-                        readUniversalFallbackFps()
-                    }
-                    writer.println("OK ${String.format(Locale.US, "%.3f", fps)} $currentFpsSource")
+                    val rate = readLiveRate()
+                    writer.println("OK ${String.format(Locale.US, "%.3f", rate.fps)} ${rate.source} VERIFIED=${if (rate.verified) 1 else 0}")
                 }
                 "PROBE_FPS" -> {
                     val (fps, src) = probeActiveVideoFpsNow()
                     writer.println("OK ${String.format(Locale.US, "%.3f", fps)} $src")
                 }
                 "GET_SYSINFO" -> {
+                    val rate = readLiveRate()
                     val tempC = readUniversalSocTempCelsius()
-                    val nowMs = SystemClock.elapsedRealtime()
-                    val fps = if ((nowMs - lastTunneledFpsTimestampMs) < 8000L && lastTunneledFps > 1.0f) {
-                        lastTunneledFps
-                    } else if (currentFps > 1.0f) {
-                        currentFps
-                    } else {
-                        val fb = readUniversalFallbackFps()
-                        if (fb > 1.0f) fb else 0f
-                    }
                     val hdmi = readRealHardwareHdmiMode()
-                    writer.println("OK FPS=${String.format(Locale.US, "%.3f", fps)} SRC=$currentFpsSource TEMP=${String.format(Locale.US, "%.1f", tempC)} HDMI=$hdmi")
+                    writer.println("OK FPS=${String.format(Locale.US, "%.3f", rate.fps)} SRC=${rate.source} VERIFIED=${if (rate.verified) 1 else 0} SAMPLES=${rate.samples} SPAN_US=${rate.spanUs} TEMP=${String.format(Locale.US, "%.1f", tempC)} HDMI=$hdmi")
                 }
                 "GET_VIDEO_SIZE" -> writer.println("OK ${readVideoBufferSize()}")
                 "GET_HDMI_REAL" -> {

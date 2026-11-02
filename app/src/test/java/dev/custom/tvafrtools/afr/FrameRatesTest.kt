@@ -4,12 +4,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FrameRatesTest {
-    @Test fun exactAndFractionalMeasurementsRemainDistinctRegardlessOfPreference() {
-        for (rate in listOf(24f, 24000f / 1001f, 30f, 30000f / 1001f, 60f, 60000f / 1001f)) {
-            for (preference in listOf(false, true)) {
-                assertEquals(rate, FrameRates.target(rate, false, preference), 0.0001f)
-            }
-        }
+    @Test fun exactAndFractionalMeasurementsRemainDistinct() {
+        for (rate in listOf(24f, 24000f / 1001f, 30f, 30000f / 1001f, 60f, 60000f / 1001f))
+            assertEquals(rate, FrameRates.snapMeasured(rate), 0.0001f)
     }
 
     @Test fun microsecondPtsRoundingDoesNotTurn24Into23976() {
@@ -27,16 +24,6 @@ class FrameRatesTest {
         }
         assertEquals(30f, FrameRates.estimateFamily(29.97f), 0f)
         assertEquals(60f, FrameRates.estimateFamily(59.94f), 0f)
-    }
-
-    @Test fun fractionalPreferenceOnlyAffectsEstimates() {
-        for (rate in listOf(24f, 30f, 60f)) {
-            assertEquals(rate, FrameRates.target(rate, true, false), 0.0001f)
-            assertEquals(rate * 1000f / 1001f, FrameRates.target(rate, true, true), 0.0001f)
-        }
-        for (rate in listOf(25f, 50f)) {
-            assertEquals(rate, FrameRates.target(rate, true, true), 0f)
-        }
     }
 
     @Test fun unsupportedAndInvalidMeasurementsDoNotBecomeCinemaRates() {

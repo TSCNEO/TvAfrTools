@@ -523,12 +523,6 @@ class MainActivity : AppCompatActivity() {
             initial = prefs.afrEnabled
         ) { prefs.afrEnabled = it })
 
-        col.addView(makeInteractiveToggleCard(
-            title = getString(R.string.afr_exact_title),
-            desc = getString(R.string.afr_exact_desc),
-            initial = prefs.fractionalFrameRate
-        ) { prefs.fractionalFrameRate = it })
-
         lateinit var delaySeek: android.widget.SeekBar
         lateinit var delayLabel: TextView
         fun updateDelayEnabled(enabled: Boolean) {

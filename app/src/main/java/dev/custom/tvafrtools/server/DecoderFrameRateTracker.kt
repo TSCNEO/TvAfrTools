@@ -33,6 +33,10 @@ internal class DecoderFrameRateTracker {
     }
 
     @Synchronized
+    fun activeStreamKeys(pid: Int): Set<String> = streams.filterValues { it.owner.pid == pid }
+        .map { (key, stream) -> "$key:${stream.owner.thread}:${stream.fps}" }.toSet()
+
+    @Synchronized
     fun accept(line: String, foregroundPid: Int, nowEpochSeconds: Double): Float? {
         val m = header.find(line) ?: return null
         val at = m.groupValues[1].toDoubleOrNull() ?: return null

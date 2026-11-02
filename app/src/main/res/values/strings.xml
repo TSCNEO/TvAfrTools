@@ -272,6 +272,7 @@ Changes:
     <string name="hud_video_size">Video buffer: %1$s</string>
     <string name="hud_unknown">Unavailable</string>
     <string name="hud_video_fps">Video: %1$.3f fps [%2$s]</string>
+    <string name="fps_not_verified_manual">Video frame rate is not verified yet. Choose a display mode manually.</string>
     <string name="hud_detecting_fps">Video: Detecting fps…</string>
     <string name="hud_no_stream">Video: No active stream</string>
     <string name="hud_signal">Signal: %1$s</string>

@@ -18,7 +18,10 @@ object ServerClient {
         val fps: Float,
         val fpsSource: String,
         val socTempCelsius: Float,
-        val hdmiRealHardware: String = ""
+        val hdmiRealHardware: String = "",
+        val fpsVerified: Boolean = false,
+        val fpsSamples: Int = 0,
+        val fpsSpanUs: Long = 0
     )
 
     fun sendCommand(cmd: String, timeoutMs: Int = 1800): String {
@@ -42,6 +45,11 @@ object ServerClient {
         return resp.startsWith("OK")
     }
 
+    fun isServerVersionCurrent(): Boolean {
+        val response = sendCommand("PING", 800)
+        return response.split(' ').any { it == "VERSION=${dev.custom.tvafrtools.BuildConfig.VERSION_CODE}" }
+    }
+
     fun getLiveVideoFps(): Float {
         val resp = sendCommand("GET_FPS")
         if (resp.startsWith("OK ")) {
@@ -62,23 +70,22 @@ object ServerClient {
         return 0f to "ERR"
     }
 
-    fun getSysInfo(): SysInfo {
-        val resp = sendCommand("GET_SYSINFO", 1200)
-        if (resp.startsWith("OK ")) {
-            var fps = 0f
-            var src = "IDLE"
-            var temp = -1f
-            var hdmi = ""
-            val parts = resp.substring(3).trim().split(" ")
-            for (p in parts) {
-                if (p.startsWith("FPS=")) fps = p.substring(4).toFloatOrNull() ?: 0f
-                else if (p.startsWith("SRC=")) src = p.substring(4)
-                else if (p.startsWith("TEMP=")) temp = p.substring(5).toFloatOrNull() ?: -1f
-                else if (p.startsWith("HDMI=")) hdmi = p.substring(5)
-            }
-            return SysInfo(fps, src, temp, hdmi)
-        }
-        return SysInfo(0f, "OFFLINE", -1f, "")
+    fun getSysInfo(): SysInfo = parseSysInfo(sendCommand("GET_SYSINFO", 1200))
+
+    internal fun parseSysInfo(resp: String): SysInfo {
+        if (!resp.startsWith("OK ")) return SysInfo(0f, "OFFLINE", -1f, "")
+        val values = resp.substring(3).split(' ').mapNotNull { part ->
+            val separator = part.indexOf('=')
+            if (separator <= 0) null else part.substring(0, separator) to part.substring(separator + 1)
+        }.toMap()
+        val fps = values["FPS"]?.toFloatOrNull()?.takeIf { it.isFinite() } ?: 0f
+        val source = values["SRC"] ?: "IDLE"
+        val samples = values["SAMPLES"]?.toIntOrNull() ?: 0
+        val spanUs = values["SPAN_US"]?.toLongOrNull() ?: 0L
+        val verified = values["VERIFIED"] == "1" && source == "VIDEO_INPUT_PTS" &&
+            fps > 1f && samples >= 40 && spanUs >= 3_000_000L
+        return SysInfo(fps, source, values["TEMP"]?.toFloatOrNull() ?: -1f,
+            values["HDMI"].orEmpty(), verified, samples, spanUs)
     }
 
     fun getVideoBufferSize(): String {
