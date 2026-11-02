@@ -182,6 +182,7 @@ Para futuras versiones:
   - En toda la documentación y comunicaciones públicas se aclara que la app es exclusivamente para Android TV / Google TV.
 
 ### Publicación de APK
+- Los changelogs públicos (ES/EN y GitHub Releases) describen únicamente cambios realizados para el usuario. No incluir resultados de pruebas, capturas de diagnóstico, validaciones pendientes ni notas internas de desarrollo. Las instrucciones de actualización necesarias pueden indicarse por separado.
 - Antes de crear una etiqueta de release, añadir notas legibles para la app en `docs/releases/<etiqueta>.md`; el workflow exige ese archivo y lo publica como changelog.
 - Publicar mediante el workflow `Release APK` al subir la etiqueta `v*`.
 - Mantener un único APK por release: `TvAfrTools.apk`.
