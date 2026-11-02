@@ -18,10 +18,10 @@
 
 ---
 
-## Novedades en 1.4.1
+## Novedades en 1.4.2
 
 - «Auto detectar» inicia una medición completa nueva, descarta la lectura anterior y espera a confirmar la frecuencia antes de aplicarla.
-- [Notas de la versión](docs/releases/v1.4.1.md).
+- [Notas de la versión](docs/releases/v1.4.2.md).
 
 ## Novedades en 1.4.0
 
