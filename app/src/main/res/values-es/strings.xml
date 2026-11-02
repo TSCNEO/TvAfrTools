@@ -294,4 +294,7 @@ Novedades:
     <string name="overlay_refresh_rate">%1$s Hz</string>
     <string name="overlay_cinema">Cine / series</string>
     <string name="overlay_mode_active">Activo</string>
+    <string name="manual_switching">Manual: cambiando…</string>
+    <string name="manual_current_mode">Manual: %1$dp@%2$s Hz</string>
+    <string name="manual_mode_unconfirmed">Manual: no se ha podido confirmar el cambio de modo</string>
 </resources>

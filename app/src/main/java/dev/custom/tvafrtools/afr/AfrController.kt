@@ -76,6 +76,8 @@ class AfrController(
     }
     @Volatile private var destroyed = false
     @Volatile private var automaticSuspended = false
+    private val displayOverride = DisplayOverride()
+    fun isManualOverrideActive(): Boolean = displayOverride.manual
     private var afrOverlayView: View? = null
     private var afrOverlayParams: WindowManager.LayoutParams? = null
     private var isAfrActive: Boolean = false
@@ -83,18 +85,29 @@ class AfrController(
     private var pendingDisplayNotice = false
     private var displayNoticeTargetId: Int? = null
     private var displayNoticeRestoring = false
-    private val displayNoticeComplete = Runnable {
+    private var displayNoticeDeadline = 0L
+    private val displayNoticeComplete = object : Runnable {
+        override fun run() {
         if (!destroyed && pendingDisplayNotice) {
-            pendingDisplayNotice = false
             getCurrentDisplayMode()?.let { mode ->
                 val rate = java.text.NumberFormat.getNumberInstance().apply {
                     maximumFractionDigits = 3
                     isGroupingUsed = false
                 }.format(mode.refreshRate.toDouble())
-                val message = if (displayNoticeRestoring) R.string.display_restored_mode else R.string.display_current_mode
+                if (displayOverride.manual && mode.modeId != displayNoticeTargetId && SystemClock.elapsedRealtime() < displayNoticeDeadline) {
+                    mainHandler.postDelayed(this, 250L)
+                    return
+                }
+                pendingDisplayNotice = false
+                if (displayOverride.manual && mode.modeId != displayNoticeTargetId) {
+                    onDisplayNotice(context.getString(R.string.manual_mode_unconfirmed), 10000L)
+                    return
+                }
+                val message = if (displayOverride.manual) R.string.manual_current_mode else if (displayNoticeRestoring) R.string.display_restored_mode else R.string.display_current_mode
                 onDisplayNotice(context.getString(message, mode.physicalHeight, rate), 10000L)
             }
         }
+    }
     }
 
     private fun startDisplayNotice(restoring: Boolean, targetModeId: Int? = null) {
@@ -102,8 +115,9 @@ class AfrController(
         pendingDisplayNotice = true
         displayNoticeTargetId = targetModeId
         displayNoticeRestoring = restoring
-        onDisplayNotice(context.getString(if (restoring) R.string.display_restoring else R.string.display_switching), 20000L)
-        mainHandler.postDelayed(displayNoticeComplete, 15000L)
+        displayNoticeDeadline = SystemClock.elapsedRealtime() + 15000L
+        onDisplayNotice(context.getString(if (displayOverride.manual) R.string.manual_switching else if (restoring) R.string.display_restoring else R.string.display_switching), 20000L)
+        mainHandler.postDelayed(displayNoticeComplete, if (displayOverride.manual) 250L else 15000L)
     }
 
     private var waitingForDisplayChangePlay: Boolean = false
@@ -139,7 +153,7 @@ class AfrController(
             if (pendingDisplayNotice && mode != null &&
                 (displayNoticeTargetId == null || mode.modeId == displayNoticeTargetId)) {
                 mainHandler.removeCallbacks(displayNoticeComplete)
-                mainHandler.postDelayed(displayNoticeComplete, 1500L)
+                mainHandler.postDelayed(displayNoticeComplete, if (displayOverride.manual) 250L else 1500L)
             }
             if (waitingForDisplayChangePlay && mode?.modeId == activeTargetModeId) {
                 mainHandler.removeCallbacks(resumePlayback)
@@ -159,6 +173,14 @@ class AfrController(
             var resolutionChangedAt = 0L
             while (!destroyed) {
                 try {
+                    if (displayOverride.manual && prefs.afrEnabled) {
+                        mainHandler.post {
+                            if (displayOverride.manual && prefs.afrEnabled) {
+                                displayOverride.select(manual = false)
+                                automaticSuspended = false
+                            }
+                        }
+                    }
                     refreshNativeVideoSize()
                     if (prefs.afrEnabled && automaticAppEligible && foregroundPackage in prefs.automaticAfrApps && !automaticSuspended) {
                         val appPackage = foregroundPackage
@@ -240,6 +262,8 @@ class AfrController(
 
     fun triggerOneClickAfr() {
         if (!freshDetectionRunning.compareAndSet(false, true)) return
+        val request = displayOverride.select(manual = false)
+        prefs.afrEnabled = true
         val requestedPackage = foregroundPackage
         automaticSuspended = true
         onBannerMessage(context.getString(R.string.fps_fresh_detection))
@@ -247,6 +271,7 @@ class AfrController(
             refreshNativeVideoSize()
             val info = try { ServerClient.forceFreshDetection() } catch (_: Exception) { null }
             mainHandler.post {
+                if (!displayOverride.accepts(request)) return@post
                 freshDetectionRunning.set(false)
                 automaticSuspended = false
                 if (destroyed || foregroundPackage != requestedPackage) return@post
@@ -334,11 +359,13 @@ class AfrController(
             return
         }
 
+        val request = displayOverride.generation
+        if (displayOverride.manual) return
         startDisplayNotice(restoring = false, targetModeId = chosen.modeId)
         if (pausePlaybackHandshake) {
             beginPauseHandshake()
             mainHandler.postDelayed({
-                applyDisplayModeDirect(chosen)
+                if (displayOverride.accepts(request)) applyDisplayModeDirect(chosen)
             }, 180L)
         } else {
             waitingForDisplayChangePlay = false
@@ -346,44 +373,17 @@ class AfrController(
         }
     }
 
-    fun applyModeId(modeId: Int, pausePlaybackHandshake: Boolean = prefs.pauseOnSwitch) {
+    fun applyModeId(modeId: Int) {
+        val target = getManualDisplayModes().find { it.modeId == modeId } ?: return
+        displayOverride.select(manual = true)
+        freshDetectionRunning.set(false)
+        prefs.afrEnabled = false
         automaticSuspended = true
-        val currentMode = getCurrentDisplayMode()
-        if (currentMode != null && currentMode.modeId == modeId) {
-            onBannerMessage(
-                context.getString(
-                    R.string.mode_already_active,
-                    currentMode.refreshRate
-                )
-            )
-            return
-        }
+        mainHandler.removeCallbacks(resumePlayback)
+        waitingForDisplayChangePlay = false
+        // No FPS detection, content mapping, pause handshake or delayed apply.
         startDisplayNotice(restoring = false, targetModeId = modeId)
-        if (pausePlaybackHandshake) {
-            beginPauseHandshake()
-            mainHandler.postDelayed({
-                applyModeIdInternal(modeId)
-            }, 180L)
-        } else {
-            applyModeIdInternal(modeId)
-        }
-    }
-
-    private fun applyModeIdInternal(modeId: Int) {
-        val target = getManualDisplayModes().find { it.modeId == modeId }
-        if (target != null) {
-            applyDisplayModeDirect(target)
-        } else {
-            ensureAfrOverlayCreated()
-            val v = afrOverlayView ?: return
-            val p = afrOverlayParams ?: return
-            p.preferredDisplayModeId = modeId
-            activeTargetModeId = modeId
-            isAfrActive = true
-            try {
-                windowManager.updateViewLayout(v, p)
-            } catch (_: Exception) {}
-        }
+        applyDisplayModeDirect(target)
     }
 
     private fun applyDisplayModeDirect(targetMode: Display.Mode) {
@@ -409,7 +409,9 @@ class AfrController(
 
         // Dual-punch: Enforce system preferred mode globally via DisplayManager HAL
         // This guarantees mode switching even when DAZN, Netflix, or Disney+ has a private secure window!
+        val request = displayOverride.generation
         displayCommands.execute {
+            if (!displayOverride.accepts(request)) return@execute
             ServerClient.setSystemDisplayMode(
                 targetMode.modeId,
                 targetMode.physicalWidth,
@@ -420,6 +422,7 @@ class AfrController(
     }
 
     fun stopAfr(silent: Boolean = false) {
+        displayOverride.select(manual = false)
         automaticSuspended = false
         mainHandler.removeCallbacks(resumePlayback)
         waitingForDisplayChangePlay = false
@@ -440,7 +443,9 @@ class AfrController(
         afrOverlayView = null
         afrOverlayParams = null
 
+        val request = displayOverride.generation
         displayCommands.execute {
+            if (!displayOverride.accepts(request)) return@execute
             ServerClient.clearSystemDisplayMode()
         }
 

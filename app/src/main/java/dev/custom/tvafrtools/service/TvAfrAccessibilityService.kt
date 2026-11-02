@@ -203,7 +203,7 @@ class TvAfrAccessibilityService : AccessibilityService() {
 
                     // If user navigated back to launcher (Projectivy, Google TV, ATV, etc.)
                     // or switched away from the foreground app, restore the previous display configuration.
-                    if (prefs.autoStopAfrOnExit && afrController.isAfrCurrentlyActive()) {
+                    if (prefs.autoStopAfrOnExit && afrController.isAfrCurrentlyActive() && !afrController.isManualOverrideActive()) {
                         if (isLauncherPackage(pkg) || (!oldPkg.isBlank() && !isLauncherPackage(oldPkg) && pkg != oldPkg)) {
                             afrController.stopAfr(silent = false)
                         }

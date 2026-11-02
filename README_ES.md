@@ -18,6 +18,11 @@
 
 ---
 
+## Novedades en 1.4.4
+
+- La selección manual prevalece sobre AFR automático y se mantiene al cambiar de app hasta seleccionar Auto o restablecer el modo.
+- [Notas de la versión](docs/releases/v1.4.4.md).
+
 ## Novedades en 1.4.3
 
 - Recupera el demonio tras un arranque fallido o una desconexión, con comprobaciones cada 15 segundos cuando el inicio automático está activado.

@@ -18,6 +18,11 @@
 
 ---
 
+## What's new in 1.4.4
+
+- Manual display selection overrides automatic AFR and remains active across app changes until Auto or display restoration is selected.
+- [Release notes](docs/releases/v1.4.4.md).
+
 ## What's new in 1.4.3
 
 - Automatically recovers the privileged daemon after a failed startup or disconnection, with connection checks every 15 seconds while automatic startup is enabled.

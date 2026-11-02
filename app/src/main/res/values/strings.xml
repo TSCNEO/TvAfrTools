@@ -294,4 +294,7 @@ Changes:
     <string name="overlay_refresh_rate">%1$s Hz</string>
     <string name="overlay_cinema">Cinema / series</string>
     <string name="overlay_mode_active">Active</string>
+    <string name="manual_switching">Manual: switching…</string>
+    <string name="manual_current_mode">Manual: %1$dp@%2$s Hz</string>
+    <string name="manual_mode_unconfirmed">Manual: display mode change could not be confirmed</string>
 </resources>
