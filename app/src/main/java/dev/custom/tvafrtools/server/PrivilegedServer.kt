@@ -1243,7 +1243,7 @@ object PrivilegedServer {
 
     private fun forceStopPackage(pkg: String): Boolean {
         if (pkg.isBlank()) return false
-        return try {
+        val ok = try {
             val amBinder = getSystemServiceBinder("activity")
             val amStub = Class.forName("android.app.IActivityManager\$Stub")
             val asIntf = amStub.getMethod("asInterface", IBinder::class.java)
@@ -1251,51 +1251,120 @@ object PrivilegedServer {
             val forceStop = am.javaClass.getMethod("forceStopPackage", String::class.java, Int::class.javaPrimitiveType)
             forceStop.invoke(am, pkg, 0)
             true
-        } catch (e: Throwable) {
-            e.printStackTrace()
+        } catch (_: Throwable) {
+            false
+        }
+        if (ok) return true
+        return try {
+            runShellCommand("am force-stop $pkg")
+            true
+        } catch (_: Throwable) {
             false
         }
     }
 
+    private fun isSystemOrExcludedPackage(pkg: String): Boolean {
+        if (pkg.isBlank()) return true
+        if (pkg == "dev.custom.tvafrtools" || pkg == "dev.custom.tvafrtools.alpha") return true
+        if (pkg.contains("launcher") || pkg.contains("tvrecommendations") || pkg.contains("freemytv")) return true
+        if (pkg.startsWith("com.android.systemui") || pkg == "com.nes.recents") return true
+        if (pkg.startsWith("android") || pkg == "com.google.android.gms") return true
+        if (pkg.startsWith("com.google.android.inputmethod") || pkg.startsWith("com.google.android.tts")) return true
+        if (pkg.startsWith("com.google.android.tv.remote") || pkg.startsWith("com.google.android.apps.mediashell")) return true
+        if (pkg.startsWith("com.droidlogic") || pkg.startsWith("org.dtvkit")) return true
+        return false
+    }
+
     private fun getRecentPackages(): List<String> {
-        val result = mutableListOf<String>()
+        val result = LinkedHashSet<String>()
+
+        // 1. ActivityTaskManager reflection across Android 9 to 14
         try {
             val atmClass = Class.forName("android.app.ActivityTaskManager")
             val getService = atmClass.getMethod("getService")
             val atm = getService.invoke(null)
-            val getTasks = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType)
-            val tasks = getTasks.invoke(atm, 15) as? List<*>
-            if (!tasks.isNullOrEmpty()) {
-                for (task in tasks) {
-                    if (task == null) continue
-                    val baseActivityField = task.javaClass.getField("baseActivity")
-                    val comp = baseActivityField.get(task) as? android.content.ComponentName ?: continue
-                    val pkg = comp.packageName
-                    if (pkg != "dev.custom.tvafrtools" && pkg != "dev.custom.tvafrtools.alpha" &&
-                        !pkg.contains("launcher") &&
-                        !pkg.contains("tvrecommendations") &&
-                        !pkg.startsWith("com.android.systemui") &&
-                        !result.contains(pkg)
-                    ) {
-                        result.add(pkg)
+            if (atm != null) {
+                var tasks: List<*>?
+                // Android 12+ (4 params: maxNum, filterOnlyVisibleRecents, keepIntentDefs, displayId)
+                try {
+                    val m4 = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+                    tasks = m4.invoke(atm, 25, false, false, 0) as? List<*>
+                } catch (_: NoSuchMethodException) {
+                    // Android 11 (3 params)
+                    try {
+                        val m3 = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+                        tasks = m3.invoke(atm, 25, false, false) as? List<*>
+                    } catch (_: NoSuchMethodException) {
+                        // Android 9/10 (1 param)
+                        val m1 = atm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType)
+                        tasks = m1.invoke(atm, 25) as? List<*>
+                    }
+                }
+                if (!tasks.isNullOrEmpty()) {
+                    for (task in tasks) {
+                        if (task == null) continue
+                        val baseActivityField = task.javaClass.getField("baseActivity")
+                        val comp = baseActivityField.get(task) as? android.content.ComponentName ?: continue
+                        val pkg = comp.packageName
+                        if (!isSystemOrExcludedPackage(pkg)) {
+                            result.add(pkg)
+                        }
                     }
                 }
             }
         } catch (_: Throwable) {
         }
-        return result
+
+        // 2. Dumpsys recents parsing fallback (universal on any Android version)
+        try {
+            val dumpsys = runShellCommand("dumpsys activity recents")
+            val regex = Regex("""(?:mActivityComponent|realActivity)=([a-zA-Z0-9._]+)/""")
+            for (match in regex.findAll(dumpsys)) {
+                val pkg = match.groupValues[1]
+                if (!isSystemOrExcludedPackage(pkg)) {
+                    result.add(pkg)
+                }
+            }
+        } catch (_: Throwable) {
+        }
+
+        return result.toList()
     }
 
     private fun cleanBackgroundApps(excludePkg: String): Int {
-        val recents = getRecentPackages()
+        val targets = LinkedHashSet<String>()
+        // 1. Recent tasks
+        targets.addAll(getRecentPackages())
+
+        // 2. Active user app processes (catches apps whose activities finished but retain background memory)
+        try {
+            val psOutput = runShellCommand("ps -A -o USER,NAME")
+            val userAppRegex = Regex("""^u0_a\d+\s+([a-zA-Z0-9._]+)""", RegexOption.MULTILINE)
+            for (match in userAppRegex.findAll(psOutput)) {
+                val rawName = match.groupValues[1]
+                val pkg = rawName.substringBefore(':')
+                if (pkg != excludePkg && !isSystemOrExcludedPackage(pkg)) {
+                    targets.add(pkg)
+                }
+            }
+        } catch (_: Throwable) {
+        }
+
         var killed = 0
-        for (pkg in recents) {
-            if (pkg != excludePkg && pkg != "dev.custom.tvafrtools" && pkg != "dev.custom.tvafrtools.alpha") {
+        for (pkg in targets) {
+            if (pkg != excludePkg && !isSystemOrExcludedPackage(pkg)) {
                 if (forceStopPackage(pkg)) {
                     killed++
                 }
             }
         }
+
+        // 3. Purge cached processes at framework level
+        try {
+            runShellCommand("cmd activity kill-all")
+        } catch (_: Throwable) {
+        }
+
         return killed
     }
 

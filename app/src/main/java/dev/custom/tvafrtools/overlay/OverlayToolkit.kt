@@ -556,6 +556,9 @@ class OverlayToolkit(
             // 3. Clear tracked background apps from RecentAppsManager
             dev.custom.tvafrtools.recents.RecentAppsManager.onRamCleaned(currentForegroundPkg)
 
+            // Allow the kernel and framework a brief moment to reclaim pages before measuring
+            try { Thread.sleep(400) } catch (_: InterruptedException) {}
+
             // 4. Measure freed memory
             val memAfter = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memAfter)
