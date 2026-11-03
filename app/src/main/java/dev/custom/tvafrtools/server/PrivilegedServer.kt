@@ -1263,20 +1263,49 @@ object PrivilegedServer {
         }
     }
 
-    private fun isSystemOrExcludedPackage(pkg: String): Boolean {
+    private fun isSystemFrameworkPackage(pkg: String): Boolean {
         if (pkg.isBlank()) return true
         if (pkg == "dev.custom.tvafrtools" || pkg == "dev.custom.tvafrtools.alpha") return true
-        if (pkg.contains("launcher") || pkg.contains("tvrecommendations") || pkg.contains("freemytv")) return true
-        if (pkg.startsWith("com.android.systemui") || pkg == "com.nes.recents") return true
-        if (pkg.startsWith("android") || pkg == "com.google.android.gms") return true
+        if (pkg.startsWith("com.android.systemui") || pkg == "com.nes.recents" || pkg.startsWith("com.nes.")) return true
         if (pkg.startsWith("com.google.android.inputmethod") || pkg.startsWith("com.google.android.tts")) return true
         if (pkg.startsWith("com.google.android.tv.remote") || pkg.startsWith("com.google.android.apps.mediashell")) return true
         if (pkg.startsWith("com.droidlogic") || pkg.startsWith("org.dtvkit")) return true
+        if (pkg == "com.google.android.katniss" || pkg == "com.google.android.tvrecommendations") return true
+        if (pkg == "com.android.tv.settings" || pkg == "com.android.vending") return true
+        if (pkg.startsWith("com.google.android.gms") || pkg == "com.google.process.gservices" || pkg == "com.google.android.ext.services") return true
+        if (pkg == "android" || pkg.startsWith("android.process.") || pkg.startsWith("com.android.providers.")) return true
         return false
+    }
+
+    private fun getLaunchablePackages(): Set<String> {
+        val result = HashSet<String>()
+        try {
+            val out = runShellCommand("cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LEANBACK_LAUNCHER; cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER")
+            val regex = Regex("""^\s*([a-zA-Z0-9._]+)/""", RegexOption.MULTILINE)
+            for (m in regex.findAll(out)) {
+                result.add(m.groupValues[1])
+            }
+        } catch (_: Throwable) {
+        }
+        return result
+    }
+
+    private fun getHomeLauncherPackages(): Set<String> {
+        val result = HashSet<String>()
+        try {
+            val out = runShellCommand("cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME")
+            val regex = Regex("""^\s*([a-zA-Z0-9._]+)/""", RegexOption.MULTILINE)
+            for (m in regex.findAll(out)) {
+                result.add(m.groupValues[1])
+            }
+        } catch (_: Throwable) {
+        }
+        return result
     }
 
     private fun getRecentPackages(): List<String> {
         val result = LinkedHashSet<String>()
+        val homeLaunchers = getHomeLauncherPackages()
 
         // 1. ActivityTaskManager reflection across Android 9 to 14
         try {
@@ -1306,7 +1335,7 @@ object PrivilegedServer {
                         val baseActivityField = task.javaClass.getField("baseActivity")
                         val comp = baseActivityField.get(task) as? android.content.ComponentName ?: continue
                         val pkg = comp.packageName
-                        if (!isSystemOrExcludedPackage(pkg)) {
+                        if (!isSystemFrameworkPackage(pkg) && !homeLaunchers.contains(pkg) && !pkg.contains("launcher")) {
                             result.add(pkg)
                         }
                     }
@@ -1321,7 +1350,7 @@ object PrivilegedServer {
             val regex = Regex("""(?:mActivityComponent|realActivity)=([a-zA-Z0-9._]+)/""")
             for (match in regex.findAll(dumpsys)) {
                 val pkg = match.groupValues[1]
-                if (!isSystemOrExcludedPackage(pkg)) {
+                if (!isSystemFrameworkPackage(pkg) && !homeLaunchers.contains(pkg) && !pkg.contains("launcher")) {
                     result.add(pkg)
                 }
             }
@@ -1332,18 +1361,31 @@ object PrivilegedServer {
     }
 
     private fun cleanBackgroundApps(excludePkg: String): Int {
-        val targets = LinkedHashSet<String>()
-        // 1. Recent tasks
-        targets.addAll(getRecentPackages())
+        val launchable = getLaunchablePackages()
+        val homeLaunchers = getHomeLauncherPackages()
+        val recents = getRecentPackages()
 
-        // 2. Active user app processes (catches apps whose activities finished but retain background memory)
+        val targets = LinkedHashSet<String>()
+        // 1. Recent interactive tasks
+        for (pkg in recents) {
+            if (pkg != excludePkg && !homeLaunchers.contains(pkg) && !isSystemFrameworkPackage(pkg)) {
+                targets.add(pkg)
+            }
+        }
+
+        // 2. Active user app processes (only if they are real launchable apps, filtering out background daemons)
         try {
             val psOutput = runShellCommand("ps -A -o USER,NAME")
             val userAppRegex = Regex("""^u0_a\d+\s+([a-zA-Z0-9._]+)""", RegexOption.MULTILINE)
             for (match in userAppRegex.findAll(psOutput)) {
                 val rawName = match.groupValues[1]
                 val pkg = rawName.substringBefore(':')
-                if (pkg != excludePkg && !isSystemOrExcludedPackage(pkg)) {
+                if (pkg != excludePkg &&
+                    !homeLaunchers.contains(pkg) &&
+                    !pkg.contains("launcher") &&
+                    !isSystemFrameworkPackage(pkg) &&
+                    launchable.contains(pkg)
+                ) {
                     targets.add(pkg)
                 }
             }
@@ -1352,10 +1394,8 @@ object PrivilegedServer {
 
         var killed = 0
         for (pkg in targets) {
-            if (pkg != excludePkg && !isSystemOrExcludedPackage(pkg)) {
-                if (forceStopPackage(pkg)) {
-                    killed++
-                }
+            if (forceStopPackage(pkg)) {
+                killed++
             }
         }
 
